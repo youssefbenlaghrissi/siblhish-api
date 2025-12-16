@@ -2,7 +2,7 @@
 nixPkgs = ["jdk21"]
 
 [phases.build]
-cmds = ["./gradlew bootJar -x test"]
+cmds = ["chmod +x gradlew", "./gradlew bootJar -x test"]
 
 [start]
 cmd = "java -jar build/libs/siblhish-api-0.0.1-SNAPSHOT.jar"
