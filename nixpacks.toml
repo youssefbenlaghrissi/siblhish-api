@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["gradle"]
+
+[phases.install]
+cmds = ["gradle build -x test"]
+
+[phases.build]
+cmds = ["gradle build -x test"]
+
+[start]
+cmd = "./gradlew bootRun"
+
