@@ -1,0 +1,18 @@
+spring.application.name=siblhish-api
+
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/siblhish
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.format_sql=true
+
+# API Configuration
+server.servlet.context-path=/api/v1
+server.port=8081
+
