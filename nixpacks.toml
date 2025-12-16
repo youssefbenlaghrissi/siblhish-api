@@ -1,12 +1,8 @@
 [phases.setup]
-nixPkgs = ["gradle"]
-
-[phases.install]
-cmds = ["gradle build -x test"]
+nixPkgs = ["jdk21"]
 
 [phases.build]
-cmds = ["gradle build -x test"]
+cmds = ["./gradlew bootJar -x test"]
 
 [start]
-cmd = "./gradlew bootRun"
-
+cmd = "java -jar build/libs/siblhish-api-0.0.1-SNAPSHOT.jar"
