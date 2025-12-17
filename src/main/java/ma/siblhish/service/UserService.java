@@ -3,6 +3,7 @@ package ma.siblhish.service;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.User;
+import ma.siblhish.enums.UserType;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,21 @@ public class UserService {
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+    }
+
+    public User findOrCreateByEmail(String email, String displayName, String provider) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    String[] names = displayName.split(" ", 2);
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setFirstName(names.length > 0 ? names[0] : "User");
+                    newUser.setLastName(names.length > 1 ? names[1] : "");
+                    newUser.setPassword("oauth_" + provider); // Mot de passe fictif pour OAuth
+                    newUser.setType(UserType.EMPLOYEE);
+                    newUser.setLanguage("fr");
+                    return userRepository.save(newUser);
+                });
     }
 }
 
