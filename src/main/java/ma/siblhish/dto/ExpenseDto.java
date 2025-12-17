@@ -7,6 +7,7 @@ import ma.siblhish.enums.PaymentMethod;
 import ma.siblhish.enums.RecurrenceFrequency;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -20,6 +21,10 @@ public class ExpenseDto {
     private String location;
     private Boolean isRecurring;
     private RecurrenceFrequency recurrenceFrequency;
+    private LocalDateTime recurrenceEndDate;
+    private List<Integer> recurrenceDaysOfWeek;
+    private Integer recurrenceDayOfMonth;
+    private Integer recurrenceDayOfYear;
     private Long userId;
     private CategoryDto category;
 }

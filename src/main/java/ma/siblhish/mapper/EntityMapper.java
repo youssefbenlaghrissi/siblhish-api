@@ -38,6 +38,10 @@ public class EntityMapper {
         dto.setLocation(expense.getLocation());
         dto.setIsRecurring(expense.getIsRecurring());
         dto.setRecurrenceFrequency(expense.getRecurrenceFrequency());
+        dto.setRecurrenceEndDate(expense.getRecurrenceEndDate());
+        dto.setRecurrenceDaysOfWeek(expense.getRecurrenceDaysOfWeek());
+        dto.setRecurrenceDayOfMonth(expense.getRecurrenceDayOfMonth());
+        dto.setRecurrenceDayOfYear(expense.getRecurrenceDayOfYear());
         dto.setUserId(expense.getUser().getId());
         dto.setCategory(toCategoryDto(expense.getCategory()));
         return dto;
@@ -59,6 +63,10 @@ public class EntityMapper {
         dto.setSource(income.getSource());
         dto.setIsRecurring(income.getIsRecurring());
         dto.setRecurrenceFrequency(income.getRecurrenceFrequency());
+        dto.setRecurrenceEndDate(income.getRecurrenceEndDate());
+        dto.setRecurrenceDaysOfWeek(income.getRecurrenceDaysOfWeek());
+        dto.setRecurrenceDayOfMonth(income.getRecurrenceDayOfMonth());
+        dto.setRecurrenceDayOfYear(income.getRecurrenceDayOfYear());
         dto.setUserId(income.getUser().getId());
         return dto;
     }

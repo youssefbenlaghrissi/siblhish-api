@@ -64,6 +64,10 @@ public class IncomeService {
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         income.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        income.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        income.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        income.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        income.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         income.setUser(user);
         
         Income saved = incomeRepository.save(income);
@@ -82,6 +86,10 @@ public class IncomeService {
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         income.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        income.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        income.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        income.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        income.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         
         Income saved = incomeRepository.save(income);
         return mapper.toIncomeDto(saved);

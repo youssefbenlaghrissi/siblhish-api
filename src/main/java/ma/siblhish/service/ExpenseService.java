@@ -70,6 +70,10 @@ public class ExpenseService {
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         expense.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        expense.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         expense.setUser(user);
         expense.setCategory(category);
         
@@ -92,6 +96,10 @@ public class ExpenseService {
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         expense.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        expense.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         expense.setCategory(category);
         
         Expense saved = expenseRepository.save(expense);
