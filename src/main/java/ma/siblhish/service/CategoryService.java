@@ -27,20 +27,12 @@ public class CategoryService {
 
     @Transactional
     public CategoryDto createCategory(CategoryRequestDto request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
-        
         Category category = new Category();
         category.setName(request.getName());
         category.setIcon(request.getIcon());
         category.setColor(request.getColor());
         
         Category saved = categoryRepository.save(category);
-        
-        // Add category to user's categories
-        user.getCategories().add(saved);
-        userRepository.save(user);
-        
         return mapper.toCategoryDto(saved);
     }
 
@@ -64,9 +56,9 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
-    public List<CategoryDto> getDefaultCategories() {
-        // TODO: Return default categories (Alimentation, Transport, Loisirs, etc.)
-        return List.of();
+    public List<CategoryDto> getAllCategories() {
+        List<Category> categories = categoryRepository.findAllCategories();
+        return mapper.toCategoryDtoList(categories);
     }
 
     public Category getCategoryById(Long categoryId) {

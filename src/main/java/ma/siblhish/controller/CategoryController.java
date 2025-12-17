@@ -59,11 +59,11 @@ public class CategoryController {
     }
 
     /**
-     * Obtenir les catégories par défaut
+     * Liste de toutes les catégories (pour paramétrage)
      */
-    @GetMapping("/default")
-    public ResponseEntity<ApiResponse<List<CategoryDto>>> getDefaultCategories() {
-        List<CategoryDto> categories = categoryService.getDefaultCategories();
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CategoryDto>>> getAllCategories() {
+        List<CategoryDto> categories = categoryService.getAllCategories();
         return ResponseEntity.ok(ApiResponse.success(categories));
     }
 }
