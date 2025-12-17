@@ -35,6 +35,8 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     
     List<Expense> findByUserIdAndIsRecurringTrue(Long userId);
     
+    List<Expense> findByUserIdOrderByDateDesc(Long userId);
+    
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId")
     Double getTotalExpensesByUserId(@Param("userId") Long userId);
     

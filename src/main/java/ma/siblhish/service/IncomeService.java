@@ -98,5 +98,10 @@ public class IncomeService {
         List<Income> incomes = incomeRepository.findByUserIdAndIsRecurringTrue(userId);
         return mapper.toIncomeDtoList(incomes);
     }
+
+    public List<IncomeDto> getIncomesByUser(Long userId) {
+        List<Income> incomes = incomeRepository.findByUserIdOrderByDateDesc(userId);
+        return mapper.toIncomeDtoList(incomes);
+    }
 }
 

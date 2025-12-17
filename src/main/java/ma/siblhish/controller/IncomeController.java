@@ -23,22 +23,11 @@ public class IncomeController {
     private final IncomeService incomeService;
 
     /**
-     * Liste des revenus avec filtres et pagination
+     * Liste des revenus par utilisateur (triés par date desc)
      */
-    @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<PageResponseDto<IncomeDto>>> getIncomes(
-            @PathVariable Long userId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) String source,
-            @RequestParam(required = false) Double minAmount,
-            @RequestParam(required = false) Double maxAmount,
-            @RequestParam(required = false) PaymentMethod paymentMethod,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "20") Integer size,
-            @RequestParam(defaultValue = "date,desc") String sort) {
-        PageResponseDto<IncomeDto> incomes = incomeService.getIncomes(
-                userId, startDate, endDate, source, minAmount, maxAmount, paymentMethod, page, size, sort);
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<IncomeDto>>> getIncomesByUser(@PathVariable Long userId) {
+        List<IncomeDto> incomes = incomeService.getIncomesByUser(userId);
         return ResponseEntity.ok(ApiResponse.success(incomes));
     }
 

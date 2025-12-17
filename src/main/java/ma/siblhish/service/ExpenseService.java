@@ -109,5 +109,10 @@ public class ExpenseService {
         List<Expense> expenses = expenseRepository.findByUserIdAndIsRecurringTrue(userId);
         return mapper.toExpenseDtoList(expenses);
     }
+
+    public List<ExpenseDto> getExpensesByUser(Long userId) {
+        List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(userId);
+        return mapper.toExpenseDtoList(expenses);
+    }
 }
 

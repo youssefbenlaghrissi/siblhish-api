@@ -22,22 +22,11 @@ public class ExpenseController {
     private final ExpenseService expenseService;
 
     /**
-     * Liste des dépenses avec filtres et pagination
+     * Liste des dépenses par utilisateur (triées par date desc)
      */
-    @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<PageResponseDto<ExpenseDto>>> getExpenses(
-            @PathVariable Long userId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Double minAmount,
-            @RequestParam(required = false) Double maxAmount,
-            @RequestParam(required = false) PaymentMethod paymentMethod,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "20") Integer size,
-            @RequestParam(defaultValue = "date,desc") String sort) {
-        PageResponseDto<ExpenseDto> expenses = expenseService.getExpenses(
-                userId, startDate, endDate, categoryId, minAmount, maxAmount, paymentMethod, page, size, sort);
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<java.util.List<ExpenseDto>>> getExpensesByUser(@PathVariable Long userId) {
+        java.util.List<ExpenseDto> expenses = expenseService.getExpensesByUser(userId);
         return ResponseEntity.ok(ApiResponse.success(expenses));
     }
 
