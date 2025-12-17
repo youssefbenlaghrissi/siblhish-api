@@ -169,6 +169,31 @@ public class EntityMapper {
         return notifications.stream().map(this::toNotificationDto).collect(Collectors.toList());
     }
 
+    // Scheduled Payment Mappers
+    public ScheduledPaymentDto toScheduledPaymentDto(ScheduledPayment payment) {
+        if (payment == null) return null;
+        ScheduledPaymentDto dto = new ScheduledPaymentDto();
+        dto.setId(payment.getId());
+        dto.setName(payment.getName());
+        dto.setAmount(payment.getAmount());
+        dto.setPaymentMethod(payment.getPaymentMethod());
+        dto.setBeneficiary(payment.getBeneficiary());
+        dto.setDueDate(payment.getDueDate());
+        dto.setIsRecurring(payment.getIsRecurring());
+        dto.setRecurrenceFrequency(payment.getRecurrenceFrequency());
+        dto.setNotificationOption(payment.getNotificationOption());
+        dto.setIsPaid(payment.getIsPaid());
+        dto.setPaidDate(payment.getPaidDate());
+        dto.setUserId(payment.getUser().getId());
+        dto.setCategoryId(payment.getCategory().getId());
+        dto.setCategory(toCategoryDto(payment.getCategory()));
+        return dto;
+    }
+
+    public List<ScheduledPaymentDto> toScheduledPaymentDtoList(List<ScheduledPayment> payments) {
+        return payments.stream().map(this::toScheduledPaymentDto).collect(Collectors.toList());
+    }
+
     // Page Response Mapper
     public <T> PageResponseDto<T> toPageResponseDto(Page<T> page) {
         PageResponseDto<T> response = new PageResponseDto<>();
