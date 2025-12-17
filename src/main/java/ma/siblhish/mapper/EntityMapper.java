@@ -156,7 +156,8 @@ public class EntityMapper {
                 user.getEmail(),
                 user.getType(),
                 user.getLanguage(),
-                user.getMonthlySalary()
+                user.getMonthlySalary(),
+                user.getNotificationsEnabled()
         );
     }
 

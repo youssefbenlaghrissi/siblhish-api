@@ -49,6 +49,9 @@ public class User extends AbstractEntity {
     @Column(name = "monthly_salary")
     private Double monthlySalary;
 
+    @Column(name = "notifications_enabled", nullable = false)
+    private Boolean notificationsEnabled = true;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Expense> expenses = new ArrayList<>();
 

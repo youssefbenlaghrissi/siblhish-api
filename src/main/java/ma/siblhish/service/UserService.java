@@ -32,6 +32,7 @@ public class UserService {
         if (request.getType() != null) user.setType(request.getType());
         if (request.getLanguage() != null) user.setLanguage(request.getLanguage());
         if (request.getMonthlySalary() != null) user.setMonthlySalary(request.getMonthlySalary());
+        if (request.getNotificationsEnabled() != null) user.setNotificationsEnabled(request.getNotificationsEnabled());
         
         User saved = userRepository.save(user);
         return mapper.toUserProfileDto(saved);

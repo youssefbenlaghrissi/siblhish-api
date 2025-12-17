@@ -5,8 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import ma.siblhish.entities.Expense;
 import ma.siblhish.entities.Income;
 import ma.siblhish.enums.RecurrenceFrequency;
+import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.IncomeRepository;
+import ma.siblhish.service.NotificationService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ public class RecurringTransactionService {
 
     private final ExpenseRepository expenseRepository;
     private final IncomeRepository incomeRepository;
+    private final NotificationService notificationService;
 
     /**
      * Traitement par lot qui s'exécute chaque jour à 2h du matin
@@ -60,7 +63,15 @@ public class RecurringTransactionService {
                     
                     if (!transactionExists(template.getUser().getId(), template.getAmount(), 
                             template.getMethod(), today, true)) {
-                        createRecurringExpense(template, today);
+                        Expense created = createRecurringExpense(template, today);
+                        // Créer une notification pour l'utilisateur
+                        createRecurringTransactionNotification(
+                            template.getUser().getId(),
+                            "Dépense récurrente créée",
+                            String.format("Une dépense récurrente de %.2f MAD a été créée automatiquement.", 
+                                template.getAmount()),
+                            created.getCategory() != null ? created.getCategory().getName() : "Dépense"
+                        );
                         expensesGenerated++;
                     }
                 }
@@ -86,7 +97,15 @@ public class RecurringTransactionService {
                     
                     if (!transactionExists(template.getUser().getId(), template.getAmount(), 
                             template.getMethod(), today, false)) {
-                        createRecurringIncome(template, today);
+                        Income created = createRecurringIncome(template, today);
+                        // Créer une notification pour l'utilisateur
+                        createRecurringTransactionNotification(
+                            template.getUser().getId(),
+                            "Revenu récurrent créé",
+                            String.format("Un revenu récurrent de %.2f MAD a été créé automatiquement.", 
+                                template.getAmount()),
+                            template.getSource() != null ? template.getSource() : "Revenu"
+                        );
                         incomesGenerated++;
                     }
                 }
@@ -197,7 +216,7 @@ public class RecurringTransactionService {
     /**
      * Crée une nouvelle dépense basée sur le template récurrent
      */
-    private void createRecurringExpense(Expense template, LocalDateTime date) {
+    private Expense createRecurringExpense(Expense template, LocalDateTime date) {
         Expense newExpense = new Expense();
         newExpense.setAmount(template.getAmount());
         newExpense.setMethod(template.getMethod());
@@ -209,15 +228,16 @@ public class RecurringTransactionService {
         newExpense.setUser(template.getUser());
         newExpense.setCategory(template.getCategory());
         
-        expenseRepository.save(newExpense);
+        Expense saved = expenseRepository.save(newExpense);
         log.debug("✅ Dépense récurrente créée: {} MAD pour l'utilisateur {}", 
                 template.getAmount(), template.getUser().getId());
+        return saved;
     }
 
     /**
      * Crée un nouveau revenu basé sur le template récurrent
      */
-    private void createRecurringIncome(Income template, LocalDateTime date) {
+    private Income createRecurringIncome(Income template, LocalDateTime date) {
         Income newIncome = new Income();
         newIncome.setAmount(template.getAmount());
         newIncome.setMethod(template.getMethod());
@@ -228,9 +248,30 @@ public class RecurringTransactionService {
         newIncome.setRecurrenceFrequency(null);
         newIncome.setUser(template.getUser());
         
-        incomeRepository.save(newIncome);
+        Income saved = incomeRepository.save(newIncome);
         log.debug("✅ Revenu récurrent créé: {} MAD pour l'utilisateur {}", 
                 template.getAmount(), template.getUser().getId());
+        return saved;
+    }
+
+    /**
+     * Crée une notification pour une transaction récurrente créée automatiquement
+     */
+    private void createRecurringTransactionNotification(Long userId, String title, 
+                                                       String description, String categoryName) {
+        try {
+            notificationService.createNotification(
+                userId,
+                title,
+                description + (categoryName != null ? " (" + categoryName + ")" : ""),
+                TypeNotification.RECURRING_TRANSACTION
+            );
+            log.debug("📬 Notification créée pour l'utilisateur {}", userId);
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de la création de la notification pour l'utilisateur {}: {}", 
+                    userId, e.getMessage());
+            // Ne pas bloquer la création de la transaction si la notification échoue
+        }
     }
 }
 
