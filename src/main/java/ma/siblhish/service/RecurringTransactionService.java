@@ -30,7 +30,7 @@ public class RecurringTransactionService {
      * Traitement par lot qui s'exécute chaque jour à 2h du matin
      * Génère automatiquement les transactions récurrentes
      */
-    @Scheduled(cron = "0 0 2 * * ?") // Tous les jours à 2h du matin
+    @Scheduled(cron = "0 0 0 * * ?") // Tous les jours à 2h du matin
     @Transactional
     public void generateRecurringTransactions() {
         generateRecurringTransactionsForDate(LocalDateTime.now());
