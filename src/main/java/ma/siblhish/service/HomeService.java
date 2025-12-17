@@ -10,13 +10,11 @@ import ma.siblhish.repository.IncomeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -35,27 +33,10 @@ public class HomeService {
         totalIncome = totalIncome != null ? totalIncome : 0.0;
         totalExpenses = totalExpenses != null ? totalExpenses : 0.0;
         
-        LocalDate now = LocalDate.now();
-        LocalDate monthStart = now.withDayOfMonth(1);
-        LocalDate monthEnd = now.withDayOfMonth(now.lengthOfMonth());
-        
-        LocalDateTime monthStartDateTime = monthStart.atStartOfDay();
-        LocalDateTime monthEndDateTime = monthEnd.atTime(23, 59, 59);
-        
-        Double monthlyIncome = incomeRepository.getTotalIncomeByUserIdAndDateRange(
-                userId, monthStartDateTime, monthEndDateTime);
-        Double monthlyExpenses = expenseRepository.getTotalExpensesByUserIdAndDateRange(
-                userId, monthStartDateTime, monthEndDateTime);
-        
-        monthlyIncome = monthlyIncome != null ? monthlyIncome : 0.0;
-        monthlyExpenses = monthlyExpenses != null ? monthlyExpenses : 0.0;
-        
         return new BalanceDto(
                 totalIncome,
                 totalExpenses,
-                totalIncome - totalExpenses,
-                monthlyIncome,
-                monthlyExpenses
+                totalIncome - totalExpenses
         );
     }
 

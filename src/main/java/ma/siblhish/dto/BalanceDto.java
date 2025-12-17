@@ -11,7 +11,5 @@ public class BalanceDto {
     private Double totalIncome;
     private Double totalExpenses;
     private Double currentBalance;
-    private Double monthlyIncome;
-    private Double monthlyExpenses;
 }
 
