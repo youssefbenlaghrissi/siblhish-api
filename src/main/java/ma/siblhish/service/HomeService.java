@@ -40,38 +40,38 @@ public class HomeService {
         );
     }
 
-    public List<TransactionDto> getRecentTransactions(
-            Long userId, 
-            Integer limit, 
-            String type,
-            String dateRange,
-            String startDateStr,
-            String endDateStr,
-            Double minAmount,
-            Double maxAmount) {
-        
+    /**
+     * Obtenir les transactions récentes (sans filtres - les filtres sont appliqués côté frontend)
+     * Récupère les N dépenses et N revenus les plus récents, les combine et les trie par date.
+     */
+    public List<TransactionDto> getRecentTransactions(Long userId, Integer limit) {
         List<TransactionDto> transactions = new ArrayList<>();
         
-        // Pour les transactions récentes simples (sans filtres complexes), utiliser les méthodes directes
-        // qui sont déjà triées par date desc
-        if (type == null || "expense".equalsIgnoreCase(type)) {
-            List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(userId);
-            transactions.addAll(expenses.stream()
-                    .map(mapper::toTransactionDto)
-                    .collect(Collectors.toList()));
-        }
+        // Récupérer les N dépenses les plus récentes (multiplier par 2 pour avoir assez de données à filtrer)
+        List<Expense> recentExpenses = expenseRepository.findByUserIdOrderByDateDesc(userId)
+                .stream()
+                .limit(limit * 2L)
+                .collect(Collectors.toList());
         
-        // Récupérer les revenus
-        if (type == null || "income".equalsIgnoreCase(type)) {
-            List<Income> incomes = incomeRepository.findByUserIdOrderByDateDesc(userId);
-            transactions.addAll(incomes.stream()
-                    .map(mapper::toTransactionDto)
-                    .collect(Collectors.toList()));
-        }
+        // Récupérer les N revenus les plus récents
+        List<Income> recentIncomes = incomeRepository.findByUserIdOrderByDateDesc(userId)
+                .stream()
+                .limit(limit * 2L)
+                .collect(Collectors.toList());
         
-        // Trier par date (plus récent en premier) et limiter
+        // Convertir en DTOs
+        recentExpenses.forEach(expense -> 
+            transactions.add(mapper.toTransactionDto(expense))
+        );
+        recentIncomes.forEach(income -> 
+            transactions.add(mapper.toTransactionDto(income))
+        );
+        
+        // Trier par date (plus récent en premier)
+        transactions.sort(Comparator.comparing(TransactionDto::getDate).reversed());
+        
+        // Retourner seulement les N premières (le frontend appliquera les filtres)
         return transactions.stream()
-                .sorted(Comparator.comparing(TransactionDto::getDate).reversed())
                 .limit(limit)
                 .collect(Collectors.toList());
     }
