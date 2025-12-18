@@ -12,6 +12,7 @@ import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -40,7 +41,9 @@ public class ExpenseService {
         Expense expense = new Expense();
         expense.setAmount(request.getAmount());
         expense.setMethod(request.getMethod());
-        expense.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        expense.setCreationDate(request.getDate() != null ? request.getDate() : now);
+        expense.setUpdateDate(now);
         expense.setDescription(request.getDescription());
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -66,7 +69,11 @@ public class ExpenseService {
         
         expense.setAmount(request.getAmount());
         expense.setMethod(request.getMethod());
-        expense.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
+        // Mettre à jour creationDate si fournie, sinon garder l'ancienne valeur
+        if (request.getDate() != null) {
+            expense.setCreationDate(request.getDate());
+        }
+        expense.setUpdateDate(LocalDateTime.now());
         expense.setDescription(request.getDescription());
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);

@@ -10,6 +10,7 @@ import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -31,6 +32,9 @@ public class CategoryService {
         category.setName(request.getName());
         category.setIcon(request.getIcon());
         category.setColor(request.getColor());
+        LocalDateTime now = java.time.LocalDateTime.now();
+        category.setCreationDate(now);
+        category.setUpdateDate(now);
         
         Category saved = categoryRepository.save(category);
         return mapper.toCategoryDto(saved);
@@ -44,6 +48,7 @@ public class CategoryService {
         category.setName(request.getName());
         if (request.getIcon() != null) category.setIcon(request.getIcon());
         if (request.getColor() != null) category.setColor(request.getColor());
+        category.setUpdateDate(java.time.LocalDateTime.now());
         
         Category saved = categoryRepository.save(category);
         return mapper.toCategoryDto(saved);

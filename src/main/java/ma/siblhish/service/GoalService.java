@@ -12,6 +12,7 @@ import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -41,6 +42,9 @@ public class GoalService {
         goal.setTargetDate(request.getTargetDate());
         goal.setIsAchieved(false);
         goal.setUser(user);
+        LocalDateTime now = java.time.LocalDateTime.now();
+        goal.setCreationDate(now);
+        goal.setUpdateDate(now);
         
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())

@@ -61,6 +61,9 @@ public class ScheduledPaymentService {
         payment.setIsPaid(false);
         payment.setUser(user);
         payment.setCategory(category);
+        LocalDateTime now = java.time.LocalDateTime.now();
+        payment.setCreationDate(now);
+        payment.setUpdateDate(now);
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         return mapper.toScheduledPaymentDto(saved);
@@ -85,6 +88,7 @@ public class ScheduledPaymentService {
         if (request.getIsRecurring() != null) payment.setIsRecurring(request.getIsRecurring());
         if (request.getRecurrenceFrequency() != null) payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
         if (request.getNotificationOption() != null) payment.setNotificationOption(request.getNotificationOption());
+        payment.setUpdateDate(java.time.LocalDateTime.now());
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         return mapper.toScheduledPaymentDto(saved);
@@ -119,6 +123,9 @@ public class ScheduledPaymentService {
         nextPayment.setIsPaid(false);
         nextPayment.setUser(payment.getUser());
         nextPayment.setCategory(payment.getCategory());
+        LocalDateTime now = java.time.LocalDateTime.now();
+        nextPayment.setCreationDate(now);
+        nextPayment.setUpdateDate(now);
 
         LocalDateTime nextDueDate = switch (payment.getRecurrenceFrequency()) {
             case DAILY -> payment.getDueDate().plusDays(1);

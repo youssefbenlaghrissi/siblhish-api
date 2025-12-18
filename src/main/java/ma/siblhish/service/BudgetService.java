@@ -57,7 +57,9 @@ public class BudgetService {
         budget.setEndDate(request.getEndDate());
         budget.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         budget.setUser(user);
-        
+        LocalDateTime now = java.time.LocalDateTime.now();
+        budget.setCreationDate(now);
+
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
@@ -78,6 +80,7 @@ public class BudgetService {
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
         if (request.getIsActive() != null) budget.setIsActive(request.getIsActive());
+        budget.setUpdateDate(java.time.LocalDateTime.now());
         
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())

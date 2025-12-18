@@ -10,6 +10,7 @@ import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -34,7 +35,9 @@ public class IncomeService {
         Income income = new Income();
         income.setAmount(request.getAmount());
         income.setMethod(request.getMethod());
-        income.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        income.setCreationDate(request.getDate() != null ? request.getDate() : now);
+        income.setUpdateDate(now);
         income.setDescription(request.getDescription());
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -56,7 +59,11 @@ public class IncomeService {
         
         income.setAmount(request.getAmount());
         income.setMethod(request.getMethod());
-        income.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
+        // Mettre à jour creationDate si fournie, sinon garder l'ancienne valeur
+        if (request.getDate() != null) {
+            income.setCreationDate(request.getDate());
+        }
+        income.setUpdateDate(LocalDateTime.now());
         income.setDescription(request.getDescription());
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
