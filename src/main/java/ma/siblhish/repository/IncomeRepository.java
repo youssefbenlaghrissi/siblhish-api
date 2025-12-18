@@ -14,8 +14,6 @@ import java.util.List;
 
 @Repository
 public interface IncomeRepository extends JpaRepository<Income, Long> {
-    Page<Income> findByUserId(Long userId, Pageable pageable);
-    
     @Query("SELECT i FROM Income i WHERE i.user.id = :userId " +
            "AND (:startDate IS NULL OR i.date >= :startDate) " +
            "AND (:endDate IS NULL OR i.date <= :endDate) " +

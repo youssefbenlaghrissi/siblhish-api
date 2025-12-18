@@ -5,20 +5,13 @@ import ma.siblhish.dto.*;
 import ma.siblhish.entities.Category;
 import ma.siblhish.entities.Expense;
 import ma.siblhish.entities.User;
-import ma.siblhish.enums.PaymentMethod;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -29,24 +22,6 @@ public class ExpenseService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
-
-    public PageResponseDto<ExpenseDto> getExpenses(Long userId, LocalDate startDate, LocalDate endDate,
-                                                   Long categoryId, Double minAmount, Double maxAmount,
-                                                   PaymentMethod paymentMethod, Integer page, Integer size, String sort) {
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
-        LocalDateTime endDateTime = endDate != null ? endDate.atTime(23, 59, 59) : null;
-        
-        String[] sortParams = sort.split(",");
-        Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
-                ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
-        
-        Page<Expense> expenses = expenseRepository.findExpensesWithFilters(
-                userId, startDateTime, endDateTime, categoryId, minAmount, maxAmount, paymentMethod, pageable);
-        
-        PageResponseDto<ExpenseDto> response = mapper.toPageResponseDto(expenses.map(mapper::toExpenseDto));
-        return response;
-    }
 
     public ExpenseDto getExpenseById(Long expenseId) {
         Expense expense = expenseRepository.findById(expenseId)

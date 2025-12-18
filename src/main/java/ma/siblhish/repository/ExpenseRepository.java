@@ -14,8 +14,6 @@ import java.util.List;
 
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
-    Page<Expense> findByUserId(Long userId, Pageable pageable);
-    
     @Query("SELECT e FROM Expense e WHERE e.user.id = :userId " +
            "AND (:startDate IS NULL OR e.date >= :startDate) " +
            "AND (:endDate IS NULL OR e.date <= :endDate) " +

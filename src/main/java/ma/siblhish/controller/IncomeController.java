@@ -3,13 +3,10 @@ package ma.siblhish.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
-import ma.siblhish.enums.PaymentMethod;
 import ma.siblhish.service.IncomeService;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**
