@@ -40,26 +40,68 @@ public class HomeService {
         );
     }
 
-    public List<TransactionDto> getRecentTransactions(Long userId, Integer limit, String type) {
-        List<TransactionDto> transactions = new ArrayList<>();
+    public List<TransactionDto> getRecentTransactions(
+            Long userId, 
+            Integer limit, 
+            String type,
+            String dateRange,
+            String startDateStr,
+            String endDateStr,
+            Double minAmount,
+            Double maxAmount) {
         
+        // Calculer les dates de début et fin selon le dateRange
+        LocalDateTime startDate = null;
+        LocalDateTime endDate = null;
+        
+        if (dateRange != null) {
+            LocalDateTime now = LocalDateTime.now();
+            switch (dateRange) {
+                case "3days":
+                    startDate = now.minusDays(3);
+                    break;
+                case "week":
+                    startDate = now.minusDays(7);
+                    break;
+                case "month":
+                    startDate = now.minusDays(30);
+                    break;
+                case "custom":
+                    if (startDateStr != null && !startDateStr.isEmpty()) {
+                        startDate = LocalDateTime.parse(startDateStr);
+                    }
+                    if (endDateStr != null && !endDateStr.isEmpty()) {
+                        endDate = LocalDateTime.parse(endDateStr);
+                    }
+                    break;
+            }
+        }
+        
+        List<TransactionDto> transactions = new ArrayList<>();
+        org.springframework.data.domain.Pageable pageable = 
+            org.springframework.data.domain.PageRequest.of(0, limit * 2); // Charger plus pour avoir assez après filtrage
+        
+        // Récupérer les dépenses avec filtres
         if (type == null || "expense".equalsIgnoreCase(type)) {
-            List<Expense> expenses = expenseRepository.findByUserId(userId, 
-                    org.springframework.data.domain.PageRequest.of(0, limit)).getContent();
+            List<Expense> expenses = expenseRepository.findExpensesWithFilters(
+                    userId, startDate, endDate, null, minAmount, maxAmount, null, pageable)
+                    .getContent();
             transactions.addAll(expenses.stream()
                     .map(mapper::toTransactionDto)
                     .collect(Collectors.toList()));
         }
         
+        // Récupérer les revenus avec filtres
         if (type == null || "income".equalsIgnoreCase(type)) {
-            List<Income> incomes = incomeRepository.findByUserId(userId,
-                    org.springframework.data.domain.PageRequest.of(0, limit)).getContent();
+            List<Income> incomes = incomeRepository.findIncomesWithFilters(
+                    userId, startDate, endDate, null, minAmount, maxAmount, null, pageable)
+                    .getContent();
             transactions.addAll(incomes.stream()
                     .map(mapper::toTransactionDto)
                     .collect(Collectors.toList()));
         }
         
-        // Sort by date descending and limit
+        // Trier par date (plus récent en premier) et limiter
         return transactions.stream()
                 .sorted(Comparator.comparing(TransactionDto::getDate).reversed())
                 .limit(limit)

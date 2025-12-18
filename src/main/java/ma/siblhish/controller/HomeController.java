@@ -30,14 +30,20 @@ public class HomeController {
     }
 
     /**
-     * Obtenir les transactions récentes
+     * Obtenir les transactions récentes avec filtres
      */
     @GetMapping("/transactions/{userId}")
     public ResponseEntity<ApiResponse<List<TransactionDto>>> getRecentTransactions(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "10") Integer limit,
-            @RequestParam(required = false) String type) {
-        List<TransactionDto> transactions = homeService.getRecentTransactions(userId, limit, type);
+            @RequestParam(required = false) String type, // "income", "expense", null (tous)
+            @RequestParam(required = false) String dateRange, // "3days", "week", "month", "custom"
+            @RequestParam(required = false) String startDate, // Format ISO pour "custom"
+            @RequestParam(required = false) String endDate, // Format ISO pour "custom"
+            @RequestParam(required = false) Double minAmount,
+            @RequestParam(required = false) Double maxAmount) {
+        List<TransactionDto> transactions = homeService.getRecentTransactions(
+                userId, limit, type, dateRange, startDate, endDate, minAmount, maxAmount);
         return ResponseEntity.ok(ApiResponse.success(transactions));
     }
 
