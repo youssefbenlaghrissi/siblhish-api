@@ -170,6 +170,7 @@ public class EntityMapper {
         dto.setDescription(notification.getDescription());
         dto.setIsRead(notification.getIsRead());
         dto.setType(notification.getType());
+        dto.setTransactionType(notification.getTransactionType());
         dto.setCreationDate(notification.getCreationDate());
         return dto;
     }

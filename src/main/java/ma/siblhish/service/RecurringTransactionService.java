@@ -70,7 +70,8 @@ public class RecurringTransactionService {
                             "Dépense récurrente créée",
                             String.format("Une dépense récurrente de %.2f MAD a été créée automatiquement.", 
                                 template.getAmount()),
-                            created.getCategory() != null ? created.getCategory().getName() : "Dépense"
+                            created.getCategory() != null ? created.getCategory().getName() : "Dépense",
+                            "EXPENSE"
                         );
                         expensesGenerated++;
                     }
@@ -104,7 +105,8 @@ public class RecurringTransactionService {
                             "Revenu récurrent créé",
                             String.format("Un revenu récurrent de %.2f MAD a été créé automatiquement.", 
                                 template.getAmount()),
-                            template.getSource() != null ? template.getSource() : "Revenu"
+                            template.getSource() != null ? template.getSource() : "Revenu",
+                            "INCOME"
                         );
                         incomesGenerated++;
                     }
@@ -258,15 +260,17 @@ public class RecurringTransactionService {
      * Crée une notification pour une transaction récurrente créée automatiquement
      */
     private void createRecurringTransactionNotification(Long userId, String title, 
-                                                       String description, String categoryName) {
+                                                       String description, String categoryName, 
+                                                       String transactionType) {
         try {
             notificationService.createNotification(
                 userId,
                 title,
                 description + (categoryName != null ? " (" + categoryName + ")" : ""),
-                TypeNotification.RECURRING_TRANSACTION
+                TypeNotification.RECURRING_TRANSACTION,
+                transactionType
             );
-            log.debug("📬 Notification créée pour l'utilisateur {}", userId);
+            log.debug("📬 Notification créée pour l'utilisateur {} - Type: {}", userId, transactionType);
         } catch (Exception e) {
             log.error("❌ Erreur lors de la création de la notification pour l'utilisateur {}: {}", 
                     userId, e.getMessage());

@@ -16,6 +16,7 @@ public class NotificationDto {
     private String description;
     private Boolean isRead;
     private TypeNotification type;
+    private String transactionType; // INCOME, EXPENSE, null (pour autres types)
     private LocalDateTime creationDate;
 }
 

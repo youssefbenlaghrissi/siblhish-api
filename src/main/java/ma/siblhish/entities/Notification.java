@@ -34,4 +34,7 @@ public class Notification extends AbstractEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TypeNotification type;
+
+    @Column(name = "transaction_type")
+    private String transactionType; // INCOME, EXPENSE, null (pour autres types)
 }
