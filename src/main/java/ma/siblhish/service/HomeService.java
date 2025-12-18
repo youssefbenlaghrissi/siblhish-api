@@ -2,19 +2,13 @@ package ma.siblhish.service;
 
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
-import ma.siblhish.entities.Expense;
-import ma.siblhish.entities.Income;
-import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.IncomeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +18,6 @@ public class HomeService {
     private final ExpenseRepository expenseRepository;
     private final ExpenseService expenseService;
     private final IncomeService incomeService;
-    private final EntityMapper mapper;
 
     public BalanceDto getBalance(Long userId) {
         Double totalIncome = incomeRepository.getTotalIncomeByUserId(userId);
@@ -42,38 +35,11 @@ public class HomeService {
 
     /**
      * Obtenir les transactions récentes (sans filtres - les filtres sont appliqués côté frontend)
-     * Récupère les N dépenses et N revenus les plus récents, les combine et les trie par date.
+     * Retourne directement la projection simplifiée (type, title, amount)
      */
-    public List<TransactionDto> getRecentTransactions(Long userId, Integer limit) {
-        List<TransactionDto> transactions = new ArrayList<>();
-        
-        // Récupérer les N dépenses les plus récentes (multiplier par 2 pour avoir assez de données à filtrer)
-        List<Expense> recentExpenses = expenseRepository.findByUserIdOrderByDateDesc(userId)
-                .stream()
-                .limit(limit * 2L)
-                .collect(Collectors.toList());
-        
-        // Récupérer les N revenus les plus récents
-        List<Income> recentIncomes = incomeRepository.findByUserIdOrderByDateDesc(userId)
-                .stream()
-                .limit(limit * 2L)
-                .collect(Collectors.toList());
-        
-        // Convertir en DTOs
-        recentExpenses.forEach(expense -> 
-            transactions.add(mapper.toTransactionDto(expense))
-        );
-        recentIncomes.forEach(income -> 
-            transactions.add(mapper.toTransactionDto(income))
-        );
-        
-        // Trier par date (plus récent en premier)
-        transactions.sort(Comparator.comparing(TransactionDto::getDate).reversed());
-        
-        // Retourner seulement les N premières (le frontend appliquera les filtres)
-        return transactions.stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+    public List<TransactionProjection> getRecentTransactions(Long userId, Integer limit) {
+        // Une seule requête SQL retourne directement la projection
+        return expenseRepository.findRecentTransactionsUnion(userId, limit);
     }
 
     @Transactional

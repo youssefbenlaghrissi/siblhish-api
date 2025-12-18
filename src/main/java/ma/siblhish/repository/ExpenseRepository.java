@@ -46,5 +46,34 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * Requête UNION optimisée pour récupérer les transactions récentes (expenses + incomes)
+     * Retourne uniquement : type, title (description), amount
+     * Triées par date décroissante et limitées
+     */
+    @Query(value = "SELECT type, title, amount FROM (" +
+           "SELECT " +
+           "'expense' as type, " +
+           "COALESCE(e.description, '') as title, " +
+           "e.amount, " +
+           "e.date " +
+           "FROM expenses e " +
+           "WHERE e.user_id = :userId " +
+           "UNION ALL " +
+           "SELECT " +
+           "'income' as type, " +
+           "COALESCE(i.description, '') as title, " +
+           "i.amount, " +
+           "i.date " +
+           "FROM incomes i " +
+           "WHERE i.user_id = :userId " +
+           ") AS transactions " +
+           "ORDER BY date DESC " +
+           "LIMIT :limit",
+           nativeQuery = true)
+    List<ma.siblhish.dto.TransactionProjection> findRecentTransactionsUnion(
+            @Param("userId") Long userId,
+            @Param("limit") Integer limit);
 }
 
