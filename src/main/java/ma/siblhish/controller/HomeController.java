@@ -31,13 +31,13 @@ public class HomeController {
 
     /**
      * Obtenir les transactions récentes (filtres appliqués côté frontend)
-     * Retourne directement la projection simplifiée (type, title, amount)
+     * Retourne directement le DTO avec toutes les données nécessaires
      */
     @GetMapping("/transactions/{userId}")
-    public ResponseEntity<ApiResponse<List<TransactionProjection>>> getRecentTransactions(
+    public ResponseEntity<ApiResponse<List<TransactionDto>>> getRecentTransactions(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "100") Integer limit) {
-        List<TransactionProjection> transactions = homeService.getRecentTransactions(userId, limit);
+        List<TransactionDto> transactions = homeService.getRecentTransactions(userId, limit);
         return ResponseEntity.ok(ApiResponse.success(transactions));
     }
 

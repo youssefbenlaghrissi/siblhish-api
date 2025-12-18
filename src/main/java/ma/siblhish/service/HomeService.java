@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,13 +36,31 @@ public class HomeService {
 
     /**
      * Obtenir les transactions récentes (sans filtres - les filtres sont appliqués côté frontend)
-     * Retourne directement la projection simplifiée (type, title, amount)
+     * Retourne directement le DTO avec toutes les données nécessaires
      */
-    public List<TransactionProjection> getRecentTransactions(Long userId, Integer limit) {
-        // Une seule requête SQL retourne directement la projection
-        return expenseRepository.findRecentTransactionsUnion(userId, limit);
+    public List<TransactionDto> getRecentTransactions(Long userId, Integer limit) {
+        List<Object[]> results = expenseRepository.findRecentTransactionsUnion(userId, limit);
+
+        return results.stream()
+                .map(this::mapToTransactionDTO)
+                .collect(Collectors.toList());
     }
 
+    private TransactionDto mapToTransactionDTO(Object[] row) {
+        return new TransactionDto(
+                row[0] != null ? ((Number) row[0]).longValue() : null,  // id
+                (String) row[1],          // type
+                (String) row[2],          // title
+                row[3] != null ? ((Number) row[3]).doubleValue() : null,  // amount
+                (String) row[4],          // source
+                (String) row[5],          // location
+                (String) row[6],          // categoryName
+                (String) row[7],          // categoryIcon
+                (String) row[8],          // categoryColor
+                (String) row[9],          // description
+                row[10] != null ? (LocalDateTime) row[10] : null  // date
+        );
+    }
     @Transactional
     public ExpenseDto addQuickExpense(QuickExpenseDto request) {
         ExpenseRequestDto expenseRequest = new ExpenseRequestDto();

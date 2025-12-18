@@ -49,22 +49,48 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     
     /**
      * Requête UNION optimisée pour récupérer les transactions récentes (expenses + incomes)
-     * Retourne uniquement : type, title (description), amount
-     * Triées par date décroissante et limitées
+     * Inclut toutes les données nécessaires : type, title, amount, source, location, category, description, date
      */
-    @Query(value = "SELECT type, title, amount FROM (" +
+    @Query(value = "SELECT " +
+           "id, " +
+           "type, " +
+           "title, " +
+           "amount, " +
+           "source, " +
+           "location, " +
+           "category_name, " +
+           "category_icon, " +
+           "category_color, " +
+           "description, " +
+           "date " +
+           "FROM (" +
            "SELECT " +
+           "e.id, " +
            "'expense' as type, " +
            "COALESCE(e.description, '') as title, " +
            "e.amount, " +
+           "CAST(NULL AS VARCHAR) as source, " +
+           "e.location, " +
+           "c.name as category_name, " +
+           "c.icon as category_icon, " +
+           "c.color as category_color, " +
+           "e.description, " +
            "e.date " +
            "FROM expenses e " +
+           "LEFT JOIN categories c ON e.category_id = c.id " +
            "WHERE e.user_id = :userId " +
            "UNION ALL " +
            "SELECT " +
+           "i.id, " +
            "'income' as type, " +
            "COALESCE(i.description, '') as title, " +
            "i.amount, " +
+           "i.source, " +
+           "CAST(NULL AS VARCHAR) as location, " +
+           "CAST(NULL AS VARCHAR) as category_name, " +
+           "CAST(NULL AS VARCHAR) as category_icon, " +
+           "CAST(NULL AS VARCHAR) as category_color, " +
+           "i.description, " +
            "i.date " +
            "FROM incomes i " +
            "WHERE i.user_id = :userId " +
@@ -72,7 +98,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "ORDER BY date DESC " +
            "LIMIT :limit",
            nativeQuery = true)
-    List<ma.siblhish.dto.TransactionProjection> findRecentTransactionsUnion(
+    List<Object[]> findRecentTransactionsUnion(
             @Param("userId") Long userId,
             @Param("limit") Integer limit);
 }

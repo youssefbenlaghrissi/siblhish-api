@@ -78,14 +78,19 @@ public class EntityMapper {
     // Transaction Mapper (combines Expense and Income)
     public TransactionDto toTransactionDto(Expense expense) {
         if (expense == null) return null;
+        CategoryDto category = toCategoryDto(expense.getCategory());
         TransactionDto dto = new TransactionDto();
         dto.setId(expense.getId());
         dto.setType("expense");
+        dto.setTitle(expense.getDescription() != null ? expense.getDescription() : "");
         dto.setAmount(expense.getAmount());
+        dto.setSource(null);
+        dto.setLocation(expense.getLocation());
+        dto.setCategoryName(category != null ? category.getName() : null);
+        dto.setCategoryIcon(category != null ? category.getIcon() : null);
+        dto.setCategoryColor(category != null ? category.getColor() : null);
         dto.setDescription(expense.getDescription());
         dto.setDate(expense.getDate());
-        dto.setCategory(toCategoryDto(expense.getCategory()));
-        dto.setLocation(expense.getLocation());
         return dto;
     }
 
@@ -94,10 +99,15 @@ public class EntityMapper {
         TransactionDto dto = new TransactionDto();
         dto.setId(income.getId());
         dto.setType("income");
+        dto.setTitle(income.getDescription() != null ? income.getDescription() : "");
         dto.setAmount(income.getAmount());
+        dto.setSource(income.getSource());
+        dto.setLocation(null);
+        dto.setCategoryName(null);
+        dto.setCategoryIcon(null);
+        dto.setCategoryColor(null);
         dto.setDescription(income.getDescription());
         dto.setDate(income.getDate());
-        dto.setSource(income.getSource());
         return dto;
     }
 
