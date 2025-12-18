@@ -50,52 +50,20 @@ public class HomeService {
             Double minAmount,
             Double maxAmount) {
         
-        // Calculer les dates de début et fin selon le dateRange
-        LocalDateTime startDate = null;
-        LocalDateTime endDate = null;
-        
-        if (dateRange != null) {
-            LocalDateTime now = LocalDateTime.now();
-            switch (dateRange) {
-                case "3days":
-                    startDate = now.minusDays(3);
-                    break;
-                case "week":
-                    startDate = now.minusDays(7);
-                    break;
-                case "month":
-                    startDate = now.minusDays(30);
-                    break;
-                case "custom":
-                    if (startDateStr != null && !startDateStr.isEmpty()) {
-                        startDate = LocalDateTime.parse(startDateStr);
-                    }
-                    if (endDateStr != null && !endDateStr.isEmpty()) {
-                        endDate = LocalDateTime.parse(endDateStr);
-                    }
-                    break;
-            }
-        }
-        
         List<TransactionDto> transactions = new ArrayList<>();
-        org.springframework.data.domain.Pageable pageable = 
-            org.springframework.data.domain.PageRequest.of(0, limit * 2); // Charger plus pour avoir assez après filtrage
         
-        // Récupérer les dépenses avec filtres
+        // Pour les transactions récentes simples (sans filtres complexes), utiliser les méthodes directes
+        // qui sont déjà triées par date desc
         if (type == null || "expense".equalsIgnoreCase(type)) {
-            List<Expense> expenses = expenseRepository.findExpensesWithFilters(
-                    userId, startDate, endDate, null, minAmount, maxAmount, null, pageable)
-                    .getContent();
+            List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(userId);
             transactions.addAll(expenses.stream()
                     .map(mapper::toTransactionDto)
                     .collect(Collectors.toList()));
         }
         
-        // Récupérer les revenus avec filtres
+        // Récupérer les revenus
         if (type == null || "income".equalsIgnoreCase(type)) {
-            List<Income> incomes = incomeRepository.findIncomesWithFilters(
-                    userId, startDate, endDate, null, minAmount, maxAmount, null, pageable)
-                    .getContent();
+            List<Income> incomes = incomeRepository.findByUserIdOrderByDateDesc(userId);
             transactions.addAll(incomes.stream()
                     .map(mapper::toTransactionDto)
                     .collect(Collectors.toList()));

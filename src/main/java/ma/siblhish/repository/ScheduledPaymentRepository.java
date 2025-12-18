@@ -12,10 +12,10 @@ import java.util.List;
 @Repository
 public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayment, Long> {
 
-    @Query("SELECT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId ORDER BY sp.creationDate DESC")
+    @Query("SELECT DISTINCT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId ORDER BY sp.creationDate DESC")
     List<ScheduledPayment> findByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId AND sp.isPaid = false ORDER BY sp.creationDate DESC")
+    @Query("SELECT DISTINCT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId AND sp.isPaid = false ORDER BY sp.creationDate DESC")
     List<ScheduledPayment> findUnpaidByUserId(@Param("userId") Long userId);
 
     @Query("SELECT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId AND sp.isPaid = true ORDER BY sp.creationDate DESC")
