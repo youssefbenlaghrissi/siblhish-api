@@ -70,7 +70,7 @@ public class UserService {
                     newUser.setPassword("oauth_" + provider); // Mot de passe fictif pour OAuth
                     newUser.setType(UserType.EMPLOYEE);
                     newUser.setLanguage("fr");
-                    LocalDateTime now = java.time.LocalDateTime.now();
+                    LocalDateTime now = LocalDateTime.now();
                     newUser.setCreationDate(now);
                     newUser.setUpdateDate(now);
                     return userRepository.save(newUser);

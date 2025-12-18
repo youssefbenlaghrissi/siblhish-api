@@ -79,7 +79,7 @@ public class NotificationService {
         notification.setTransactionType(transactionType);
         notification.setIsRead(false);
         notification.setUser(user);
-        LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         notification.setCreationDate(now);
         notification.setUpdateDate(now);
         

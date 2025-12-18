@@ -57,7 +57,7 @@ public class BudgetService {
         budget.setEndDate(request.getEndDate());
         budget.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         budget.setUser(user);
-        LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         budget.setCreationDate(now);
 
         if (request.getCategoryId() != null) {
@@ -80,7 +80,7 @@ public class BudgetService {
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
         if (request.getIsActive() != null) budget.setIsActive(request.getIsActive());
-        budget.setUpdateDate(java.time.LocalDateTime.now());
+        budget.setUpdateDate(LocalDateTime.now());
         
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())

@@ -42,7 +42,7 @@ public class GoalService {
         goal.setTargetDate(request.getTargetDate());
         goal.setIsAchieved(false);
         goal.setUser(user);
-        LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         goal.setCreationDate(now);
         goal.setUpdateDate(now);
         

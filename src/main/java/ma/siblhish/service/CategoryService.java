@@ -32,7 +32,7 @@ public class CategoryService {
         category.setName(request.getName());
         category.setIcon(request.getIcon());
         category.setColor(request.getColor());
-        LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         category.setCreationDate(now);
         category.setUpdateDate(now);
         
@@ -48,7 +48,7 @@ public class CategoryService {
         category.setName(request.getName());
         if (request.getIcon() != null) category.setIcon(request.getIcon());
         if (request.getColor() != null) category.setColor(request.getColor());
-        category.setUpdateDate(java.time.LocalDateTime.now());
+        category.setUpdateDate(LocalDateTime.now());
         
         Category saved = categoryRepository.save(category);
         return mapper.toCategoryDto(saved);
