@@ -15,8 +15,8 @@ import java.util.List;
 @Repository
 public interface IncomeRepository extends JpaRepository<Income, Long> {
     @Query("SELECT i FROM Income i WHERE i.user.id = :userId " +
-           "AND (:startDate IS NULL OR i.date >= :startDate) " +
-           "AND (:endDate IS NULL OR i.date <= :endDate) " +
+           "AND (:startDate IS NULL OR i.creationDate >= :startDate) " +
+           "AND (:endDate IS NULL OR i.creationDate <= :endDate) " +
            "AND (:source IS NULL OR i.source = :source) " +
            "AND (:minAmount IS NULL OR i.amount >= :minAmount) " +
            "AND (:maxAmount IS NULL OR i.amount <= :maxAmount) " +
@@ -35,13 +35,13 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
     
     List<Income> findByIsRecurringTrue();
     
-    List<Income> findByUserIdOrderByDateDesc(Long userId);
+    List<Income> findByUserIdOrderByCreationDateDesc(Long userId);
     
     @Query("SELECT SUM(i.amount) FROM Income i WHERE i.user.id = :userId")
     Double getTotalIncomeByUserId(@Param("userId") Long userId);
     
     @Query("SELECT SUM(i.amount) FROM Income i WHERE i.user.id = :userId " +
-           "AND i.date >= :startDate AND i.date <= :endDate")
+           "AND i.creationDate >= :startDate AND i.creationDate <= :endDate")
     Double getTotalIncomeByUserIdAndDateRange(
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,

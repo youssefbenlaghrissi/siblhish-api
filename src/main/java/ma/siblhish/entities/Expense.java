@@ -31,10 +31,6 @@ public class Expense extends AbstractEntity {
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod method;
 
-    @NotNull
-    @Column(nullable = false)
-    private LocalDateTime date;
-
     @Column(name = "description")
     private String description;
 

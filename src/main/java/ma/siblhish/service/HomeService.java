@@ -1,5 +1,8 @@
 package ma.siblhish.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.repository.ExpenseRepository;
@@ -7,7 +10,9 @@ import ma.siblhish.repository.IncomeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,6 +20,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HomeService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+    
     private final IncomeRepository incomeRepository;
     private final ExpenseRepository expenseRepository;
     private final ExpenseService expenseService;
@@ -35,11 +43,148 @@ public class HomeService {
     }
 
     /**
-     * Obtenir les transactions récentes (sans filtres - les filtres sont appliqués côté frontend)
+     * Obtenir les transactions récentes avec filtres optionnels
      * Retourne directement le DTO avec toutes les données nécessaires
+     * @param type Optionnel : 'expense', 'income' ou null (pour tous les types)
+     * @param minAmount Optionnel : montant minimum pour filtrer les transactions
+     * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
+     * @param period Optionnel : période prédéfinie ('3days', 'week', 'month'). Prend priorité sur startDate/endDate
+     * @param startDate Optionnel : date de début pour filtrer par période (sera convertie en début de journée 00:00:00)
+     * @param endDate Optionnel : date de fin pour filtrer par période (sera convertie en fin de journée 23:59:59)
      */
-    public List<TransactionDto> getRecentTransactions(Long userId, Integer limit) {
-        List<Object[]> results = expenseRepository.findRecentTransactionsUnion(userId, limit);
+    public List<TransactionDto> getRecentTransactions(Long userId, String type, Double minAmount, Double maxAmount, String period, LocalDate startDate, LocalDate endDate, Integer limit) {
+        LocalDate calculatedStartDate = startDate;
+        LocalDate calculatedEndDate = endDate;
+        
+        // Si une période prédéfinie est fournie, calculer les dates
+        if (period != null && !period.isEmpty()) {
+            LocalDate now = LocalDate.now();
+            calculatedEndDate = now; // Toujours jusqu'à aujourd'hui
+            
+            switch (period.toLowerCase()) {
+                case "3days":
+                    calculatedStartDate = now.minusDays(3);
+                    break;
+                case "week":
+                    calculatedStartDate = now.minusDays(7);
+                    break;
+                case "month":
+                    calculatedStartDate = now.withDayOfMonth(1); // Premier jour du mois en cours
+                    break;
+                default:
+                    // Si la période n'est pas reconnue, ignorer et utiliser startDate/endDate si fournis
+                    break;
+            }
+        }
+        
+        // Convertir LocalDate en LocalDateTime pour la requête SQL
+        // startDate -> début de journée (00:00:00)
+        // endDate -> fin de journée (23:59:59)
+        LocalDateTime startDateTime = calculatedStartDate != null ? calculatedStartDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = calculatedEndDate != null ? calculatedEndDate.atTime(23, 59, 59) : null;
+        
+        // Construire la requête SQL dynamiquement pour éviter les problèmes avec les paramètres NULL
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("id, type, amount, source, location, ");
+        sql.append("category_name, category_icon, category_color, description, date ");
+        sql.append("FROM (");
+        
+        List<String> unionParts = new ArrayList<>();
+        
+        // Partie Expenses (seulement si type = null ou type = 'expense')
+        if (type == null || "expense".equalsIgnoreCase(type)) {
+            StringBuilder expenseQuery = new StringBuilder();
+            expenseQuery.append("SELECT ");
+            expenseQuery.append("e.id, 'expense' as type, ");
+            expenseQuery.append("e.amount, CAST(NULL AS VARCHAR) as source, e.location, ");
+            expenseQuery.append("c.name as category_name, c.icon as category_icon, c.color as category_color, ");
+            expenseQuery.append("e.description, e.creation_date as date ");
+            expenseQuery.append("FROM expenses e ");
+            expenseQuery.append("LEFT JOIN categories c ON e.category_id = c.id ");
+            expenseQuery.append("WHERE e.user_id = :userId ");
+            
+            List<String> expenseConditions = new ArrayList<>();
+            if (minAmount != null) {
+                expenseConditions.add("e.amount >= :minAmount");
+            }
+            if (maxAmount != null) {
+                expenseConditions.add("e.amount <= :maxAmount");
+            }
+            if (startDateTime != null) {
+                expenseConditions.add("e.creation_date >= :startDate");
+            }
+            if (endDateTime != null) {
+                expenseConditions.add("e.creation_date <= :endDate");
+            }
+            
+            if (!expenseConditions.isEmpty()) {
+                expenseQuery.append("AND ").append(String.join(" AND ", expenseConditions));
+            }
+            
+            unionParts.add(expenseQuery.toString());
+        }
+        
+        // Partie Incomes (seulement si type = null ou type = 'income')
+        if (type == null || "income".equalsIgnoreCase(type)) {
+            StringBuilder incomeQuery = new StringBuilder();
+            incomeQuery.append("SELECT ");
+            incomeQuery.append("i.id, 'income' as type, ");
+            incomeQuery.append("i.amount, i.source, CAST(NULL AS VARCHAR) as location, ");
+            incomeQuery.append("CAST(NULL AS VARCHAR) as category_name, ");
+            incomeQuery.append("CAST(NULL AS VARCHAR) as category_icon, ");
+            incomeQuery.append("CAST(NULL AS VARCHAR) as category_color, ");
+            incomeQuery.append("i.description, i.creation_date as date ");
+            incomeQuery.append("FROM incomes i ");
+            incomeQuery.append("WHERE i.user_id = :userId ");
+            
+            List<String> incomeConditions = new ArrayList<>();
+            if (minAmount != null) {
+                incomeConditions.add("i.amount >= :minAmount");
+            }
+            if (maxAmount != null) {
+                incomeConditions.add("i.amount <= :maxAmount");
+            }
+            if (startDateTime != null) {
+                incomeConditions.add("i.creation_date >= :startDate");
+            }
+            if (endDateTime != null) {
+                incomeConditions.add("i.creation_date <= :endDate");
+            }
+            
+            if (!incomeConditions.isEmpty()) {
+                incomeQuery.append("AND ").append(String.join(" AND ", incomeConditions));
+            }
+            
+            unionParts.add(incomeQuery.toString());
+        }
+        
+        // Joindre les parties avec UNION ALL
+        sql.append(String.join(" UNION ALL ", unionParts));
+        sql.append(") AS transactions ");
+        sql.append("ORDER BY date DESC ");
+        sql.append("LIMIT :limit");
+        
+        // Exécuter la requête avec EntityManager
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("userId", userId);
+        
+        if (minAmount != null) {
+            query.setParameter("minAmount", minAmount);
+        }
+        if (maxAmount != null) {
+            query.setParameter("maxAmount", maxAmount);
+        }
+        if (startDateTime != null) {
+            query.setParameter("startDate", startDateTime);
+        }
+        if (endDateTime != null) {
+            query.setParameter("endDate", endDateTime);
+        }
+        query.setParameter("limit", limit);
+        
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
 
         return results.stream()
                 .map(this::mapToTransactionDTO)
@@ -50,15 +195,14 @@ public class HomeService {
         return new TransactionDto(
                 row[0] != null ? ((Number) row[0]).longValue() : null,  // id
                 (String) row[1],          // type
-                (String) row[2],          // title
-                row[3] != null ? ((Number) row[3]).doubleValue() : null,  // amount
-                (String) row[4],          // source
-                (String) row[5],          // location
-                (String) row[6],          // categoryName
-                (String) row[7],          // categoryIcon
-                (String) row[8],          // categoryColor
-                (String) row[9],          // description
-                row[10] != null ? (LocalDateTime) row[10] : null  // date
+                row[2] != null ? ((Number) row[2]).doubleValue() : null,  // amount
+                (String) row[3],          // source
+                (String) row[4],          // location
+                (String) row[5],          // categoryName
+                (String) row[6],          // categoryIcon
+                (String) row[7],          // categoryColor
+                (String) row[8],          // description
+                row[9] != null ? (LocalDateTime) row[9] : null  // date
         );
     }
     @Transactional

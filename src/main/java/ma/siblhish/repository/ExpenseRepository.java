@@ -15,8 +15,8 @@ import java.util.List;
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @Query("SELECT e FROM Expense e WHERE e.user.id = :userId " +
-           "AND (:startDate IS NULL OR e.date >= :startDate) " +
-           "AND (:endDate IS NULL OR e.date <= :endDate) " +
+           "AND (:startDate IS NULL OR e.creationDate >= :startDate) " +
+           "AND (:endDate IS NULL OR e.creationDate <= :endDate) " +
            "AND (:categoryId IS NULL OR e.category.id = :categoryId) " +
            "AND (:minAmount IS NULL OR e.amount >= :minAmount) " +
            "AND (:maxAmount IS NULL OR e.amount <= :maxAmount) " +
@@ -35,13 +35,13 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     
     List<Expense> findByIsRecurringTrue();
     
-    List<Expense> findByUserIdOrderByDateDesc(Long userId);
+    List<Expense> findByUserIdOrderByCreationDateDesc(Long userId);
     
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId")
     Double getTotalExpensesByUserId(@Param("userId") Long userId);
     
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId " +
-           "AND e.date >= :startDate AND e.date <= :endDate")
+           "AND e.creationDate >= :startDate AND e.creationDate <= :endDate")
     Double getTotalExpensesByUserIdAndDateRange(
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,
@@ -49,12 +49,16 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     
     /**
      * Requête UNION optimisée pour récupérer les transactions récentes (expenses + incomes)
-     * Inclut toutes les données nécessaires : type, title, amount, source, location, category, description, date
+     * Inclut toutes les données nécessaires : id, type, amount, source, location, category, description, date
+     * @param type Optionnel : 'expense', 'income' ou NULL (pour tous les types)
+     * @param minAmount Optionnel : montant minimum pour filtrer les transactions
+     * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
+     * @param startDate Optionnel : date de début pour filtrer par période
+     * @param endDate Optionnel : date de fin pour filtrer par période
      */
     @Query(value = "SELECT " +
            "id, " +
            "type, " +
-           "title, " +
            "amount, " +
            "source, " +
            "location, " +
@@ -67,7 +71,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "SELECT " +
            "e.id, " +
            "'expense' as type, " +
-           "COALESCE(e.description, '') as title, " +
            "e.amount, " +
            "CAST(NULL AS VARCHAR) as source, " +
            "e.location, " +
@@ -75,15 +78,19 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "c.icon as category_icon, " +
            "c.color as category_color, " +
            "e.description, " +
-           "e.date " +
+           "e.creation_date as date " +
            "FROM expenses e " +
            "LEFT JOIN categories c ON e.category_id = c.id " +
            "WHERE e.user_id = :userId " +
+           "AND (:type IS NULL OR :type = 'expense') " +
+           "AND (:minAmount IS NULL OR e.amount >= :minAmount) " +
+           "AND (:maxAmount IS NULL OR e.amount <= :maxAmount) " +
+           "AND (:startDate IS NULL OR e.creation_date >= :startDate) " +
+           "AND (:endDate IS NULL OR e.creation_date <= :endDate) " +
            "UNION ALL " +
            "SELECT " +
            "i.id, " +
            "'income' as type, " +
-           "COALESCE(i.description, '') as title, " +
            "i.amount, " +
            "i.source, " +
            "CAST(NULL AS VARCHAR) as location, " +
@@ -91,15 +98,25 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "CAST(NULL AS VARCHAR) as category_icon, " +
            "CAST(NULL AS VARCHAR) as category_color, " +
            "i.description, " +
-           "i.date " +
+           "i.creation_date as date " +
            "FROM incomes i " +
            "WHERE i.user_id = :userId " +
+           "AND (:type IS NULL OR :type = 'income') " +
+           "AND (:minAmount IS NULL OR i.amount >= :minAmount) " +
+           "AND (:maxAmount IS NULL OR i.amount <= :maxAmount) " +
+           "AND (:startDate IS NULL OR i.creation_date >= :startDate) " +
+           "AND (:endDate IS NULL OR i.creation_date <= :endDate) " +
            ") AS transactions " +
            "ORDER BY date DESC " +
            "LIMIT :limit",
            nativeQuery = true)
     List<Object[]> findRecentTransactionsUnion(
             @Param("userId") Long userId,
+            @Param("type") String type,
+            @Param("minAmount") Double minAmount,
+            @Param("maxAmount") Double maxAmount,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate,
             @Param("limit") Integer limit);
 }
 

@@ -58,7 +58,7 @@ public class RecurringTransactionService {
                         template.getRecurrenceDaysOfWeek(),
                         template.getRecurrenceDayOfMonth(),
                         template.getRecurrenceDayOfYear(),
-                        template.getDate(),
+                        template.getCreationDate(),
                         todayDate)) {
                     
                     if (!transactionExists(template.getUser().getId(), template.getAmount(), 
@@ -93,7 +93,7 @@ public class RecurringTransactionService {
                         template.getRecurrenceDaysOfWeek(),
                         template.getRecurrenceDayOfMonth(),
                         template.getRecurrenceDayOfYear(),
-                        template.getDate(),
+                        template.getCreationDate(),
                         todayDate)) {
                     
                     if (!transactionExists(template.getUser().getId(), template.getAmount(), 
@@ -194,8 +194,8 @@ public class RecurringTransactionService {
             // Vérifier s'il existe une dépense avec les mêmes caractéristiques pour cette date
             List<Expense> existing = expenseRepository.findAll().stream()
                     .filter(e -> e.getUser().getId().equals(userId))
-                    .filter(e -> e.getDate().isAfter(startOfDay.minusSeconds(1)) 
-                            && e.getDate().isBefore(endOfDay.plusSeconds(1)))
+                    .filter(e -> e.getCreationDate().isAfter(startOfDay.minusSeconds(1)) 
+                            && e.getCreationDate().isBefore(endOfDay.plusSeconds(1)))
                     .filter(e -> e.getAmount().equals(amount))
                     .filter(e -> e.getMethod().equals(method))
                     .filter(e -> !e.getIsRecurring()) // Ne pas compter les templates récurrents
@@ -205,8 +205,8 @@ public class RecurringTransactionService {
             // Vérifier s'il existe un revenu avec les mêmes caractéristiques pour cette date
             List<Income> existing = incomeRepository.findAll().stream()
                     .filter(i -> i.getUser().getId().equals(userId))
-                    .filter(i -> i.getDate().isAfter(startOfDay.minusSeconds(1)) 
-                            && i.getDate().isBefore(endOfDay.plusSeconds(1)))
+                    .filter(i -> i.getCreationDate().isAfter(startOfDay.minusSeconds(1)) 
+                            && i.getCreationDate().isBefore(endOfDay.plusSeconds(1)))
                     .filter(i -> i.getAmount().equals(amount))
                     .filter(i -> i.getMethod().equals(method))
                     .filter(i -> !i.getIsRecurring()) // Ne pas compter les templates récurrents
@@ -222,7 +222,7 @@ public class RecurringTransactionService {
         Expense newExpense = new Expense();
         newExpense.setAmount(template.getAmount());
         newExpense.setMethod(template.getMethod());
-        newExpense.setDate(date);
+        newExpense.setCreationDate(date);
         newExpense.setDescription(template.getDescription());
         newExpense.setLocation(template.getLocation());
         newExpense.setIsRecurring(false); // La transaction générée n'est pas récurrente
@@ -243,7 +243,7 @@ public class RecurringTransactionService {
         Income newIncome = new Income();
         newIncome.setAmount(template.getAmount());
         newIncome.setMethod(template.getMethod());
-        newIncome.setDate(date);
+        newIncome.setCreationDate(date);
         newIncome.setDescription(template.getDescription());
         newIncome.setSource(template.getSource());
         newIncome.setIsRecurring(false); // La transaction générée n'est pas récurrente

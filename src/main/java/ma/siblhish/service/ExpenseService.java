@@ -40,7 +40,7 @@ public class ExpenseService {
         Expense expense = new Expense();
         expense.setAmount(request.getAmount());
         expense.setMethod(request.getMethod());
-        expense.setDate(request.getDate());
+        expense.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
         expense.setDescription(request.getDescription());
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -66,7 +66,7 @@ public class ExpenseService {
         
         expense.setAmount(request.getAmount());
         expense.setMethod(request.getMethod());
-        expense.setDate(request.getDate());
+        expense.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
         expense.setDescription(request.getDescription());
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -94,7 +94,7 @@ public class ExpenseService {
     }
 
     public List<ExpenseDto> getExpensesByUser(Long userId) {
-        List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(userId);
+        List<Expense> expenses = expenseRepository.findByUserIdOrderByCreationDateDesc(userId);
         return mapper.toExpenseDtoList(expenses);
     }
 }

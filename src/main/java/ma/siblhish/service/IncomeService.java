@@ -34,7 +34,7 @@ public class IncomeService {
         Income income = new Income();
         income.setAmount(request.getAmount());
         income.setMethod(request.getMethod());
-        income.setDate(request.getDate());
+        income.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
         income.setDescription(request.getDescription());
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -56,7 +56,7 @@ public class IncomeService {
         
         income.setAmount(request.getAmount());
         income.setMethod(request.getMethod());
-        income.setDate(request.getDate());
+        income.setCreationDate(request.getDate() != null ? request.getDate() : java.time.LocalDateTime.now());
         income.setDescription(request.getDescription());
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -83,7 +83,7 @@ public class IncomeService {
     }
 
     public List<IncomeDto> getIncomesByUser(Long userId) {
-        List<Income> incomes = incomeRepository.findByUserIdOrderByDateDesc(userId);
+        List<Income> incomes = incomeRepository.findByUserIdOrderByCreationDateDesc(userId);
         return mapper.toIncomeDtoList(incomes);
     }
 }

@@ -33,7 +33,7 @@ public class EntityMapper {
         dto.setId(expense.getId());
         dto.setAmount(expense.getAmount());
         dto.setMethod(expense.getMethod());
-        dto.setDate(expense.getDate());
+        dto.setDate(expense.getCreationDate());
         dto.setDescription(expense.getDescription());
         dto.setLocation(expense.getLocation());
         dto.setIsRecurring(expense.getIsRecurring());
@@ -58,7 +58,7 @@ public class EntityMapper {
         dto.setId(income.getId());
         dto.setAmount(income.getAmount());
         dto.setMethod(income.getMethod());
-        dto.setDate(income.getDate());
+        dto.setDate(income.getCreationDate());
         dto.setDescription(income.getDescription());
         dto.setSource(income.getSource());
         dto.setIsRecurring(income.getIsRecurring());
@@ -82,7 +82,6 @@ public class EntityMapper {
         TransactionDto dto = new TransactionDto();
         dto.setId(expense.getId());
         dto.setType("expense");
-        dto.setTitle(expense.getDescription() != null ? expense.getDescription() : "");
         dto.setAmount(expense.getAmount());
         dto.setSource(null);
         dto.setLocation(expense.getLocation());
@@ -90,7 +89,7 @@ public class EntityMapper {
         dto.setCategoryIcon(category != null ? category.getIcon() : null);
         dto.setCategoryColor(category != null ? category.getColor() : null);
         dto.setDescription(expense.getDescription());
-        dto.setDate(expense.getDate());
+        dto.setDate(expense.getCreationDate());
         return dto;
     }
 
@@ -99,7 +98,6 @@ public class EntityMapper {
         TransactionDto dto = new TransactionDto();
         dto.setId(income.getId());
         dto.setType("income");
-        dto.setTitle(income.getDescription() != null ? income.getDescription() : "");
         dto.setAmount(income.getAmount());
         dto.setSource(income.getSource());
         dto.setLocation(null);
@@ -107,7 +105,7 @@ public class EntityMapper {
         dto.setCategoryIcon(null);
         dto.setCategoryColor(null);
         dto.setDescription(income.getDescription());
-        dto.setDate(income.getDate());
+        dto.setDate(income.getCreationDate());
         return dto;
     }
 

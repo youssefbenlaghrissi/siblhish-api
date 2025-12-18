@@ -10,7 +10,6 @@ public class TransactionDto {
 
     private Long id;
     private String type; // "expense" or "income"
-    private String title; // description
     private Double amount;
     private String source; // pour income uniquement
     private String location; // pour expense uniquement
@@ -29,7 +28,6 @@ public class TransactionDto {
     public TransactionDto(
             Long id,
             String type,
-            String title,
             Double amount,
             String source,
             String location,
@@ -41,7 +39,6 @@ public class TransactionDto {
     ) {
         this.id = id;
         this.type = type;
-        this.title = title;
         this.amount = amount;
         this.source = source;
         this.location = location;
@@ -59,14 +56,6 @@ public class TransactionDto {
 
     public void setType(String type) {
         this.type = type;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public Double getAmount() {
