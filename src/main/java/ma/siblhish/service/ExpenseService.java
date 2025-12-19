@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -49,7 +50,10 @@ public class ExpenseService {
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         expense.setRecurrenceFrequency(request.getRecurrenceFrequency());
         expense.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
+        if (request.getRecurrenceDaysOfWeek() != null) {
+            expense.setRecurrenceDaysOfWeek(new ArrayList<>(request.getRecurrenceDaysOfWeek()));
+        }
         expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         expense.setUser(user);
@@ -79,7 +83,10 @@ public class ExpenseService {
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         expense.setRecurrenceFrequency(request.getRecurrenceFrequency());
         expense.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
+        if (request.getRecurrenceDaysOfWeek() != null) {
+            expense.setRecurrenceDaysOfWeek(new ArrayList<>(request.getRecurrenceDaysOfWeek()));
+        }
         expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         expense.setCategory(category);
