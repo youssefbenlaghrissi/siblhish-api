@@ -84,6 +84,11 @@ public class ScheduledPaymentService {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
 
+        // Empêcher la modification d'un paiement déjà payé
+        if (Boolean.TRUE.equals(payment.getIsPaid())) {
+            throw new RuntimeException("Un paiement planifié déjà payé ne peut pas être modifié");
+        }
+
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
@@ -112,15 +117,27 @@ public class ScheduledPaymentService {
     }
 
     @Transactional
-    public ScheduledPaymentDto markAsPaid(Long paymentId) {
+    public ScheduledPaymentDto markAsPaid(Long paymentId, String paymentDateStr) {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
 
-        // Créer automatiquement une dépense correspondante au paiement planifié
-        createExpenseFromScheduledPayment(payment);
+        // Parser la date de paiement fournie par le frontend, ou utiliser maintenant si non fournie
+        LocalDateTime paymentDate;
+        if (paymentDateStr != null && !paymentDateStr.isEmpty()) {
+            try {
+                paymentDate = LocalDateTime.parse(paymentDateStr);
+            } catch (Exception e) {
+                throw new RuntimeException("Format de date invalide: " + paymentDateStr, e);
+            }
+        } else {
+            paymentDate = LocalDateTime.now();
+        }
+
+        // Créer automatiquement une dépense correspondante au paiement planifié avec la date fournie
+        createExpenseFromScheduledPayment(payment, paymentDate);
 
         payment.setIsPaid(true);
-        payment.setPaidDate(LocalDateTime.now());
+        payment.setPaidDate(paymentDate);
 
         // Si récurrent, créer le prochain paiement
         if (Boolean.TRUE.equals(payment.getIsRecurring()) && payment.getRecurrenceFrequency() != null) {
@@ -134,12 +151,12 @@ public class ScheduledPaymentService {
     /**
      * Crée une dépense à partir d'un paiement planifié confirmé
      */
-    private void createExpenseFromScheduledPayment(ScheduledPayment payment) {
+    private void createExpenseFromScheduledPayment(ScheduledPayment payment, LocalDateTime paymentDate) {
         ExpenseRequestDto expenseRequest = new ExpenseRequestDto();
         expenseRequest.setUserId(payment.getUser().getId());
         expenseRequest.setAmount(payment.getAmount());
         expenseRequest.setMethod(payment.getPaymentMethod());
-        expenseRequest.setDate(LocalDateTime.now()); // Date de confirmation (maintenant)
+        expenseRequest.setDate(paymentDate); // Date de confirmation fournie par l'utilisateur
         expenseRequest.setDescription(payment.getName()); // Nom du paiement comme description
         expenseRequest.setLocation(payment.getBeneficiary()); // Bénéficiaire comme lieu
         expenseRequest.setCategoryId(payment.getCategory().getId());
@@ -201,6 +218,12 @@ public class ScheduledPaymentService {
     public void deleteScheduledPayment(Long paymentId) {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
+        
+        // Empêcher la suppression d'un paiement déjà payé
+        if (Boolean.TRUE.equals(payment.getIsPaid())) {
+            throw new RuntimeException("Un paiement planifié déjà payé ne peut pas être supprimé");
+        }
+        
         scheduledPaymentRepository.delete(payment);
     }
 }

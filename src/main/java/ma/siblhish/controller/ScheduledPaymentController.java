@@ -73,8 +73,10 @@ public class ScheduledPaymentController {
      * Marquer un paiement comme payé
      */
     @PutMapping("/{paymentId}/pay")
-    public ResponseEntity<ApiResponse<ScheduledPaymentDto>> markAsPaid(@PathVariable Long paymentId) {
-        ScheduledPaymentDto payment = scheduledPaymentService.markAsPaid(paymentId);
+    public ResponseEntity<ApiResponse<ScheduledPaymentDto>> markAsPaid(
+            @PathVariable Long paymentId,
+            @RequestParam(required = false) String paymentDate) {
+        ScheduledPaymentDto payment = scheduledPaymentService.markAsPaid(paymentId, paymentDate);
         return ResponseEntity.ok(ApiResponse.success(payment));
     }
 
