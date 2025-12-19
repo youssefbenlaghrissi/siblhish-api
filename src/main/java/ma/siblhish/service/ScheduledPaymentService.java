@@ -1,6 +1,7 @@
 package ma.siblhish.service;
 
 import lombok.RequiredArgsConstructor;
+import ma.siblhish.dto.ExpenseRequestDto;
 import ma.siblhish.dto.ScheduledPaymentDto;
 import ma.siblhish.dto.ScheduledPaymentRequestDto;
 import ma.siblhish.entities.Category;
@@ -24,6 +25,7 @@ public class ScheduledPaymentService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
+    private final ExpenseService expenseService;
 
     public List<ScheduledPaymentDto> getScheduledPaymentsByUser(Long userId) {
         List<ScheduledPayment> payments = scheduledPaymentRepository.findByUserId(userId);
@@ -57,6 +59,10 @@ public class ScheduledPaymentService {
         payment.setDueDate(request.getDueDate());
         payment.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         payment.setNotificationOption(request.getNotificationOption());
         payment.setIsPaid(false);
         payment.setUser(user);
@@ -87,6 +93,10 @@ public class ScheduledPaymentService {
         if (request.getDueDate() != null) payment.setDueDate(request.getDueDate());
         if (request.getIsRecurring() != null) payment.setIsRecurring(request.getIsRecurring());
         if (request.getRecurrenceFrequency() != null) payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        if (request.getRecurrenceEndDate() != null) payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        if (request.getRecurrenceDaysOfWeek() != null) payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        if (request.getRecurrenceDayOfMonth() != null) payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        if (request.getRecurrenceDayOfYear() != null) payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         if (request.getNotificationOption() != null) payment.setNotificationOption(request.getNotificationOption());
         payment.setUpdateDate(LocalDateTime.now());
 
@@ -98,6 +108,9 @@ public class ScheduledPaymentService {
     public ScheduledPaymentDto markAsPaid(Long paymentId) {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
+
+        // Créer automatiquement une dépense correspondante au paiement planifié
+        createExpenseFromScheduledPayment(payment);
 
         payment.setIsPaid(true);
         payment.setPaidDate(LocalDateTime.now());
@@ -111,6 +124,35 @@ public class ScheduledPaymentService {
         return mapper.toScheduledPaymentDto(saved);
     }
 
+    /**
+     * Crée une dépense à partir d'un paiement planifié confirmé
+     */
+    private void createExpenseFromScheduledPayment(ScheduledPayment payment) {
+        ExpenseRequestDto expenseRequest = new ExpenseRequestDto();
+        expenseRequest.setUserId(payment.getUser().getId());
+        expenseRequest.setAmount(payment.getAmount());
+        expenseRequest.setMethod(payment.getPaymentMethod());
+        expenseRequest.setDate(LocalDateTime.now()); // Date de confirmation (maintenant)
+        expenseRequest.setDescription(payment.getName()); // Nom du paiement comme description
+        expenseRequest.setLocation(payment.getBeneficiary()); // Bénéficiaire comme lieu
+        expenseRequest.setCategoryId(payment.getCategory().getId());
+        
+        // Copier les informations de récurrence si le paiement planifié est récurrent
+        if (Boolean.TRUE.equals(payment.getIsRecurring())) {
+            expenseRequest.setIsRecurring(true);
+            expenseRequest.setRecurrenceFrequency(payment.getRecurrenceFrequency());
+            expenseRequest.setRecurrenceEndDate(payment.getRecurrenceEndDate());
+            expenseRequest.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
+            expenseRequest.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
+            expenseRequest.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
+        } else {
+            expenseRequest.setIsRecurring(false);
+        }
+
+        // Créer la dépense via ExpenseService
+        expenseService.createExpense(expenseRequest);
+    }
+
     private void createNextRecurringPayment(ScheduledPayment payment) {
         ScheduledPayment nextPayment = new ScheduledPayment();
         nextPayment.setName(payment.getName());
@@ -119,6 +161,10 @@ public class ScheduledPaymentService {
         nextPayment.setBeneficiary(payment.getBeneficiary());
         nextPayment.setIsRecurring(true);
         nextPayment.setRecurrenceFrequency(payment.getRecurrenceFrequency());
+        nextPayment.setRecurrenceEndDate(payment.getRecurrenceEndDate());
+        nextPayment.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
+        nextPayment.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
+        nextPayment.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         nextPayment.setNotificationOption(payment.getNotificationOption());
         nextPayment.setIsPaid(false);
         nextPayment.setUser(payment.getUser());

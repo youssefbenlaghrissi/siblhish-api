@@ -201,6 +201,10 @@ public class EntityMapper {
         dto.setDueDate(payment.getDueDate());
         dto.setIsRecurring(payment.getIsRecurring());
         dto.setRecurrenceFrequency(payment.getRecurrenceFrequency());
+        dto.setRecurrenceEndDate(payment.getRecurrenceEndDate());
+        dto.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
+        dto.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
+        dto.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         dto.setNotificationOption(payment.getNotificationOption());
         dto.setIsPaid(payment.getIsPaid());
         dto.setPaidDate(payment.getPaidDate());

@@ -13,6 +13,7 @@ import ma.siblhish.enums.PaymentMethod;
 import ma.siblhish.enums.RecurrenceFrequency;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "scheduled_payments")
@@ -49,6 +50,20 @@ public class ScheduledPayment extends AbstractEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "recurrence_frequency")
     private RecurrenceFrequency recurrenceFrequency;
+
+    @Column(name = "recurrence_end_date")
+    private LocalDateTime recurrenceEndDate;
+
+    @ElementCollection
+    @CollectionTable(name = "scheduled_payment_recurrence_days", joinColumns = @JoinColumn(name = "scheduled_payment_id"))
+    @Column(name = "day_of_week")
+    private List<Integer> recurrenceDaysOfWeek; // 1=Monday, 7=Sunday
+
+    @Column(name = "recurrence_day_of_month")
+    private Integer recurrenceDayOfMonth; // 1-31
+
+    @Column(name = "recurrence_day_of_year")
+    private Integer recurrenceDayOfYear; // 1-365
 
     @Enumerated(EnumType.STRING)
     @Column(name = "notification_option")
