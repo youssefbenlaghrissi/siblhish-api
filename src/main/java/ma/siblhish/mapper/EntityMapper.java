@@ -83,6 +83,7 @@ public class EntityMapper {
         dto.setId(expense.getId());
         dto.setType("expense");
         dto.setAmount(expense.getAmount());
+        dto.setMethod(expense.getMethod() != null ? expense.getMethod().name() : null);
         dto.setSource(null);
         dto.setLocation(expense.getLocation());
         dto.setCategoryName(category != null ? category.getName() : null);
@@ -99,6 +100,7 @@ public class EntityMapper {
         dto.setId(income.getId());
         dto.setType("income");
         dto.setAmount(income.getAmount());
+        dto.setMethod(income.getMethod() != null ? income.getMethod().name() : null);
         dto.setSource(income.getSource());
         dto.setLocation(null);
         dto.setCategoryName(null);

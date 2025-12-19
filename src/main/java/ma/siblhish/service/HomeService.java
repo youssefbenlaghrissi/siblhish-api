@@ -99,7 +99,7 @@ public class HomeService {
         // Construire la requête SQL dynamiquement pour éviter les problèmes avec les paramètres NULL
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ");
-        sql.append("id, type, amount, source, location, ");
+        sql.append("id, type, amount, method, source, location, ");
         sql.append("category_name, category_icon, category_color, description, date ");
         sql.append("FROM (");
         
@@ -110,7 +110,7 @@ public class HomeService {
             StringBuilder expenseQuery = new StringBuilder();
             expenseQuery.append("SELECT ");
             expenseQuery.append("e.id, 'expense' as type, ");
-            expenseQuery.append("e.amount, CAST(NULL AS VARCHAR) as source, e.location, ");
+            expenseQuery.append("e.amount, e.payment_method as method, CAST(NULL AS VARCHAR) as source, e.location, ");
             expenseQuery.append("c.name as category_name, c.icon as category_icon, c.color as category_color, ");
             expenseQuery.append("e.description, e.creation_date as date ");
             expenseQuery.append("FROM expenses e ");
@@ -143,7 +143,7 @@ public class HomeService {
             StringBuilder incomeQuery = new StringBuilder();
             incomeQuery.append("SELECT ");
             incomeQuery.append("i.id, 'income' as type, ");
-            incomeQuery.append("i.amount, i.source, CAST(NULL AS VARCHAR) as location, ");
+            incomeQuery.append("i.amount, i.payment_method as method, i.source, CAST(NULL AS VARCHAR) as location, ");
             incomeQuery.append("CAST(NULL AS VARCHAR) as category_name, ");
             incomeQuery.append("CAST(NULL AS VARCHAR) as category_icon, ");
             incomeQuery.append("CAST(NULL AS VARCHAR) as category_color, ");
@@ -209,13 +209,14 @@ public class HomeService {
                 row[0] != null ? ((Number) row[0]).longValue() : null,  // id
                 (String) row[1],          // type
                 row[2] != null ? ((Number) row[2]).doubleValue() : null,  // amount
-                (String) row[3],          // source
-                (String) row[4],          // location
-                (String) row[5],          // categoryName
-                (String) row[6],          // categoryIcon
-                (String) row[7],          // categoryColor
-                (String) row[8],          // description
-                row[9] != null ? (LocalDateTime) row[9] : null  // date
+                (String) row[3],          // method
+                (String) row[4],          // source
+                (String) row[5],          // location
+                (String) row[6],          // categoryName
+                (String) row[7],          // categoryIcon
+                (String) row[8],          // categoryColor
+                (String) row[9],          // description
+                row[10] != null ? (LocalDateTime) row[10] : null  // date
         );
     }
     @Transactional

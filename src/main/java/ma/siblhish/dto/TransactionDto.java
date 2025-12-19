@@ -11,6 +11,7 @@ public class TransactionDto {
     private Long id;
     private String type; // "expense" or "income"
     private Double amount;
+    private String method; // méthode de paiement (CASH, CARD, etc.)
     private String source; // pour income uniquement
     private String location; // pour expense uniquement
     private String categoryName; // pour expense uniquement
@@ -29,6 +30,7 @@ public class TransactionDto {
             Long id,
             String type,
             Double amount,
+            String method,
             String source,
             String location,
             String categoryName,
@@ -40,6 +42,7 @@ public class TransactionDto {
         this.id = id;
         this.type = type;
         this.amount = amount;
+        this.method = method;
         this.source = source;
         this.location = location;
         this.categoryName = categoryName;
@@ -64,6 +67,14 @@ public class TransactionDto {
 
     public void setAmount(Double amount) {
         this.amount = amount;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
     }
 
     public String getSource() {
