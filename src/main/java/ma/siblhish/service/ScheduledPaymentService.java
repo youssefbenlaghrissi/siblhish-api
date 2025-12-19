@@ -121,16 +121,12 @@ public class ScheduledPaymentService {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
 
-        // Parser la date de paiement fournie par le frontend, ou utiliser maintenant si non fournie
+        // Parser la date de paiement fournie par le frontend
         LocalDateTime paymentDate;
-        if (paymentDateStr != null && !paymentDateStr.isEmpty()) {
-            try {
-                paymentDate = LocalDateTime.parse(paymentDateStr);
-            } catch (Exception e) {
-                throw new RuntimeException("Format de date invalide: " + paymentDateStr, e);
-            }
-        } else {
-            paymentDate = LocalDateTime.now();
+        try {
+            paymentDate = LocalDateTime.parse(paymentDateStr);
+        } catch (Exception e) {
+            throw new RuntimeException("Format de date invalide: " + paymentDateStr, e);
         }
 
         // Créer automatiquement une dépense correspondante au paiement planifié avec la date fournie
