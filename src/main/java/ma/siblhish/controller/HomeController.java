@@ -32,31 +32,32 @@ public class HomeController {
     }
 
     /**
-     * Obtenir les transactions récentes (filtres appliqués côté frontend)
+     * Obtenir les transactions récentes avec filtres
      * Retourne directement le DTO avec toutes les données nécessaires
      * @param type Optionnel : 'expense', 'income' ou null (pour tous les types)
      * @param minAmount Optionnel : montant minimum pour filtrer les transactions
      * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
-     * @param period Optionnel : période prédéfinie ('3days', 'week', 'month'). 
-     *               Si fourni, prend priorité sur startDate et endDate
+     * @param dateRange Optionnel : période prédéfinie ('3days', 'week', 'month', 'custom'). 
+     *                  Si 'custom', startDate et endDate doivent être fournis
      * @param startDate Optionnel : date de début pour filtrer par période (format: yyyy-MM-dd)
-     *                   Sera interprétée comme le début de la journée (00:00:00)
-     *                   Ignoré si period est fourni
+     *                  Sera interprétée comme le début de la journée (00:00:00)
+     *                  Requis si dateRange='custom'
      * @param endDate Optionnel : date de fin pour filtrer par période (format: yyyy-MM-dd)
-     *                 Sera interprétée comme la fin de la journée (23:59:59)
-     *                 Ignoré si period est fourni
+     *                Sera interprétée comme la fin de la journée (23:59:59)
+     *                Requis si dateRange='custom'
      */
     @GetMapping("/transactions/{userId}")
     public ResponseEntity<ApiResponse<List<TransactionDto>>> getRecentTransactions(
             @PathVariable Long userId,
+            @RequestParam(defaultValue = "100") Integer limit,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) Double minAmount,
-            @RequestParam(required = false) Double maxAmount,
-            @RequestParam(required = false) String period,
+            @RequestParam(required = false) String dateRange,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(defaultValue = "100") Integer limit) {
-        List<TransactionDto> transactions = homeService.getRecentTransactions(userId, type, minAmount, maxAmount, period, startDate, endDate, limit);
+            @RequestParam(required = false) Double minAmount,
+            @RequestParam(required = false) Double maxAmount) {
+        List<TransactionDto> transactions = homeService.getRecentTransactions(
+                userId, limit, type, dateRange, startDate, endDate, minAmount, maxAmount);
         return ResponseEntity.ok(ApiResponse.success(transactions));
     }
 

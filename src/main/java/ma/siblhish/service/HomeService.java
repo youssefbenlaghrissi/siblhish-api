@@ -45,37 +45,50 @@ public class HomeService {
     /**
      * Obtenir les transactions récentes avec filtres optionnels
      * Retourne directement le DTO avec toutes les données nécessaires
+     * @param userId ID de l'utilisateur
+     * @param limit Nombre maximum de transactions à retourner
      * @param type Optionnel : 'expense', 'income' ou null (pour tous les types)
+     * @param dateRange Optionnel : période prédéfinie ('3days', 'week', 'month', 'custom')
+     * @param startDate Optionnel : date de début pour filtrer par période (sera convertie en début de journée 00:00:00)
+     *                  Requis si dateRange='custom'
+     * @param endDate Optionnel : date de fin pour filtrer par période (sera convertie en fin de journée 23:59:59)
+     *                Requis si dateRange='custom'
      * @param minAmount Optionnel : montant minimum pour filtrer les transactions
      * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
-     * @param period Optionnel : période prédéfinie ('3days', 'week', 'month'). Prend priorité sur startDate/endDate
-     * @param startDate Optionnel : date de début pour filtrer par période (sera convertie en début de journée 00:00:00)
-     * @param endDate Optionnel : date de fin pour filtrer par période (sera convertie en fin de journée 23:59:59)
      */
-    public List<TransactionDto> getRecentTransactions(Long userId, String type, Double minAmount, Double maxAmount, String period, LocalDate startDate, LocalDate endDate, Integer limit) {
+    public List<TransactionDto> getRecentTransactions(
+            Long userId, 
+            Integer limit, 
+            String type, 
+            String dateRange, 
+            LocalDate startDate, 
+            LocalDate endDate, 
+            Double minAmount, 
+            Double maxAmount) {
         LocalDate calculatedStartDate = startDate;
         LocalDate calculatedEndDate = endDate;
         
         // Si une période prédéfinie est fournie, calculer les dates
-        if (period != null && !period.isEmpty()) {
+        if (dateRange != null && !dateRange.isEmpty() && !"custom".equalsIgnoreCase(dateRange)) {
             LocalDate now = LocalDate.now();
             calculatedEndDate = now; // Toujours jusqu'à aujourd'hui
             
-            switch (period.toLowerCase()) {
+            switch (dateRange.toLowerCase()) {
                 case "3days":
                     calculatedStartDate = now.minusDays(3);
                     break;
                 case "week":
-                    calculatedStartDate = now.minusDays(7);
+                    calculatedStartDate = now.minusWeeks(1);
                     break;
                 case "month":
-                    calculatedStartDate = now.withDayOfMonth(1); // Premier jour du mois en cours
+                    calculatedStartDate = now.minusMonths(1);
                     break;
                 default:
                     // Si la période n'est pas reconnue, ignorer et utiliser startDate/endDate si fournis
                     break;
             }
         }
+        // Si dateRange='custom', utiliser startDate et endDate fournis directement
         
         // Convertir LocalDate en LocalDateTime pour la requête SQL
         // startDate -> début de journée (00:00:00)
