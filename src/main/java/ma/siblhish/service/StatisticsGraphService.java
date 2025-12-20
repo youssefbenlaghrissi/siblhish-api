@@ -32,18 +32,18 @@ public class StatisticsGraphService {
                 COALESCE(SUM(total_income), 0) - COALESCE(SUM(total_expenses), 0) as balance
             FROM (
                 SELECT 
-                    TO_CHAR(date, 'YYYY-MM') as month,
+                    TO_CHAR(creation_date, 'YYYY-MM') as month,
                     amount as total_income,
                     0 as total_expenses
                 FROM incomes
-                WHERE user_id = :userId AND EXTRACT(YEAR FROM date) = :year
+                WHERE user_id = :userId AND EXTRACT(YEAR FROM creation_date) = :year
                 UNION ALL
                 SELECT 
-                    TO_CHAR(date, 'YYYY-MM') as month,
+                    TO_CHAR(creation_date, 'YYYY-MM') as month,
                     0 as total_income,
                     amount as total_expenses
                 FROM expenses
-                WHERE user_id = :userId AND EXTRACT(YEAR FROM date) = :year
+                WHERE user_id = :userId AND EXTRACT(YEAR FROM creation_date) = :year
             ) combined
             GROUP BY month
             ORDER BY month
@@ -74,11 +74,11 @@ public class StatisticsGraphService {
      */
     public List<CategoryExpenseDto> getExpensesByCategory(Long userId, String period) {
         String dateCondition = switch (period) {
-            case "week" -> "date >= CURRENT_DATE - INTERVAL '7 days'";
-            case "month" -> "EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-            case "quarter" -> "date >= DATE_TRUNC('quarter', CURRENT_DATE)";
-            case "year" -> "EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-            default -> "EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)";
+            case "week" -> "e.creation_date >= CURRENT_DATE - INTERVAL '7 days'";
+            case "month" -> "EXTRACT(MONTH FROM e.creation_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
+            case "quarter" -> "e.creation_date >= DATE_TRUNC('quarter', CURRENT_DATE)";
+            case "year" -> "EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
+            default -> "EXTRACT(MONTH FROM e.creation_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
         };
 
         String sql = """

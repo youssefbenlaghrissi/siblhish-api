@@ -17,7 +17,7 @@ import java.util.Map;
  * Gère les statistiques, graphiques et analyses
  */
 @RestController
-@RequestMapping("/api/v1/statistics")
+@RequestMapping("/statistics")
 @RequiredArgsConstructor
 public class StatisticsController {
 
