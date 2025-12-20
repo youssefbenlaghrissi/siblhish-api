@@ -111,7 +111,6 @@ public class StatisticsGraphService {
                 COUNT(e.id) as transaction_count
             FROM categories c
             LEFT JOIN expenses e ON c.id = e.category_id AND e.user_id = :userId AND """ + " " + dateCondition + """
-            WHERE c.user_id = :userId OR c.user_id IS NULL
             GROUP BY c.id, c.name, c.icon, c.color
             HAVING COALESCE(SUM(e.amount), 0) > 0
             ORDER BY total_amount DESC
