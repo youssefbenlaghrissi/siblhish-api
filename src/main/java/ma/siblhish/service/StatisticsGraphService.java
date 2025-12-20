@@ -32,18 +32,18 @@ public class StatisticsGraphService {
                 COALESCE(SUM(total_income), 0) - COALESCE(SUM(total_expenses), 0) as balance
             FROM (
                 SELECT 
-                    TO_CHAR(creation_date, 'YYYY-MM') as month,
+                    TO_CHAR(date, 'YYYY-MM') as month,
                     amount as total_income,
                     0 as total_expenses
                 FROM incomes
-                WHERE user_id = :userId AND EXTRACT(YEAR FROM creation_date) = :year
+                WHERE user_id = :userId AND EXTRACT(YEAR FROM date) = :year
                 UNION ALL
                 SELECT 
-                    TO_CHAR(creation_date, 'YYYY-MM') as month,
+                    TO_CHAR(date, 'YYYY-MM') as month,
                     0 as total_income,
                     amount as total_expenses
                 FROM expenses
-                WHERE user_id = :userId AND EXTRACT(YEAR FROM creation_date) = :year
+                WHERE user_id = :userId AND EXTRACT(YEAR FROM date) = :year
             ) combined
             GROUP BY month
             ORDER BY month
@@ -60,9 +60,10 @@ public class StatisticsGraphService {
         for (Object[] row : results) {
             MonthlySummaryDto dto = new MonthlySummaryDto();
             dto.setMonth((String) row[0]);
-            dto.setTotalIncome(((BigDecimal) row[1]).doubleValue());
-            dto.setTotalExpenses(((BigDecimal) row[2]).doubleValue());
-            dto.setBalance(((BigDecimal) row[3]).doubleValue());
+            // Gérer le cas où PostgreSQL retourne Double au lieu de BigDecimal
+            dto.setTotalIncome(convertToDouble(row[1]));
+            dto.setTotalExpenses(convertToDouble(row[2]));
+            dto.setBalance(convertToDouble(row[3]));
             summaries.add(dto);
         }
 
@@ -70,15 +71,34 @@ public class StatisticsGraphService {
     }
 
     /**
+     * Convertir une valeur numérique (BigDecimal ou Double) en double
+     */
+    private double convertToDouble(Object value) {
+        if (value == null) {
+            return 0.0;
+        }
+        if (value instanceof BigDecimal) {
+            return ((BigDecimal) value).doubleValue();
+        }
+        if (value instanceof Double) {
+            return (Double) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        return 0.0;
+    }
+
+    /**
      * Obtenir les dépenses par catégorie
      */
     public List<CategoryExpenseDto> getExpensesByCategory(Long userId, String period) {
         String dateCondition = switch (period) {
-            case "week" -> "e.creation_date >= CURRENT_DATE - INTERVAL '7 days'";
-            case "month" -> "EXTRACT(MONTH FROM e.creation_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-            case "quarter" -> "e.creation_date >= DATE_TRUNC('quarter', CURRENT_DATE)";
-            case "year" -> "EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-            default -> "EXTRACT(MONTH FROM e.creation_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
+            case "week" -> "e.date >= CURRENT_DATE - INTERVAL '7 days'";
+            case "month" -> "EXTRACT(MONTH FROM e.date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.date) = EXTRACT(YEAR FROM CURRENT_DATE)";
+            case "quarter" -> "e.date >= DATE_TRUNC('quarter', CURRENT_DATE)";
+            case "year" -> "EXTRACT(YEAR FROM e.date) = EXTRACT(YEAR FROM CURRENT_DATE)";
+            default -> "EXTRACT(MONTH FROM e.date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.date) = EXTRACT(YEAR FROM CURRENT_DATE)";
         };
 
         String sql = """
@@ -90,7 +110,7 @@ public class StatisticsGraphService {
                 COALESCE(SUM(e.amount), 0) as total_amount,
                 COUNT(e.id) as transaction_count
             FROM categories c
-            LEFT JOIN expenses e ON c.id = e.category_id AND e.user_id = :userId AND """ + dateCondition + """
+            LEFT JOIN expenses e ON c.id = e.category_id AND e.user_id = :userId AND """ + " " + dateCondition + """
             WHERE c.user_id = :userId OR c.user_id IS NULL
             GROUP BY c.id, c.name, c.icon, c.color
             HAVING COALESCE(SUM(e.amount), 0) > 0
@@ -105,12 +125,12 @@ public class StatisticsGraphService {
 
         // Calculer le total pour les pourcentages
         double totalAmount = results.stream()
-                .mapToDouble(row -> ((BigDecimal) row[4]).doubleValue())
+                .mapToDouble(row -> convertToDouble(row[4]))
                 .sum();
 
         List<CategoryExpenseDto> categoryExpenses = new ArrayList<>();
         for (Object[] row : results) {
-            double amount = ((BigDecimal) row[4]).doubleValue();
+            double amount = convertToDouble(row[4]);
             CategoryExpenseDto dto = new CategoryExpenseDto();
             dto.setCategoryId(((Number) row[0]).longValue());
             dto.setCategoryName((String) row[1]);
