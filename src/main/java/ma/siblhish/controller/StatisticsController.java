@@ -73,17 +73,6 @@ public class StatisticsController {
     }
 
     /**
-     * Obtenir les données pour le graphique de répartition par catégorie (pour les graphiques)
-     */
-    @GetMapping("/expenses-by-category-graph/{userId}")
-    public ResponseEntity<ApiResponse<List<CategoryExpenseDto>>> getExpensesByCategoryGraph(
-            @PathVariable Long userId,
-            @RequestParam(required = false, defaultValue = "month") String period) {
-        List<CategoryExpenseDto> data = statisticsGraphService.getExpensesByCategory(userId, period);
-        return ResponseEntity.ok(ApiResponse.success(data));
-    }
-
-    /**
      * Obtenir les préférences des cartes statistiques de l'utilisateur
      */
     @GetMapping("/cards-preferences/{userId}")
