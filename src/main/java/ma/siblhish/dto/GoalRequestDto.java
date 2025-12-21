@@ -27,5 +27,8 @@ public class GoalRequestDto {
 
     private LocalDate targetDate;
     private Long categoryId; // Optional
+
+    private Double currentAmount;
+
 }
 

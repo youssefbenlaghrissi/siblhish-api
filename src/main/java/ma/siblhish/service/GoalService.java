@@ -65,7 +65,8 @@ public class GoalService {
         goal.setDescription(request.getDescription());
         goal.setTargetAmount(request.getTargetAmount());
         goal.setTargetDate(request.getTargetDate());
-        
+        goal.setCurrentAmount(request.getCurrentAmount());
+
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
