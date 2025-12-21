@@ -55,8 +55,7 @@ public class StatisticsGraphService {
             SELECT 
                 period,
                 COALESCE(SUM(total_income), 0) as total_income,
-                COALESCE(SUM(total_expenses), 0) as total_expenses,
-                COALESCE(SUM(total_income), 0) - COALESCE(SUM(total_expenses), 0) as balance
+                COALESCE(SUM(total_expenses), 0) as total_expenses
             FROM (
                 SELECT 
                     %s as period,
