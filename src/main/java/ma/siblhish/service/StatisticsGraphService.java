@@ -88,7 +88,6 @@ public class StatisticsGraphService {
             dto.setPeriod((String) row[0]); // Le champ "period" contient la période formatée
             dto.setTotalIncome(convertToDouble(row[1]));
             dto.setTotalExpenses(convertToDouble(row[2]));
-            dto.setBalance(convertToDouble(row[3]));
             summaries.add(dto);
         }
 

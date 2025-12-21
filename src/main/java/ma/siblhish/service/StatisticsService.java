@@ -112,7 +112,7 @@ public class StatisticsService {
             categories.add(dto);
         }
 
-        return new StatisticsDto(period != null ? period : "custom", totalAmount, categories);
+        return new StatisticsDto(totalAmount, categories);
     }
 
     /**

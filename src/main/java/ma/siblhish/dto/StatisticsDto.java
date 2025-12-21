@@ -10,7 +10,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StatisticsDto {
-    private String period;
     private Double total;
     private List<CategoryExpenseDto> categories;
 }
