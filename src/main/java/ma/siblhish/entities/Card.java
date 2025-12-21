@@ -23,6 +23,5 @@ public class Card {
     
     @Column(name = "title", nullable = false, length = 200)
     private String title; // Titre de la carte
-
 }
 
