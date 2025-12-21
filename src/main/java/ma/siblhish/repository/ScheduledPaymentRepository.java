@@ -18,15 +18,5 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
     @Query("SELECT DISTINCT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId AND sp.isPaid = false ORDER BY sp.creationDate DESC")
     List<ScheduledPayment> findUnpaidByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId AND sp.isPaid = true ORDER BY sp.creationDate DESC")
-    List<ScheduledPayment> findPaidByUserId(@Param("userId") Long userId);
-
-    @Query("SELECT sp FROM ScheduledPayment sp WHERE sp.isPaid = false AND sp.dueDate <= :date")
-    List<ScheduledPayment> findOverduePayments(@Param("date") LocalDateTime date);
-
-    @Query("SELECT sp FROM ScheduledPayment sp WHERE sp.isPaid = false AND sp.dueDate BETWEEN :startDate AND :endDate")
-    List<ScheduledPayment> findUpcomingPayments(
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
 }
 

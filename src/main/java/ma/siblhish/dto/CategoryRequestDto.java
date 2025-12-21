@@ -1,18 +1,17 @@
 package ma.siblhish.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * DTO pour créer et mettre à jour une catégorie
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CategoryRequestDto {
-    @NotNull(message = "User ID is required")
-    private Long userId;
-
     @NotBlank(message = "Name is required")
     private String name;
 

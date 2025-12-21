@@ -29,15 +29,6 @@ public class IncomeController {
     }
 
     /**
-     * Obtenir un revenu par ID
-     */
-    @GetMapping("/{incomeId}")
-    public ResponseEntity<ApiResponse<IncomeDto>> getIncome(@PathVariable Long incomeId) {
-        IncomeDto income = incomeService.getIncomeById(incomeId);
-        return ResponseEntity.ok(ApiResponse.success(income));
-    }
-
-    /**
      * Créer un revenu
      */
     @PostMapping
@@ -67,13 +58,5 @@ public class IncomeController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Obtenir les revenus récurrents
-     */
-    @GetMapping("/{userId}/recurring")
-    public ResponseEntity<ApiResponse<List<IncomeDto>>> getRecurringIncomes(@PathVariable Long userId) {
-        List<IncomeDto> incomes = incomeService.getRecurringIncomes(userId);
-        return ResponseEntity.ok(ApiResponse.success(incomes));
-    }
 }
 

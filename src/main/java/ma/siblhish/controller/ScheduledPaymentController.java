@@ -31,24 +31,6 @@ public class ScheduledPaymentController {
     }
 
     /**
-     * Liste des paiements non payés par utilisateur
-     */
-    @GetMapping("/user/{userId}/unpaid")
-    public ResponseEntity<ApiResponse<List<ScheduledPaymentDto>>> getUnpaidPaymentsByUser(@PathVariable Long userId) {
-        List<ScheduledPaymentDto> payments = scheduledPaymentService.getUnpaidPaymentsByUser(userId);
-        return ResponseEntity.ok(ApiResponse.success(payments));
-    }
-
-    /**
-     * Obtenir un paiement planifié par ID
-     */
-    @GetMapping("/{paymentId}")
-    public ResponseEntity<ApiResponse<ScheduledPaymentDto>> getScheduledPayment(@PathVariable Long paymentId) {
-        ScheduledPaymentDto payment = scheduledPaymentService.getScheduledPaymentById(paymentId);
-        return ResponseEntity.ok(ApiResponse.success(payment));
-    }
-
-    /**
      * Créer un paiement planifié
      */
     @PostMapping

@@ -29,51 +29,28 @@ public class UserService {
         return mapper.toUserProfileDto(user);
     }
 
+    /**
+     * Authentification sociale - trouve ou crée un utilisateur et retourne son profil
+     */
     @Transactional
-    public UserProfileDto updateProfile(Long userId, UserProfileUpdateDto request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        if (request.getType() != null) user.setType(request.getType());
-        if (request.getLanguage() != null) user.setLanguage(request.getLanguage());
-        if (request.getMonthlySalary() != null) user.setMonthlySalary(request.getMonthlySalary());
-        if (request.getNotificationsEnabled() != null) user.setNotificationsEnabled(request.getNotificationsEnabled());
-        
-        User saved = userRepository.save(user);
-        return mapper.toUserProfileDto(saved);
+    public UserProfileDto socialLogin(String email, String displayName, String provider) {
+        User user = findOrCreateByEmail(email, displayName, provider);
+        return mapper.toUserProfileDto(user);
     }
 
+    /**
+     * Trouve un utilisateur par email ou en crée un nouveau
+     */
     @Transactional
-    public void changePassword(Long userId, PasswordChangeDto request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
-        // TODO: Implement password hashing and validation
-        if (!user.getPassword().equals(request.getCurrentPassword())) {
-            throw new RuntimeException("Current password is incorrect");
-        }
-        
-        user.setPassword(request.getNewPassword());
-        userRepository.save(user);
-    }
-
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-    }
-
-    @Transactional
-    public User findOrCreateByEmail(String email, String displayName, String provider) {
+    private User findOrCreateByEmail(String email, String displayName, String provider) {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
-                    String[] names = displayName.split(" ", 2);
+                    String[] names = displayName != null ? displayName.split(" ", 2) : new String[]{"User"};
                     User newUser = new User();
                     newUser.setEmail(email);
                     newUser.setFirstName(names.length > 0 ? names[0] : "User");
                     newUser.setLastName(names.length > 1 ? names[1] : "");
-                    newUser.setPassword("oauth_" + provider); // Mot de passe fictif pour OAuth
+                    newUser.setPassword("oauth_" + provider);
                     newUser.setType(UserType.EMPLOYEE);
                     newUser.setLanguage("fr");
                     LocalDateTime now = LocalDateTime.now();
@@ -81,7 +58,7 @@ public class UserService {
                     newUser.setUpdateDate(now);
                     User savedUser = userRepository.save(newUser);
                     
-                    // Créer les favoris par défaut : bar_chart (id=1) et pie_chart (id=2)
+                    // Créer les favoris par défaut
                     initializeDefaultFavorites(savedUser);
                     
                     return savedUser;

@@ -24,8 +24,8 @@ public class GoalService {
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
 
-    public List<GoalDto> getGoals(Long userId, Boolean achieved, Long categoryId) {
-        List<Goal> goals = goalRepository.findGoalsWithFilters(userId, achieved, categoryId);
+    public List<GoalDto> getGoalsByUserId(Long userId) {
+        List<Goal> goals = goalRepository.findByUserId(userId);
         return mapper.toGoalDtoList(goals);
     }
 
@@ -116,14 +116,5 @@ public class GoalService {
         goalRepository.delete(goal);
     }
 
-    public AdviceDto getAdvice(Long userId) {
-        // TODO: Implement advice logic based on user's spending patterns, goals, and budgets
-        List<String> advices = List.of(
-                "Track your expenses daily to better understand your spending habits",
-                "Set realistic budgets for each category",
-                "Review your goals regularly and adjust if needed"
-        );
-        return new AdviceDto(advices);
-    }
 }
 

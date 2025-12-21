@@ -24,11 +24,9 @@ public class GoalController {
      * Liste des objectifs de l'utilisateur
      */
     @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<List<GoalDto>>> getGoals(
-            @PathVariable Long userId,
-            @RequestParam(required = false) Boolean achieved,
-            @RequestParam(required = false) Long categoryId) {
-        List<GoalDto> goals = goalService.getGoals(userId, achieved, categoryId);
+    public ResponseEntity<ApiResponse<List<GoalDto>>> getGoalsByUserId(
+            @PathVariable Long userId) {
+        List<GoalDto> goals = goalService.getGoalsByUserId(userId);
         return ResponseEntity.ok(ApiResponse.success(goals));
     }
 
@@ -82,13 +80,5 @@ public class GoalController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Obtenir les conseils d'épargne
-     */
-    @GetMapping("/{userId}/advice")
-    public ResponseEntity<ApiResponse<AdviceDto>> getAdvice(@PathVariable Long userId) {
-        AdviceDto advice = goalService.getAdvice(userId);
-        return ResponseEntity.ok(ApiResponse.success(advice));
-    }
 }
 

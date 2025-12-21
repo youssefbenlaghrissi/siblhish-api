@@ -14,37 +14,11 @@ import java.util.List;
 
 @Repository
 public interface IncomeRepository extends JpaRepository<Income, Long> {
-    @Query("SELECT i FROM Income i WHERE i.user.id = :userId " +
-           "AND (:startDate IS NULL OR i.creationDate >= :startDate) " +
-           "AND (:endDate IS NULL OR i.creationDate <= :endDate) " +
-           "AND (:source IS NULL OR i.source = :source) " +
-           "AND (:minAmount IS NULL OR i.amount >= :minAmount) " +
-           "AND (:maxAmount IS NULL OR i.amount <= :maxAmount) " +
-           "AND (:paymentMethod IS NULL OR i.method = :paymentMethod)")
-    Page<Income> findIncomesWithFilters(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
-            @Param("source") String source,
-            @Param("minAmount") Double minAmount,
-            @Param("maxAmount") Double maxAmount,
-            @Param("paymentMethod") PaymentMethod paymentMethod,
-            Pageable pageable);
-    
-    List<Income> findByUserIdAndIsRecurringTrue(Long userId);
-    
     List<Income> findByIsRecurringTrue();
     
     List<Income> findByUserIdOrderByCreationDateDesc(Long userId);
     
     @Query("SELECT SUM(i.amount) FROM Income i WHERE i.user.id = :userId")
     Double getTotalIncomeByUserId(@Param("userId") Long userId);
-    
-    @Query("SELECT SUM(i.amount) FROM Income i WHERE i.user.id = :userId " +
-           "AND i.creationDate >= :startDate AND i.creationDate <= :endDate")
-    Double getTotalIncomeByUserIdAndDateRange(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
 }
 

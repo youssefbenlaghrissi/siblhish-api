@@ -22,21 +22,7 @@ public class CardService {
      */
     public List<CardDto> getAllCards() {
         List<Card> cards = cardRepository.findAllByOrderByIdAsc();
-        return cards.stream()
-                .map(this::mapToCardDto)
-                .toList();
-    }
-
-    /**
-     * Mapper une entité Card vers un CardDto
-     */
-    private CardDto mapToCardDto(Card card) {
-        if (card == null) return null;
-        return new CardDto(
-                card.getId(),
-                card.getCode(),
-                card.getTitle()
-        );
+        return mapper.toCardDtoList(cards);
     }
 }
 

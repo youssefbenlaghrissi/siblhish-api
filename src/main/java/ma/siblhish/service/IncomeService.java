@@ -21,12 +21,6 @@ public class IncomeService {
     private final UserRepository userRepository;
     private final EntityMapper mapper;
 
-    public IncomeDto getIncomeById(Long incomeId) {
-        Income income = incomeRepository.findById(incomeId)
-                .orElseThrow(() -> new RuntimeException("Income not found with id: " + incomeId));
-        return mapper.toIncomeDto(income);
-    }
-
     @Transactional
     public IncomeDto createIncome(IncomeRequestDto request) {
         User user = userRepository.findById(request.getUserId())
@@ -82,11 +76,6 @@ public class IncomeService {
         Income income = incomeRepository.findById(incomeId)
                 .orElseThrow(() -> new RuntimeException("Income not found with id: " + incomeId));
         incomeRepository.delete(income);
-    }
-
-    public List<IncomeDto> getRecurringIncomes(Long userId) {
-        List<Income> incomes = incomeRepository.findByUserIdAndIsRecurringTrue(userId);
-        return mapper.toIncomeDtoList(incomes);
     }
 
     public List<IncomeDto> getIncomesByUser(Long userId) {

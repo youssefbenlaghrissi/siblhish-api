@@ -15,7 +15,6 @@ public class UserProfileDto {
     private String email;
     private UserType type;
     private String language;
-    private Double monthlySalary;
     private Boolean notificationsEnabled;
 }
 

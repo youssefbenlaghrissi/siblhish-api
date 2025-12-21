@@ -25,12 +25,6 @@ public class ExpenseService {
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
 
-    public ExpenseDto getExpenseById(Long expenseId) {
-        Expense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new RuntimeException("Expense not found with id: " + expenseId));
-        return mapper.toExpenseDto(expense);
-    }
-
     @Transactional
     public ExpenseDto createExpense(ExpenseRequestDto request) {
         User user = userRepository.findById(request.getUserId())
@@ -100,11 +94,6 @@ public class ExpenseService {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found with id: " + expenseId));
         expenseRepository.delete(expense);
-    }
-
-    public List<ExpenseDto> getRecurringExpenses(Long userId) {
-        List<Expense> expenses = expenseRepository.findByUserIdAndIsRecurringTrue(userId);
-        return mapper.toExpenseDtoList(expenses);
     }
 
     public List<ExpenseDto> getExpensesByUser(Long userId) {

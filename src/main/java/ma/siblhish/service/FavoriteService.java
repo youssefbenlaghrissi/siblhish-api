@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import ma.siblhish.dto.FavoriteDto;
 import ma.siblhish.entities.Favorite;
 import ma.siblhish.entities.User;
+import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.FavoriteRepository;
 import ma.siblhish.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,19 +19,7 @@ public class FavoriteService {
 
     private final UserRepository userRepository;
     private final FavoriteRepository favoriteRepository;
-
-    /**
-     * Convertir une entité Favorite en DTO
-     */
-    private FavoriteDto toDto(Favorite favorite) {
-        return new FavoriteDto(
-            favorite.getId(),
-            favorite.getUser().getId(),
-            favorite.getType(),
-            favorite.getTargetEntity(),
-            favorite.getValue()
-        );
-    }
+    private final EntityMapper mapper;
 
     /**
      * Trouver tous les favoris d'un utilisateur par type
@@ -41,9 +30,7 @@ public class FavoriteService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Favorite> favorites = favoriteRepository.findByUserIdAndTypeOrderById(userId, type);
-        return favorites.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return mapper.toFavoriteDtoList(favorites);
     }
 
     /**
@@ -80,9 +67,7 @@ public class FavoriteService {
                 .collect(Collectors.toList());
 
         List<Favorite> saved = favoriteRepository.saveAll(newFavorites);
-        return saved.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return mapper.toFavoriteDtoList(saved);
     }
 
     /**

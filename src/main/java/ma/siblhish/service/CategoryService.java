@@ -3,10 +3,8 @@ package ma.siblhish.service;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Category;
-import ma.siblhish.entities.User;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
-import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +16,6 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final EntityMapper mapper;
 
     public List<CategoryDto> getUserCategories(Long userId) {
@@ -41,7 +38,7 @@ public class CategoryService {
     }
 
     @Transactional
-    public CategoryDto updateCategory(Long categoryId, CategoryUpdateDto request) {
+    public CategoryDto updateCategory(Long categoryId, CategoryRequestDto request) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
         
@@ -64,11 +61,6 @@ public class CategoryService {
     public List<CategoryDto> getAllCategories() {
         List<Category> categories = categoryRepository.findAllCategories();
         return mapper.toCategoryDtoList(categories);
-    }
-
-    public Category getCategoryById(Long categoryId) {
-        return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
     }
 }
 

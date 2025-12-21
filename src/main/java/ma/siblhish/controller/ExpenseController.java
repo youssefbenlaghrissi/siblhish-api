@@ -27,15 +27,6 @@ public class ExpenseController {
     }
 
     /**
-     * Obtenir une dépense par ID
-     */
-    @GetMapping("/{expenseId}")
-    public ResponseEntity<ApiResponse<ExpenseDto>> getExpense(@PathVariable Long expenseId) {
-        ExpenseDto expense = expenseService.getExpenseById(expenseId);
-        return ResponseEntity.ok(ApiResponse.success(expense));
-    }
-
-    /**
      * Créer une dépense
      */
     @PostMapping
@@ -65,13 +56,5 @@ public class ExpenseController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Obtenir les dépenses récurrentes
-     */
-    @GetMapping("/{userId}/recurring")
-    public ResponseEntity<ApiResponse<java.util.List<ExpenseDto>>> getRecurringExpenses(@PathVariable Long userId) {
-        java.util.List<ExpenseDto> expenses = expenseService.getRecurringExpenses(userId);
-        return ResponseEntity.ok(ApiResponse.success(expenses));
-    }
 }
 

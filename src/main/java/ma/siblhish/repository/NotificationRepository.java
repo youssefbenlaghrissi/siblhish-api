@@ -12,12 +12,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    Page<Notification> findByUserId(Long userId, Pageable pageable);
-    
-    Page<Notification> findByUserIdAndIsRead(Long userId, Boolean isRead, Pageable pageable);
-    
-    Page<Notification> findByUserIdAndType(Long userId, TypeNotification type, Pageable pageable);
-    
+
     @Query("SELECT n FROM Notification n WHERE n.user.id = :userId " +
            "AND (:isRead IS NULL OR n.isRead = :isRead) " +
            "AND (:type IS NULL OR n.type = :type)")

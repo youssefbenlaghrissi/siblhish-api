@@ -5,67 +5,42 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
-import ma.siblhish.entities.Expense;
-import ma.siblhish.repository.BudgetRepository;
-import ma.siblhish.repository.ExpenseRepository;
-import ma.siblhish.repository.IncomeRepository;
+import ma.siblhish.mapper.EntityMapper;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
 
-    private final ExpenseRepository expenseRepository;
-    private final IncomeRepository incomeRepository;
-    private final BudgetRepository budgetRepository;
-
     @PersistenceContext
     private EntityManager entityManager;
+    private final EntityMapper mapper;
 
     /**
      * Obtenir les dépenses par catégorie selon la période
      * @param period : "day" (30 derniers jours), "month" (12 derniers mois), "year" (toutes les années)
-     *                Si period est fourni, startDate et endDate sont ignorés
      */
-    public StatisticsDto getExpensesByCategory(Long userId, LocalDate startDate, LocalDate endDate, String period) {
+    public StatisticsDto getExpensesByCategory(Long userId, String period) {
+        String periodLower = period != null ? period.toLowerCase() : "month";
         String dateCondition;
-        boolean useDateParams = false;
         
-        // Utiliser period si fourni (priorité)
-        if (period != null && !period.isEmpty()) {
-            String periodLower = period.toLowerCase();
-            switch (periodLower) {
-                case "day":
-                    // 30 derniers jours
-                    dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '30 days'";
-                    break;
-                case "year":
-                    // Toutes les années trouvées (pas de filtre)
-                    dateCondition = "1=1";
-                    break;
-                case "month":
-                default:
-                    // 12 derniers mois
-                    dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '12 months'";
-                    break;
-            }
-        } else if (startDate != null && endDate != null) {
-            // Utiliser startDate/endDate si period n'est pas fourni
-            dateCondition = "e.creation_date >= :startDate AND e.creation_date <= :endDate";
-            useDateParams = true;
-        } else {
-            // Par défaut : 12 derniers mois
-            dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '12 months'";
+        switch (periodLower) {
+            case "day":
+                // 30 derniers jours
+                dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '30 days'";
+                break;
+            case "year":
+                // Toutes les années trouvées (pas de filtre)
+                dateCondition = "1=1";
+                break;
+            case "month":
+            default:
+                // 12 derniers mois
+                dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '12 months'";
+                break;
         }
 
         String sql = """
@@ -84,24 +59,18 @@ public class StatisticsService {
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
-        
-        // Ajouter les paramètres de date si nécessaire
-        if (useDateParams) {
-            query.setParameter("startDate", startDate.atStartOfDay());
-            query.setParameter("endDate", endDate.atTime(23, 59, 59));
-        }
 
         @SuppressWarnings("unchecked")
         List<Object[]> results = query.getResultList();
 
         // Calculer le total pour les pourcentages
         double totalAmount = results.stream()
-                .mapToDouble(row -> convertToDouble(row[4]))
+                .mapToDouble(row -> mapper.convertToDouble(row[4]))
                 .sum();
 
         List<CategoryExpenseDto> categories = new ArrayList<>();
         for (Object[] row : results) {
-            double amount = convertToDouble(row[4]);
+            double amount = mapper.convertToDouble(row[4]);
             CategoryExpenseDto dto = new CategoryExpenseDto();
             dto.setCategoryId(((Number) row[0]).longValue());
             dto.setCategoryName((String) row[1]);
@@ -115,101 +84,72 @@ public class StatisticsService {
         return new StatisticsDto(totalAmount, categories);
     }
 
-    /**
-     * Convertir une valeur numérique (BigDecimal ou Double) en double
-     */
-    private double convertToDouble(Object value) {
-        if (value == null) {
-            return 0.0;
-        }
-        if (value instanceof BigDecimal) {
-            return ((BigDecimal) value).doubleValue();
-        }
-        if (value instanceof Double) {
-            return (Double) value;
-        }
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        }
-        return 0.0;
-    }
+    public List<PeriodSummaryDto> getPeriodSummary(Long userId, String period) {
+        // Déterminer le format de groupement selon la période
+        String periodFormat;
+        String dateFilter;
 
-    public MonthlyEvolutionDto getMonthlyEvolution(Long userId, Integer months) {
-        List<MonthDataDto> evolution = new ArrayList<>();
-        LocalDate now = LocalDate.now();
-        
-        for (int i = months - 1; i >= 0; i--) {
-            LocalDate monthStart = now.minusMonths(i).withDayOfMonth(1);
-            LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
-            
-            LocalDateTime startDateTime = monthStart.atStartOfDay();
-            LocalDateTime endDateTime = monthEnd.atTime(23, 59, 59);
-            
-            Double income = incomeRepository.getTotalIncomeByUserIdAndDateRange(
-                    userId, startDateTime, endDateTime);
-            Double expenses = expenseRepository.getTotalExpensesByUserIdAndDateRange(
-                    userId, startDateTime, endDateTime);
-            
-            income = income != null ? income : 0.0;
-            expenses = expenses != null ? expenses : 0.0;
-            
-            String month = monthStart.getYear() + "-" + 
-                    String.format("%02d", monthStart.getMonthValue());
-            
-            evolution.add(new MonthDataDto(month, income, expenses, income - expenses));
+        switch (period != null ? period.toLowerCase() : "month") {
+            case "day":
+                // Grouper par jour (année-mois-jour) - 30 derniers jours
+                periodFormat = "TO_CHAR(creation_date, 'YYYY-MM-DD')";
+                dateFilter = "creation_date >= CURRENT_DATE - INTERVAL '30 days'";
+                break;
+            case "year":
+                // Grouper par année - toutes les années trouvées (pas de filtre de date)
+                periodFormat = "TO_CHAR(creation_date, 'YYYY')";
+                dateFilter = "1=1"; // Pas de filtre, retourner toutes les années
+                break;
+            case "month":
+            default:
+                // Grouper par mois (année-mois) - 12 derniers mois
+                periodFormat = "TO_CHAR(creation_date, 'YYYY-MM')";
+                dateFilter = "creation_date >= CURRENT_DATE - INTERVAL '12 months'";
+                break;
         }
-        
-        return new MonthlyEvolutionDto(evolution);
-    }
 
-    public DetailedStatisticsDto getDetailedStatistics(Long userId, LocalDate startDate, LocalDate endDate) {
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
-        LocalDateTime endDateTime = endDate != null ? endDate.atTime(23, 59, 59) : null;
-        
-        Double totalIncome = startDateTime != null && endDateTime != null
-                ? incomeRepository.getTotalIncomeByUserIdAndDateRange(userId, startDateTime, endDateTime)
-                : incomeRepository.getTotalIncomeByUserId(userId);
-        
-        Double totalExpenses = startDateTime != null && endDateTime != null
-                ? expenseRepository.getTotalExpensesByUserIdAndDateRange(userId, startDateTime, endDateTime)
-                : expenseRepository.getTotalExpensesByUserId(userId);
-        
-        totalIncome = totalIncome != null ? totalIncome : 0.0;
-        totalExpenses = totalExpenses != null ? totalExpenses : 0.0;
-        
-        // Calculate averages
-        long days = startDate != null && endDate != null
-                ? java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1
-                : 30; // Default to 30 days
-        
-        Double averageDailyExpense = totalExpenses / days;
-        
-        // Get top expense category
-        StatisticsDto categoryStats = getExpensesByCategory(userId, startDate, endDate, null);
-        CategoryExpenseDto topCategory = categoryStats.getCategories().stream()
-                .max(Comparator.comparing(CategoryExpenseDto::getAmount))
-                .orElse(null);
-        
-        // Get budget status
-        List<ma.siblhish.entities.Budget> activeBudgets = budgetRepository.findByUserIdAndIsActiveTrue(userId);
-        Double totalBudget = activeBudgets.stream()
-                .mapToDouble(ma.siblhish.entities.Budget::getAmount)
-                .sum();
-        
-        Double spent = totalExpenses;
-        Double remaining = totalBudget - spent;
-        Double percentageUsed = totalBudget > 0 ? (spent / totalBudget) * 100 : 0.0;
-        
-        BudgetStatusDto budgetStatus = new BudgetStatusDto(totalBudget, spent, remaining, percentageUsed);
-        
-        return new DetailedStatisticsDto(
-                totalIncome,
-                totalExpenses,
-                averageDailyExpense,
-                totalIncome / 12.0, // Average monthly income (approximation)
-                topCategory,
-                budgetStatus
-        );
+        String sql = String.format("""
+            SELECT 
+                period,
+                COALESCE(SUM(total_income), 0) as total_income,
+                COALESCE(SUM(total_expenses), 0) as total_expenses,
+                COALESCE(SUM(total_income), 0) - COALESCE(SUM(total_expenses), 0) as balance
+            FROM (
+                SELECT 
+                    %s as period,
+                    amount as total_income,
+                    0 as total_expenses
+                FROM incomes
+                WHERE user_id = :userId AND %s
+                UNION ALL
+                SELECT 
+                    %s as period,
+                    0 as total_income,
+                    amount as total_expenses
+                FROM expenses
+                WHERE user_id = :userId AND %s
+            ) combined
+            GROUP BY period
+            ORDER BY period
+        """, periodFormat, dateFilter, periodFormat, dateFilter);
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+
+        List<PeriodSummaryDto> summaries = new ArrayList<>();
+        for (Object[] row : results) {
+            PeriodSummaryDto dto = new PeriodSummaryDto();
+            dto.setPeriod((String) row[0]); // Le champ "period" contient la période formatée
+            dto.setTotalIncome(mapper.convertToDouble(row[1]));
+            dto.setTotalExpenses(mapper.convertToDouble(row[2]));
+            dto.setBalance(mapper.convertToDouble(row[3]));
+            summaries.add(dto);
+        }
+
+        return summaries;
     }
 }
 

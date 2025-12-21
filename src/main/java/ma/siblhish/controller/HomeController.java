@@ -61,24 +61,5 @@ public class HomeController {
         return ResponseEntity.ok(ApiResponse.success(transactions));
     }
 
-    /**
-     * Ajouter rapidement une dépense
-     */
-    @PostMapping("/expenses/quick")
-    public ResponseEntity<ApiResponse<ExpenseDto>> addQuickExpense(
-            @Valid @RequestBody QuickExpenseDto request) {
-        ExpenseDto expense = homeService.addQuickExpense(request);
-        return ResponseEntity.ok(ApiResponse.success(expense));
-    }
-
-    /**
-     * Ajouter rapidement un revenu
-     */
-    @PostMapping("/incomes/quick")
-    public ResponseEntity<ApiResponse<IncomeDto>> addQuickIncome(
-            @Valid @RequestBody QuickIncomeDto request) {
-        IncomeDto income = homeService.addQuickIncome(request);
-        return ResponseEntity.ok(ApiResponse.success(income));
-    }
 }
 

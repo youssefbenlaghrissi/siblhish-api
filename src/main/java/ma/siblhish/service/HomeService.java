@@ -5,6 +5,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
+import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.IncomeRepository;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class HomeService {
     private final ExpenseRepository expenseRepository;
     private final ExpenseService expenseService;
     private final IncomeService incomeService;
+    private final EntityMapper mapper;
 
     public BalanceDto getBalance(Long userId) {
         Double totalIncome = incomeRepository.getTotalIncomeByUserId(userId);
@@ -200,51 +202,9 @@ public class HomeService {
         List<Object[]> results = query.getResultList();
 
         return results.stream()
-                .map(this::mapToTransactionDTO)
+                .map(mapper::toTransactionDtoFromRow)
                 .collect(Collectors.toList());
     }
 
-    private TransactionDto mapToTransactionDTO(Object[] row) {
-        return new TransactionDto(
-                row[0] != null ? ((Number) row[0]).longValue() : null,  // id
-                (String) row[1],          // type
-                row[2] != null ? ((Number) row[2]).doubleValue() : null,  // amount
-                (String) row[3],          // method
-                (String) row[4],          // source
-                (String) row[5],          // location
-                (String) row[6],          // categoryName
-                (String) row[7],          // categoryIcon
-                (String) row[8],          // categoryColor
-                (String) row[9],          // description
-                row[10] != null ? (LocalDateTime) row[10] : null  // date
-        );
-    }
-    @Transactional
-    public ExpenseDto addQuickExpense(QuickExpenseDto request) {
-        ExpenseRequestDto expenseRequest = new ExpenseRequestDto();
-        expenseRequest.setUserId(request.getUserId());
-        expenseRequest.setAmount(request.getAmount());
-        expenseRequest.setCategoryId(request.getCategoryId());
-        expenseRequest.setDescription(request.getDescription());
-        expenseRequest.setMethod(request.getPaymentMethod());
-        expenseRequest.setDate(LocalDateTime.now());
-        expenseRequest.setIsRecurring(false);
-        
-        return expenseService.createExpense(expenseRequest);
-    }
-
-    @Transactional
-    public IncomeDto addQuickIncome(QuickIncomeDto request) {
-        IncomeRequestDto incomeRequest = new IncomeRequestDto();
-        incomeRequest.setUserId(request.getUserId());
-        incomeRequest.setAmount(request.getAmount());
-        incomeRequest.setSource(request.getSource());
-        incomeRequest.setDescription(request.getDescription());
-        incomeRequest.setMethod(request.getPaymentMethod());
-        incomeRequest.setDate(LocalDateTime.now());
-        incomeRequest.setIsRecurring(false);
-        
-        return incomeService.createIncome(incomeRequest);
-    }
 }
 

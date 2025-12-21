@@ -46,9 +46,6 @@ public class User extends AbstractEntity {
     @Column(length = 10)
     private String language = "fr";
 
-    @Column(name = "monthly_salary")
-    private Double monthlySalary;
-
     @Column(name = "notifications_enabled", nullable = false)
     private Boolean notificationsEnabled = true;
 

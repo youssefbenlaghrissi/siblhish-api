@@ -26,26 +26,6 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(profile));
     }
 
-    /**
-     * Mettre à jour le profil
-     */
-    @PutMapping("/{userId}/profile")
-    public ResponseEntity<ApiResponse<UserProfileDto>> updateProfile(
-            @PathVariable Long userId,
-            @Valid @RequestBody UserProfileUpdateDto request) {
-        UserProfileDto profile = userService.updateProfile(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(profile));
-    }
 
-    /**
-     * Mettre à jour le mot de passe
-     */
-    @PutMapping("/{userId}/password")
-    public ResponseEntity<ApiResponse<Void>> changePassword(
-            @PathVariable Long userId,
-            @Valid @RequestBody PasswordChangeDto request) {
-        userService.changePassword(userId, request);
-        return ResponseEntity.ok(ApiResponse.success(null, "Password updated successfully"));
-    }
 }
 

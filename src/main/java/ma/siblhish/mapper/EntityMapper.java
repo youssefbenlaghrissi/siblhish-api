@@ -75,42 +75,6 @@ public class EntityMapper {
         return incomes.stream().map(this::toIncomeDto).collect(Collectors.toList());
     }
 
-    // Transaction Mapper (combines Expense and Income)
-    public TransactionDto toTransactionDto(Expense expense) {
-        if (expense == null) return null;
-        CategoryDto category = toCategoryDto(expense.getCategory());
-        TransactionDto dto = new TransactionDto();
-        dto.setId(expense.getId());
-        dto.setType("expense");
-        dto.setAmount(expense.getAmount());
-        dto.setMethod(expense.getMethod() != null ? expense.getMethod().name() : null);
-        dto.setSource(null);
-        dto.setLocation(expense.getLocation());
-        dto.setCategoryName(category != null ? category.getName() : null);
-        dto.setCategoryIcon(category != null ? category.getIcon() : null);
-        dto.setCategoryColor(category != null ? category.getColor() : null);
-        dto.setDescription(expense.getDescription());
-        dto.setDate(expense.getCreationDate());
-        return dto;
-    }
-
-    public TransactionDto toTransactionDto(Income income) {
-        if (income == null) return null;
-        TransactionDto dto = new TransactionDto();
-        dto.setId(income.getId());
-        dto.setType("income");
-        dto.setAmount(income.getAmount());
-        dto.setMethod(income.getMethod() != null ? income.getMethod().name() : null);
-        dto.setSource(income.getSource());
-        dto.setLocation(null);
-        dto.setCategoryName(null);
-        dto.setCategoryIcon(null);
-        dto.setCategoryColor(null);
-        dto.setDescription(income.getDescription());
-        dto.setDate(income.getCreationDate());
-        return dto;
-    }
-
     // Budget Mappers
     public BudgetDto toBudgetDto(Budget budget, Double spent) {
         if (budget == null) return null;
@@ -128,10 +92,6 @@ public class EntityMapper {
         dto.setPercentageUsed(budget.getAmount() > 0 ? 
                 ((spent != null ? spent : 0.0) / budget.getAmount()) * 100 : 0.0);
         return dto;
-    }
-
-    public List<BudgetDto> toBudgetDtoList(List<Budget> budgets) {
-        return budgets.stream().map(b -> toBudgetDto(b, 0.0)).collect(Collectors.toList());
     }
 
     // Goal Mappers
@@ -166,7 +126,6 @@ public class EntityMapper {
                 user.getEmail(),
                 user.getType(),
                 user.getLanguage(),
-                user.getMonthlySalary(),
                 user.getNotificationsEnabled()
         );
     }
@@ -183,10 +142,6 @@ public class EntityMapper {
         dto.setTransactionType(notification.getTransactionType());
         dto.setCreationDate(notification.getCreationDate());
         return dto;
-    }
-
-    public List<NotificationDto> toNotificationDtoList(List<Notification> notifications) {
-        return notifications.stream().map(this::toNotificationDto).collect(Collectors.toList());
     }
 
     // Scheduled Payment Mappers
@@ -214,8 +169,68 @@ public class EntityMapper {
         return dto;
     }
 
-    public List<ScheduledPaymentDto> toScheduledPaymentDtoList(List<ScheduledPayment> payments) {
-        return payments.stream().map(this::toScheduledPaymentDto).collect(Collectors.toList());
+    // Card Mappers
+    public CardDto toCardDto(Card card) {
+        if (card == null) return null;
+        return new CardDto(
+                card.getId(),
+                card.getCode(),
+                card.getTitle()
+        );
+    }
+
+    public List<CardDto> toCardDtoList(List<Card> cards) {
+        return cards.stream().map(this::toCardDto).collect(Collectors.toList());
+    }
+
+    // Favorite Mappers
+    public FavoriteDto toFavoriteDto(Favorite favorite) {
+        if (favorite == null) return null;
+        return new FavoriteDto(
+                favorite.getId(),
+                favorite.getUser() != null ? favorite.getUser().getId() : null,
+                favorite.getType(),
+                favorite.getTargetEntity(),
+                favorite.getValue()
+        );
+    }
+
+    public List<FavoriteDto> toFavoriteDtoList(List<Favorite> favorites) {
+        return favorites.stream().map(this::toFavoriteDto).collect(Collectors.toList());
+    }
+
+    // Transaction DTO from SQL Result Row (Object[])
+    public TransactionDto toTransactionDtoFromRow(Object[] row) {
+        return new TransactionDto(
+                row[0] != null ? ((Number) row[0]).longValue() : null,  // id
+                (String) row[1],          // type
+                row[2] != null ? ((Number) row[2]).doubleValue() : null,  // amount
+                (String) row[3],          // method
+                (String) row[4],          // source
+                (String) row[5],          // location
+                (String) row[6],          // categoryName
+                (String) row[7],          // categoryIcon
+                (String) row[8],          // categoryColor
+                (String) row[9],          // description
+                row[10] != null ? (java.time.LocalDateTime) row[10] : null  // date
+        );
+    }
+
+    // Utility method to convert numeric values to double
+    public double convertToDouble(Object value) {
+        if (value == null) {
+            return 0.0;
+        }
+        if (value instanceof java.math.BigDecimal) {
+            return ((java.math.BigDecimal) value).doubleValue();
+        }
+        if (value instanceof Double) {
+            return (Double) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        return 0.0;
     }
 
     // Page Response Mapper
