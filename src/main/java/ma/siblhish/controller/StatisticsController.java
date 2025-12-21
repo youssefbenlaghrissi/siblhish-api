@@ -61,13 +61,14 @@ public class StatisticsController {
     }
 
     /**
-     * Obtenir les données pour le graphique en barres (revenus vs dépenses par mois)
+     * Obtenir les données pour le graphique en barres (revenus vs dépenses par période)
+     * @param period : "day" (jour), "month" (mois), "year" (année)
      */
-    @GetMapping("/monthly-summary/{userId}")
-    public ResponseEntity<ApiResponse<List<MonthlySummaryDto>>> getMonthlySummary(
+    @GetMapping("/expense-and-income-by-period/{userId}")
+    public ResponseEntity<ApiResponse<List<PeriodSummaryDto>>> getPeriodSummary(
             @PathVariable Long userId,
-            @RequestParam(required = false, defaultValue = "2025") String year) {
-        List<MonthlySummaryDto> data = statisticsGraphService.getMonthlySummary(userId, year);
+            @RequestParam(required = false, defaultValue = "month") String period) {
+        List<PeriodSummaryDto> data = statisticsGraphService.getPeriodSummary(userId, period);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 

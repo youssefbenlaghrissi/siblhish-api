@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import ma.siblhish.dto.CategoryExpenseDto;
 import ma.siblhish.dto.FavoriteDto;
-import ma.siblhish.dto.MonthlySummaryDto;
+import ma.siblhish.dto.PeriodSummaryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,46 +21,71 @@ public class StatisticsGraphService {
     private final FavoriteService favoriteService;
 
     /**
-     * Obtenir le résumé mensuel (revenus vs dépenses)
+     * Obtenir le résumé par période (revenus vs dépenses)
+     * @param period : "day" (jour), "month" (mois), "year" (année)
+     * - day : 30 derniers jours
+     * - month : 12 derniers mois
+     * - year : toutes les années trouvées
      */
-    public List<MonthlySummaryDto> getMonthlySummary(Long userId, String year) {
-        String sql = """
+    public List<PeriodSummaryDto> getPeriodSummary(Long userId, String period) {
+        // Déterminer le format de groupement selon la période
+        String periodFormat;
+        String dateFilter;
+        
+        switch (period != null ? period.toLowerCase() : "month") {
+            case "day":
+                // Grouper par jour (année-mois-jour) - 30 derniers jours
+                periodFormat = "TO_CHAR(creation_date, 'YYYY-MM-DD')";
+                dateFilter = "creation_date >= CURRENT_DATE - INTERVAL '30 days'";
+                break;
+            case "year":
+                // Grouper par année - toutes les années trouvées (pas de filtre de date)
+                periodFormat = "TO_CHAR(creation_date, 'YYYY')";
+                dateFilter = "1=1"; // Pas de filtre, retourner toutes les années
+                break;
+            case "month":
+            default:
+                // Grouper par mois (année-mois) - 12 derniers mois
+                periodFormat = "TO_CHAR(creation_date, 'YYYY-MM')";
+                dateFilter = "creation_date >= CURRENT_DATE - INTERVAL '12 months'";
+                break;
+        }
+
+        String sql = String.format("""
             SELECT 
-                month,
+                period,
                 COALESCE(SUM(total_income), 0) as total_income,
                 COALESCE(SUM(total_expenses), 0) as total_expenses,
                 COALESCE(SUM(total_income), 0) - COALESCE(SUM(total_expenses), 0) as balance
             FROM (
                 SELECT 
-                    TO_CHAR(creation_date, 'YYYY-MM') as month,
+                    %s as period,
                     amount as total_income,
                     0 as total_expenses
                 FROM incomes
-                WHERE user_id = :userId AND EXTRACT(YEAR FROM creation_date) = :year
+                WHERE user_id = :userId AND %s
                 UNION ALL
                 SELECT 
-                    TO_CHAR(creation_date, 'YYYY-MM') as month,
+                    %s as period,
                     0 as total_income,
                     amount as total_expenses
                 FROM expenses
-                WHERE user_id = :userId AND EXTRACT(YEAR FROM creation_date) = :year
+                WHERE user_id = :userId AND %s
             ) combined
-            GROUP BY month
-            ORDER BY month
-        """;
+            GROUP BY period
+            ORDER BY period
+        """, periodFormat, dateFilter, periodFormat, dateFilter);
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
-        query.setParameter("year", Integer.parseInt(year));
 
         @SuppressWarnings("unchecked")
         List<Object[]> results = query.getResultList();
 
-        List<MonthlySummaryDto> summaries = new ArrayList<>();
+        List<PeriodSummaryDto> summaries = new ArrayList<>();
         for (Object[] row : results) {
-            MonthlySummaryDto dto = new MonthlySummaryDto();
-            dto.setMonth((String) row[0]);
-            // Gérer le cas où PostgreSQL retourne Double au lieu de BigDecimal
+            PeriodSummaryDto dto = new PeriodSummaryDto();
+            dto.setPeriod((String) row[0]); // Le champ "period" contient la période formatée
             dto.setTotalIncome(convertToDouble(row[1]));
             dto.setTotalExpenses(convertToDouble(row[2]));
             dto.setBalance(convertToDouble(row[3]));
@@ -93,13 +118,23 @@ public class StatisticsGraphService {
      * Obtenir les dépenses par catégorie
      */
     public List<CategoryExpenseDto> getExpensesByCategory(Long userId, String period) {
-        String dateCondition = switch (period) {
-            case "week" -> "e.creation_date >= CURRENT_DATE - INTERVAL '7 days'";
-            case "month" -> "EXTRACT(MONTH FROM e.creation_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-            case "quarter" -> "e.creation_date >= DATE_TRUNC('quarter', CURRENT_DATE)";
-            case "year" -> "EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-            default -> "EXTRACT(MONTH FROM e.creation_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM e.creation_date) = EXTRACT(YEAR FROM CURRENT_DATE)";
-        };
+        String periodLower = period != null ? period.toLowerCase() : "month";
+        String dateCondition;
+        switch (periodLower) {
+            case "day":
+                // 30 derniers jours
+                dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '30 days'";
+                break;
+            case "year":
+                // Toutes les années trouvées (pas de filtre)
+                dateCondition = "1=1";
+                break;
+            case "month":
+            default:
+                // 12 derniers mois
+                dateCondition = "e.creation_date >= CURRENT_DATE - INTERVAL '12 months'";
+                break;
+        }
 
         String sql = """
             SELECT 
