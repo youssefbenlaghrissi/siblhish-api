@@ -8,7 +8,6 @@ import ma.siblhish.dto.*;
 import ma.siblhish.entities.Budget;
 import ma.siblhish.entities.Category;
 import ma.siblhish.entities.User;
-import ma.siblhish.enums.PeriodFrequency;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.BudgetRepository;
 import ma.siblhish.repository.CategoryRepository;
@@ -42,7 +41,6 @@ public class BudgetService {
                 b.id,
                 b.user_id,
                 b.amount,
-                b.period,
                 b.start_date,
                 b.end_date,
                 b.category_id,
@@ -73,25 +71,24 @@ public class BudgetService {
             Budget budget = new Budget();
             budget.setId(((Number) row[0]).longValue());
             budget.setAmount(((Number) row[2]).doubleValue());
-            budget.setPeriod(PeriodFrequency.valueOf((String) row[3]));
-            budget.setStartDate(convertToLocalDate(row[4]));
-            budget.setEndDate(convertToLocalDate(row[5]));
-            if (row[6] != null) {
+            budget.setStartDate(convertToLocalDate(row[3]));
+            budget.setEndDate(convertToLocalDate(row[4]));
+            if (row[5] != null) {
                 Category cat = new Category();
-                cat.setId(((Number) row[6]).longValue());
-                cat.setName((String) row[7]);
-                cat.setIcon((String) row[8]);
-                cat.setColor((String) row[9]);
+                cat.setId(((Number) row[5]).longValue());
+                cat.setName((String) row[6]);
+                cat.setIcon((String) row[7]);
+                cat.setColor((String) row[8]);
                 budget.setCategory(cat);
             }
-            budget.setCreationDate(convertToLocalDateTime(row[10]));
-            budget.setUpdateDate(convertToLocalDateTime(row[11]));
+            budget.setCreationDate(convertToLocalDateTime(row[9]));
+            budget.setUpdateDate(convertToLocalDateTime(row[10]));
             
             User user = new User();
             user.setId(((Number) row[1]).longValue());
             budget.setUser(user);
             
-            Double spent = mapper.convertToDouble(row[12]);
+            Double spent = mapper.convertToDouble(row[11]);
             return mapper.toBudgetDto(budget, spent);
         }).collect(Collectors.toList());
     }
@@ -124,7 +121,6 @@ public class BudgetService {
         
         Budget budget = new Budget();
         budget.setAmount(request.getAmount());
-        budget.setPeriod(request.getPeriod());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
         budget.setUser(user);
@@ -147,7 +143,6 @@ public class BudgetService {
                 .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
         
         budget.setAmount(request.getAmount());
-        budget.setPeriod(request.getPeriod());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
         budget.setUpdateDate(LocalDateTime.now());
@@ -238,28 +233,16 @@ public class BudgetService {
         if (budget.getStartDate() != null) {
             return budget.getStartDate();
         }
-        
-        LocalDate now = LocalDate.now();
-        return switch (budget.getPeriod()) {
-            case DAILY -> now;
-            case WEEKLY -> now.minusDays(now.getDayOfWeek().getValue() - 1);
-            case MONTHLY -> now.withDayOfMonth(1);
-            case YEARLY -> now.withDayOfYear(1);
-        };
+        // Si startDate est null, utiliser la date d'aujourd'hui
+        return LocalDate.now();
     }
 
     private LocalDate getPeriodEndDate(Budget budget) {
         if (budget.getEndDate() != null) {
             return budget.getEndDate();
         }
-        
-        LocalDate now = LocalDate.now();
-        return switch (budget.getPeriod()) {
-            case DAILY -> now;
-            case WEEKLY -> now.plusDays(7 - now.getDayOfWeek().getValue());
-            case MONTHLY -> now.withDayOfMonth(now.lengthOfMonth());
-            case YEARLY -> now.withDayOfYear(now.lengthOfYear());
-        };
+        // Si endDate est null, utiliser la date d'aujourd'hui
+        return LocalDate.now();
     }
 }
 

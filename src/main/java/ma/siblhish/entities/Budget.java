@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import ma.siblhish.enums.PeriodFrequency;
 
 import java.time.LocalDate;
 
@@ -38,11 +37,6 @@ public class Budget extends AbstractEntity {
     @Positive
     @Column(nullable = false)
     private Double amount;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PeriodFrequency period;
 
     /**
      * Catégorie associée. Si null, c'est un budget global (toutes catégories)

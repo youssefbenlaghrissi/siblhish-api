@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ma.siblhish.enums.PeriodFrequency;
 
 import java.time.LocalDate;
 
@@ -19,9 +18,6 @@ public class BudgetRequestDto {
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     private Double amount;
-
-    @NotNull(message = "Period is required")
-    private PeriodFrequency period;
 
     private LocalDate startDate;
     private LocalDate endDate;

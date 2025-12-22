@@ -3,7 +3,6 @@ package ma.siblhish.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ma.siblhish.enums.PeriodFrequency;
 
 import java.time.LocalDate;
 
@@ -14,7 +13,6 @@ public class BudgetDto {
     private Long id;
     private Long userId;
     private Double amount;
-    private PeriodFrequency period;
     private LocalDate startDate;
     private LocalDate endDate;
     private CategoryDto category;
