@@ -89,6 +89,8 @@ public class EntityMapper {
         dto.setRemaining(budget.getAmount() - (spent != null ? spent : 0.0));
         dto.setPercentageUsed(budget.getAmount() > 0 ? 
                 ((spent != null ? spent : 0.0) / budget.getAmount()) * 100 : 0.0);
+        // Utiliser isRecurring depuis l'entité (stocké en base de données)
+        dto.setIsRecurring(budget.getIsRecurring() != null ? budget.getIsRecurring() : false);
         return dto;
     }
 

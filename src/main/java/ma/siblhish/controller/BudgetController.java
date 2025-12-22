@@ -75,5 +75,20 @@ public class BudgetController {
         BudgetStatusResponseDto status = budgetService.getBudgetStatus(budgetId);
         return ResponseEntity.ok(ApiResponse.success(status));
     }
+
+    /**
+     * Endpoint pour créer manuellement les budgets récurrents (pour tests).
+     * POST /api/v1/budgets/recurring/create
+     */
+    @PostMapping("/recurring/create")
+    public ResponseEntity<ApiResponse<String>> createRecurringBudgetsManually() {
+        try {
+            budgetService.createRecurringBudgetsForCurrentMonth();
+            return ResponseEntity.ok(ApiResponse.success("Budgets récurrents créés avec succès"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Erreur: " + e.getMessage()));
+        }
+    }
 }
 

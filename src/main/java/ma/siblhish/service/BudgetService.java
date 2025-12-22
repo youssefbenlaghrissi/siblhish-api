@@ -43,6 +43,7 @@ public class BudgetService {
                 b.amount,
                 b.start_date,
                 b.end_date,
+                b.is_recurring,
                 b.category_id,
                 c.name as category_name,
                 c.icon as category_icon,
@@ -73,22 +74,23 @@ public class BudgetService {
             budget.setAmount(((Number) row[2]).doubleValue());
             budget.setStartDate(convertToLocalDate(row[3]));
             budget.setEndDate(convertToLocalDate(row[4]));
-            if (row[5] != null) {
+            budget.setIsRecurring(row[5] != null ? (Boolean) row[5] : false);
+            if (row[6] != null) {
                 Category cat = new Category();
-                cat.setId(((Number) row[5]).longValue());
-                cat.setName((String) row[6]);
-                cat.setIcon((String) row[7]);
-                cat.setColor((String) row[8]);
+                cat.setId(((Number) row[6]).longValue());
+                cat.setName((String) row[7]);
+                cat.setIcon((String) row[8]);
+                cat.setColor((String) row[9]);
                 budget.setCategory(cat);
             }
-            budget.setCreationDate(convertToLocalDateTime(row[9]));
-            budget.setUpdateDate(convertToLocalDateTime(row[10]));
+            budget.setCreationDate(convertToLocalDateTime(row[10]));
+            budget.setUpdateDate(convertToLocalDateTime(row[11]));
             
             User user = new User();
             user.setId(((Number) row[1]).longValue());
             budget.setUser(user);
             
-            Double spent = mapper.convertToDouble(row[11]);
+            Double spent = mapper.convertToDouble(row[12]);
             return mapper.toBudgetDto(budget, spent);
         }).collect(Collectors.toList());
     }
@@ -123,6 +125,7 @@ public class BudgetService {
         budget.setAmount(request.getAmount());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
+        budget.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         budget.setUser(user);
         LocalDateTime now = LocalDateTime.now();
         budget.setCreationDate(now);
@@ -145,6 +148,9 @@ public class BudgetService {
         budget.setAmount(request.getAmount());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
+        if (request.getIsRecurring() != null) {
+            budget.setIsRecurring(request.getIsRecurring());
+        }
         budget.setUpdateDate(LocalDateTime.now());
         
         if (request.getCategoryId() != null) {

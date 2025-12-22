@@ -56,4 +56,10 @@ public class Budget extends AbstractEntity {
      */
     @Column(name = "end_date")
     private LocalDate endDate;
+
+    /**
+     * Indique si le budget est récurrent (créé automatiquement chaque mois)
+     */
+    @Column(name = "is_recurring", nullable = false)
+    private Boolean isRecurring = false;
 }

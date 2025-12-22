@@ -19,5 +19,6 @@ public class BudgetDto {
     private Double spent; // Calculated field
     private Double remaining; // Calculated field
     private Double percentageUsed; // Calculated field
+    private Boolean isRecurring;
 }
 
