@@ -17,7 +17,6 @@ public class BudgetDto {
     private PeriodFrequency period;
     private LocalDate startDate;
     private LocalDate endDate;
-    private Boolean isActive;
     private CategoryDto category;
     private Double spent; // Calculated field
     private Double remaining; // Calculated field

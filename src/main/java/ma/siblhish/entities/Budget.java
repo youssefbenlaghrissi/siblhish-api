@@ -62,10 +62,4 @@ public class Budget extends AbstractEntity {
      */
     @Column(name = "end_date")
     private LocalDate endDate;
-
-    /**
-     * Indique si le budget est actif
-     */
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
 }

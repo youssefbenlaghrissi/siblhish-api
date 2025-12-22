@@ -85,7 +85,6 @@ public class EntityMapper {
         dto.setPeriod(budget.getPeriod());
         dto.setStartDate(budget.getStartDate());
         dto.setEndDate(budget.getEndDate());
-        dto.setIsActive(budget.getIsActive());
         dto.setCategory(toCategoryDto(budget.getCategory()));
         dto.setSpent(spent != null ? spent : 0.0);
         dto.setRemaining(budget.getAmount() - (spent != null ? spent : 0.0));

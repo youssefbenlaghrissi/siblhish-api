@@ -26,6 +26,5 @@ public class BudgetRequestDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private Long categoryId; // null for global budget
-    private Boolean isActive = true;
 }
 

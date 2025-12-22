@@ -3,7 +3,6 @@ package ma.siblhish.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
-import ma.siblhish.enums.PeriodFrequency;
 import ma.siblhish.service.BudgetService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,13 +22,9 @@ public class BudgetController {
     /**
      * Liste des budgets de l'utilisateur
      */
-    @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<List<BudgetDto>>> getBudgets(
-            @PathVariable Long userId,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Boolean isActive,
-            @RequestParam(required = false) PeriodFrequency period) {
-        List<BudgetDto> budgets = budgetService.getBudgets(userId, categoryId, isActive, period);
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<BudgetDto>>> getBudgets(@PathVariable Long userId) {
+        List<BudgetDto> budgets = budgetService.getBudgets(userId);
         return ResponseEntity.ok(ApiResponse.success(budgets));
     }
 
@@ -79,15 +74,6 @@ public class BudgetController {
     public ResponseEntity<ApiResponse<BudgetStatusResponseDto>> getBudgetStatus(@PathVariable Long budgetId) {
         BudgetStatusResponseDto status = budgetService.getBudgetStatus(budgetId);
         return ResponseEntity.ok(ApiResponse.success(status));
-    }
-
-    /**
-     * Activer/Désactiver un budget
-     */
-    @PatchMapping("/{budgetId}/toggle-active")
-    public ResponseEntity<ApiResponse<BudgetDto>> toggleBudgetActive(@PathVariable Long budgetId) {
-        BudgetDto budget = budgetService.toggleBudgetActive(budgetId);
-        return ResponseEntity.ok(ApiResponse.success(budget));
     }
 }
 

@@ -1,5 +1,8 @@
 package ma.siblhish.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Budget;
@@ -23,19 +26,88 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BudgetService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final ExpenseRepository expenseRepository;
     private final EntityMapper mapper;
 
-    public List<BudgetDto> getBudgets(Long userId, Long categoryId, Boolean isActive, PeriodFrequency period) {
-        List<Budget> budgets = budgetRepository.findBudgetsWithFilters(userId, categoryId, isActive, period);
+    public List<BudgetDto> getBudgets(Long userId) {
+        // Requête SQL simple : récupérer les budgets avec leur spent calculé et les infos de catégorie
+        String sql = """
+            SELECT 
+                b.id,
+                b.user_id,
+                b.amount,
+                b.period,
+                b.start_date,
+                b.end_date,
+                b.category_id,
+                c.name as category_name,
+                c.icon as category_icon,
+                c.color as category_color,
+                b.creation_date,
+                b.update_date,
+                COALESCE((
+                    SELECT SUM(e.amount)
+                    FROM expenses e
+                    WHERE e.user_id = b.user_id
+                      AND e.creation_date BETWEEN b.start_date AND b.end_date
+                      AND (b.category_id IS NULL OR e.category_id = b.category_id)
+                ), 0) as spent
+            FROM budgets b
+            LEFT JOIN categories c ON b.category_id = c.id
+            WHERE b.user_id = :userId
+        """;
         
-        return budgets.stream().map(budget -> {
-            Double spent = calculateSpent(budget);
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+        
+        return results.stream().map(row -> {
+            Budget budget = new Budget();
+            budget.setId(((Number) row[0]).longValue());
+            budget.setAmount(((Number) row[2]).doubleValue());
+            budget.setPeriod(PeriodFrequency.valueOf((String) row[3]));
+            budget.setStartDate(convertToLocalDate(row[4]));
+            budget.setEndDate(convertToLocalDate(row[5]));
+            if (row[6] != null) {
+                Category cat = new Category();
+                cat.setId(((Number) row[6]).longValue());
+                cat.setName((String) row[7]);
+                cat.setIcon((String) row[8]);
+                cat.setColor((String) row[9]);
+                budget.setCategory(cat);
+            }
+            budget.setCreationDate(convertToLocalDateTime(row[10]));
+            budget.setUpdateDate(convertToLocalDateTime(row[11]));
+            
+            User user = new User();
+            user.setId(((Number) row[1]).longValue());
+            budget.setUser(user);
+            
+            Double spent = mapper.convertToDouble(row[12]);
             return mapper.toBudgetDto(budget, spent);
         }).collect(Collectors.toList());
+    }
+    
+    private LocalDate convertToLocalDate(Object value) {
+        if (value == null) return null;
+        if (value instanceof LocalDate) return (LocalDate) value;
+        if (value instanceof java.sql.Date) return ((java.sql.Date) value).toLocalDate();
+        return null;
+    }
+    
+    private LocalDateTime convertToLocalDateTime(Object value) {
+        if (value == null) return null;
+        if (value instanceof LocalDateTime) return (LocalDateTime) value;
+        if (value instanceof java.sql.Timestamp) return ((java.sql.Timestamp) value).toLocalDateTime();
+        return null;
     }
 
     public BudgetDto getBudgetById(Long budgetId) {
@@ -55,7 +127,6 @@ public class BudgetService {
         budget.setPeriod(request.getPeriod());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
-        budget.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         budget.setUser(user);
         LocalDateTime now = LocalDateTime.now();
         budget.setCreationDate(now);
@@ -79,7 +150,6 @@ public class BudgetService {
         budget.setPeriod(request.getPeriod());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
-        if (request.getIsActive() != null) budget.setIsActive(request.getIsActive());
         budget.setUpdateDate(LocalDateTime.now());
         
         if (request.getCategoryId() != null) {
@@ -126,17 +196,6 @@ public class BudgetService {
         );
     }
 
-    @Transactional
-    public BudgetDto toggleBudgetActive(Long budgetId) {
-        Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
-        
-        budget.setIsActive(!budget.getIsActive());
-        Budget saved = budgetRepository.save(budget);
-        Double spent = calculateSpent(saved);
-        return mapper.toBudgetDto(saved, spent);
-    }
-
     private Double calculateSpent(Budget budget) {
         LocalDate startDate = getPeriodStartDate(budget);
         LocalDate endDate = getPeriodEndDate(budget);
@@ -144,19 +203,35 @@ public class BudgetService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
         
+        // Construire la requête SQL dynamiquement pour éviter les problèmes avec les paramètres NULL
+        StringBuilder sql = new StringBuilder("SELECT COALESCE(SUM(e.amount), 0) FROM expenses e WHERE e.user_id = :userId ");
+        
+        // Ajouter les conditions seulement si elles sont nécessaires
+        sql.append("AND e.creation_date >= :startDate AND e.creation_date <= :endDate ");
+        
         if (budget.getCategory() != null) {
-            // Budget for specific category - filter by category
-            List<ma.siblhish.entities.Expense> expenses = expenseRepository.findExpensesWithFilters(
-                    budget.getUser().getId(), startDateTime, endDateTime, 
-                    budget.getCategory().getId(), null, null, null,
-                    org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE)).getContent();
-            return expenses.stream().mapToDouble(ma.siblhish.entities.Expense::getAmount).sum();
-        } else {
-            // Global budget - sum all expenses
-            Double total = expenseRepository.getTotalExpensesByUserIdAndDateRange(
-                    budget.getUser().getId(), startDateTime, endDateTime);
-            return total != null ? total : 0.0;
+            sql.append("AND e.category_id = :categoryId ");
         }
+        
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("userId", budget.getUser().getId());
+        query.setParameter("startDate", startDateTime);
+        query.setParameter("endDate", endDateTime);
+        
+        if (budget.getCategory() != null) {
+            query.setParameter("categoryId", budget.getCategory().getId());
+        }
+        
+        Object result = query.getSingleResult();
+        if (result == null) {
+            return 0.0;
+        }
+        
+        if (result instanceof Number) {
+            return ((Number) result).doubleValue();
+        }
+        
+        return 0.0;
     }
 
     private LocalDate getPeriodStartDate(Budget budget) {
