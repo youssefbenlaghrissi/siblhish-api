@@ -124,7 +124,6 @@ public class EntityMapper {
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
-                user.getType(),
                 user.getLanguage(),
                 user.getNotificationsEnabled()
         );

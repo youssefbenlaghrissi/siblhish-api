@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Favorite;
 import ma.siblhish.entities.User;
-import ma.siblhish.enums.UserType;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.FavoriteRepository;
 import ma.siblhish.repository.UserRepository;
@@ -51,7 +50,6 @@ public class UserService {
                     newUser.setFirstName(names.length > 0 ? names[0] : "User");
                     newUser.setLastName(names.length > 1 ? names[1] : "");
                     newUser.setPassword("oauth_" + provider);
-                    newUser.setType(UserType.EMPLOYEE);
                     newUser.setLanguage("fr");
                     LocalDateTime now = LocalDateTime.now();
                     newUser.setCreationDate(now);

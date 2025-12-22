@@ -3,12 +3,10 @@ package ma.siblhish.entities;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import ma.siblhish.enums.UserType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,11 +35,6 @@ public class User extends AbstractEntity {
     @NotBlank
     @Column(nullable = false)
     private String password;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserType type;
 
     @Column(length = 10)
     private String language = "fr";
