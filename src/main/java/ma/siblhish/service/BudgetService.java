@@ -13,17 +13,22 @@ import ma.siblhish.repository.BudgetRepository;
 import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BudgetService {
+
+    private static final Logger logger = LoggerFactory.getLogger(BudgetService.class);
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -34,9 +39,31 @@ public class BudgetService {
     private final ExpenseRepository expenseRepository;
     private final EntityMapper mapper;
 
-    public List<BudgetDto> getBudgets(Long userId) {
-        // Requête SQL simple : récupérer les budgets avec leur spent calculé et les infos de catégorie
-        String sql = """
+    public List<BudgetDto> getBudgets(Long userId, String month) {
+        String sql = buildBudgetQuery(month);
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        
+        if (month != null && !month.isEmpty()) {
+            YearMonth yearMonth = parseMonth(month);
+            if (yearMonth != null) {
+                LocalDate firstDayOfMonth = yearMonth.atDay(1);
+                LocalDate lastDayOfMonth = yearMonth.atEndOfMonth();
+                query.setParameter("firstDayOfMonth", firstDayOfMonth);
+                query.setParameter("lastDayOfMonth", lastDayOfMonth);
+            }
+        }
+        
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+        
+        return results.stream()
+                .map(this::mapRowToBudgetDto)
+                .collect(Collectors.toList());
+    }
+
+    private String buildBudgetQuery(String month) {
+        String baseQuery = """
             SELECT 
                 b.id,
                 b.user_id,
@@ -62,37 +89,48 @@ public class BudgetService {
             WHERE b.user_id = :userId
         """;
         
-        Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("userId", userId);
+        if (month != null && !month.isEmpty() && parseMonth(month) != null) {
+            baseQuery += " AND b.start_date <= :lastDayOfMonth AND b.end_date >= :firstDayOfMonth";
+        }
         
-        @SuppressWarnings("unchecked")
-        List<Object[]> results = query.getResultList();
+        return baseQuery;
+    }
+
+    private YearMonth parseMonth(String month) {
+        try {
+            return YearMonth.parse(month);
+        } catch (Exception e) {
+            logger.warn("Format de mois invalide: '{}'. Format attendu: YYYY-MM (ex: 2025-12)", month);
+            return null;
+        }
+    }
+
+    private BudgetDto mapRowToBudgetDto(Object[] row) {
+        Budget budget = new Budget();
+        budget.setId(((Number) row[0]).longValue());
+        budget.setAmount(((Number) row[2]).doubleValue());
+        budget.setStartDate(convertToLocalDate(row[3]));
+        budget.setEndDate(convertToLocalDate(row[4]));
+        budget.setIsRecurring(row[5] != null ? (Boolean) row[5] : false);
         
-        return results.stream().map(row -> {
-            Budget budget = new Budget();
-            budget.setId(((Number) row[0]).longValue());
-            budget.setAmount(((Number) row[2]).doubleValue());
-            budget.setStartDate(convertToLocalDate(row[3]));
-            budget.setEndDate(convertToLocalDate(row[4]));
-            budget.setIsRecurring(row[5] != null ? (Boolean) row[5] : false);
-            if (row[6] != null) {
-                Category cat = new Category();
-                cat.setId(((Number) row[6]).longValue());
-                cat.setName((String) row[7]);
-                cat.setIcon((String) row[8]);
-                cat.setColor((String) row[9]);
-                budget.setCategory(cat);
-            }
-            budget.setCreationDate(convertToLocalDateTime(row[10]));
-            budget.setUpdateDate(convertToLocalDateTime(row[11]));
-            
-            User user = new User();
-            user.setId(((Number) row[1]).longValue());
-            budget.setUser(user);
-            
-            Double spent = mapper.convertToDouble(row[12]);
-            return mapper.toBudgetDto(budget, spent);
-        }).collect(Collectors.toList());
+        if (row[6] != null) {
+            Category category = new Category();
+            category.setId(((Number) row[6]).longValue());
+            category.setName((String) row[7]);
+            category.setIcon((String) row[8]);
+            category.setColor((String) row[9]);
+            budget.setCategory(category);
+        }
+        
+        budget.setCreationDate(convertToLocalDateTime(row[10]));
+        budget.setUpdateDate(convertToLocalDateTime(row[11]));
+        
+        User user = new User();
+        user.setId(((Number) row[1]).longValue());
+        budget.setUser(user);
+        
+        Double spent = mapper.convertToDouble(row[12]);
+        return mapper.toBudgetDto(budget, spent);
     }
     
     private LocalDate convertToLocalDate(Object value) {

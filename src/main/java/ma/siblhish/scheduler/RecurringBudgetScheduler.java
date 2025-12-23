@@ -81,14 +81,5 @@ public class RecurringBudgetScheduler {
         }
     }
 
-
-    /**
-     * Créer automatiquement les budgets récurrents pour le mois en cours.
-     * Toute la logique métier est contenue dans cette méthode.
-     */
-    @Transactional
-    public void process() {
-
-    }
 }
 

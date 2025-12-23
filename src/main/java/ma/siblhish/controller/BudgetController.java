@@ -21,10 +21,13 @@ public class BudgetController {
 
     /**
      * Liste des budgets de l'utilisateur
+     * @param month Format: YYYY-MM (ex: 2025-12). Optionnel
      */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<BudgetDto>>> getBudgets(@PathVariable Long userId) {
-        List<BudgetDto> budgets = budgetService.getBudgets(userId);
+    public ResponseEntity<ApiResponse<List<BudgetDto>>> getBudgets(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String month) {
+        List<BudgetDto> budgets = budgetService.getBudgets(userId, month);
         return ResponseEntity.ok(ApiResponse.success(budgets));
     }
 
