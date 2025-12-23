@@ -32,15 +32,6 @@ public class BudgetController {
     }
 
     /**
-     * Obtenir un budget par ID
-     */
-    @GetMapping("/{budgetId}")
-    public ResponseEntity<ApiResponse<BudgetDto>> getBudget(@PathVariable Long budgetId) {
-        BudgetDto budget = budgetService.getBudgetById(budgetId);
-        return ResponseEntity.ok(ApiResponse.success(budget));
-    }
-
-    /**
      * Créer un budget
      */
     @PostMapping

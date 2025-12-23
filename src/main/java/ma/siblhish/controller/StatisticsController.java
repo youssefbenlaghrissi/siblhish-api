@@ -1,11 +1,14 @@
 package ma.siblhish.controller;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.service.StatisticsService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -21,24 +24,41 @@ public class StatisticsController {
 
     /**
      * Répartition des dépenses par catégorie
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
      */
     @GetMapping("/expenses-by-category/{userId}")
     public ResponseEntity<ApiResponse<StatisticsDto>> getExpensesByCategory(
             @PathVariable Long userId,
-            @RequestParam(required = false) String period) {
-        StatisticsDto statistics = statisticsService.getExpensesByCategory(userId, period);
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        // Validation : startDate doit être <= endDate
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        StatisticsDto statistics = statisticsService.getExpensesByCategory(userId, startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(statistics));
     }
 
     /**
      * Obtenir les données pour le graphique en barres (revenus vs dépenses par période)
-     * @param period : "day" (jour), "month" (mois), "year" (année)
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
      */
     @GetMapping("/expense-and-income-by-period/{userId}")
     public ResponseEntity<ApiResponse<List<PeriodSummaryDto>>> getPeriodSummary(
             @PathVariable Long userId,
-            @RequestParam(required = false, defaultValue = "month") String period) {
-        List<PeriodSummaryDto> data = statisticsService.getPeriodSummary(userId, period);
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        // Validation : startDate doit être <= endDate
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        List<PeriodSummaryDto> data = statisticsService.getPeriodSummary(userId, startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
