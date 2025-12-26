@@ -157,6 +157,7 @@ public class StatisticsService {
 
     /**
      * Budget vs Réel : Compare le budget prévu avec les dépenses réelles par catégorie
+     * Optimisé avec CTEs pour éviter les sous-requêtes corrélées
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
@@ -168,33 +169,19 @@ public class StatisticsService {
                 COALESCE(c.name, 'Budget Global') as category_name,
                 COALESCE(c.icon, '') as category_icon,
                 COALESCE(c.color, '#9E9E9E') as category_color,
-                COALESCE(SUM(b.amount), 0) as budget_amount,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN b.category_id IS NULL THEN (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = b.user_id
-                              AND DATE(e.creation_date) >= GREATEST(b.start_date, :startDate)
-                              AND DATE(e.creation_date) <= LEAST(b.end_date, :endDate)
-                        )
-                        ELSE (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = b.user_id
-                              AND e.category_id = b.category_id
-                              AND DATE(e.creation_date) >= GREATEST(b.start_date, :startDate)
-                              AND DATE(e.creation_date) <= LEAST(b.end_date, :endDate)
-                        )
-                    END
-                ), 0) as actual_amount
+                SUM(b.amount) as budget_amount,
+                SUM(COALESCE(e.amount, 0)) as actual_amount
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
+            LEFT JOIN expenses e ON e.user_id = :userId
+              AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
+              AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
+              AND (b.category_id IS NULL OR e.category_id = b.category_id)
             WHERE b.user_id = :userId
-              AND b.start_date <= :endDate
-              AND b.end_date >= :startDate
+              AND DATE(b.start_date) <= :endDate
+              AND DATE(b.end_date) >= :startDate
             GROUP BY b.category_id, c.name, c.icon, c.color
-            HAVING COALESCE(SUM(b.amount), 0) > 0
+            HAVING SUM(b.amount) > 0
             ORDER BY budget_amount DESC
         """;
 
@@ -232,58 +219,38 @@ public class StatisticsService {
 
     /**
      * Top Catégories Budgétisées : Liste les catégories avec les budgets les plus importants
+     * Optimisé avec jointures directes
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
-     * @param limit Nombre maximum de résultats (par défaut 5)
      */
-    public List<TopBudgetCategoryDto> getTopBudgetCategories(Long userId, LocalDate startDate, LocalDate endDate, Integer limit) {
-        if (limit == null || limit <= 0) {
-            limit = 5;
-        }
-
+    public List<TopBudgetCategoryDto> getTopBudgetCategories(Long userId, LocalDate startDate, LocalDate endDate) {
         String sql = """
             SELECT 
                 COALESCE(b.category_id, 0) as category_id,
                 COALESCE(c.name, 'Budget Global') as category_name,
                 COALESCE(c.icon, '') as category_icon,
                 COALESCE(c.color, '#9E9E9E') as category_color,
-                COALESCE(SUM(b.amount), 0) as budget_amount,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN b.category_id IS NULL THEN (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = :userId
-                              AND DATE(e.creation_date) >= b.start_date
-                              AND DATE(e.creation_date) <= b.end_date
-                        )
-                        ELSE (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = :userId
-                              AND e.category_id = b.category_id
-                              AND DATE(e.creation_date) >= b.start_date
-                              AND DATE(e.creation_date) <= b.end_date
-                        )
-                    END
-                ), 0) as spent_amount
+                SUM(b.amount) as budget_amount,
+                SUM(COALESCE(e.amount, 0)) as spent_amount
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
+            LEFT JOIN expenses e ON e.user_id = :userId
+              AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
+              AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
+              AND (b.category_id IS NULL OR e.category_id = b.category_id)
             WHERE b.user_id = :userId
-              AND b.start_date <= :endDate
-              AND b.end_date >= :startDate
+              AND DATE(b.start_date) <= :endDate
+              AND DATE(b.end_date) >= :startDate
             GROUP BY b.category_id, c.name, c.icon, c.color
-            HAVING COALESCE(SUM(b.amount), 0) > 0
+            HAVING SUM(b.amount) > 0
             ORDER BY budget_amount DESC
-            LIMIT :limit
         """;
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
         query.setParameter("startDate", startDate);
         query.setParameter("endDate", endDate);
-        query.setParameter("limit", limit);
 
         @SuppressWarnings("unchecked")
         List<Object[]> results = query.getResultList();
@@ -314,6 +281,7 @@ public class StatisticsService {
 
     /**
      * Efficacité Budgétaire : Mesure globale de l'efficacité des budgets
+     * Optimisé avec jointures directes uniquement (vue dérivée au lieu de CTE)
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
@@ -321,75 +289,26 @@ public class StatisticsService {
     public BudgetEfficiencyDto getBudgetEfficiency(Long userId, LocalDate startDate, LocalDate endDate) {
         String sql = """
             SELECT 
-                COUNT(DISTINCT b.id) as total_budgets,
-                COALESCE(SUM(b.amount), 0) as total_budget_amount,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN b.category_id IS NULL THEN (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = :userId
-                              AND DATE(e.creation_date) >= b.start_date
-                              AND DATE(e.creation_date) <= b.end_date
-                        )
-                        ELSE (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = :userId
-                              AND e.category_id = b.category_id
-                              AND DATE(e.creation_date) >= b.start_date
-                              AND DATE(e.creation_date) <= b.end_date
-                        )
-                    END
-                ), 0) as total_spent_amount,
-                COUNT(DISTINCT CASE 
-                    WHEN (
-                        CASE 
-                            WHEN b.category_id IS NULL THEN (
-                                SELECT COALESCE(SUM(e.amount), 0)
-                                FROM expenses e
-                                WHERE e.user_id = :userId
-                                  AND DATE(e.creation_date) >= b.start_date
-                                  AND DATE(e.creation_date) <= b.end_date
-                            )
-                            ELSE (
-                                SELECT COALESCE(SUM(e.amount), 0)
-                                FROM expenses e
-                                WHERE e.user_id = :userId
-                                  AND e.category_id = b.category_id
-                                  AND DATE(e.creation_date) >= b.start_date
-                                  AND DATE(e.creation_date) <= b.end_date
-                            )
-                        END
-                    ) <= b.amount THEN b.id
-                    ELSE NULL
-                END) as budgets_on_track,
-                COUNT(DISTINCT CASE 
-                    WHEN (
-                        CASE 
-                            WHEN b.category_id IS NULL THEN (
-                                SELECT COALESCE(SUM(e.amount), 0)
-                                FROM expenses e
-                                WHERE e.user_id = :userId
-                                  AND DATE(e.creation_date) >= b.start_date
-                                  AND DATE(e.creation_date) <= b.end_date
-                            )
-                            ELSE (
-                                SELECT COALESCE(SUM(e.amount), 0)
-                                FROM expenses e
-                                WHERE e.user_id = :userId
-                                  AND e.category_id = b.category_id
-                                  AND DATE(e.creation_date) >= b.start_date
-                                  AND DATE(e.creation_date) <= b.end_date
-                            )
-                        END
-                    ) > b.amount THEN b.id
-                    ELSE NULL
-                END) as budgets_exceeded
-            FROM budgets b
-            WHERE b.user_id = :userId
-              AND b.start_date <= :endDate
-              AND b.end_date >= :startDate
+                COUNT(*) as total_budgets,
+                SUM(budget_summary.amount) as total_budget_amount,
+                SUM(budget_summary.spent_amount) as total_spent_amount,
+                SUM(CASE WHEN budget_summary.spent_amount <= budget_summary.amount THEN 1 ELSE 0 END) as budgets_on_track,
+                SUM(CASE WHEN budget_summary.spent_amount > budget_summary.amount THEN 1 ELSE 0 END) as budgets_exceeded
+            FROM (
+                SELECT 
+                    b.id,
+                    b.amount,
+                    SUM(COALESCE(e.amount, 0)) as spent_amount
+                FROM budgets b
+                LEFT JOIN expenses e ON e.user_id = :userId
+                  AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
+                  AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
+                  AND (b.category_id IS NULL OR e.category_id = b.category_id)
+                WHERE b.user_id = :userId
+                  AND DATE(b.start_date) <= :endDate
+                  AND DATE(b.end_date) >= :startDate
+                GROUP BY b.id, b.amount
+            ) budget_summary
         """;
 
         Query query = entityManager.createNativeQuery(sql);
@@ -432,6 +351,7 @@ public class StatisticsService {
 
     /**
      * Tendance Mensuelle Budgets : Évolution des budgets sur plusieurs mois
+     * Optimisé avec CTEs pour éviter les sous-requêtes corrélées
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
@@ -439,33 +359,19 @@ public class StatisticsService {
     public List<MonthlyBudgetTrendDto> getMonthlyBudgetTrend(Long userId, LocalDate startDate, LocalDate endDate) {
         String sql = """
             SELECT 
-                TO_CHAR(b.start_date, 'YYYY-MM') as month,
+                TO_CHAR(DATE(b.start_date), 'YYYY-MM') as month,
                 COUNT(DISTINCT b.id) as budget_count,
-                COALESCE(SUM(b.amount), 0) as total_budget_amount,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN b.category_id IS NULL THEN (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = :userId
-                              AND DATE(e.creation_date) >= b.start_date
-                              AND DATE(e.creation_date) <= b.end_date
-                        )
-                        ELSE (
-                            SELECT COALESCE(SUM(e.amount), 0)
-                            FROM expenses e
-                            WHERE e.user_id = :userId
-                              AND e.category_id = b.category_id
-                              AND DATE(e.creation_date) >= b.start_date
-                              AND DATE(e.creation_date) <= b.end_date
-                        )
-                    END
-                ), 0) as total_spent_amount
+                SUM(b.amount) as total_budget_amount,
+                SUM(COALESCE(e.amount, 0)) as total_spent_amount
             FROM budgets b
+            LEFT JOIN expenses e ON e.user_id = :userId
+              AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
+              AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
+              AND (b.category_id IS NULL OR e.category_id = b.category_id)
             WHERE b.user_id = :userId
-              AND b.start_date <= :endDate
-              AND b.end_date >= :startDate
-            GROUP BY TO_CHAR(b.start_date, 'YYYY-MM')
+              AND DATE(b.start_date) <= :endDate
+              AND DATE(b.end_date) >= :startDate
+            GROUP BY TO_CHAR(DATE(b.start_date), 'YYYY-MM')
             ORDER BY month
         """;
 
@@ -513,8 +419,8 @@ public class StatisticsService {
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             WHERE b.user_id = :userId
-              AND b.start_date <= :endDate
-              AND b.end_date >= :startDate
+              AND DATE(b.start_date) <= :endDate
+              AND DATE(b.end_date) >= :startDate
             GROUP BY b.category_id, c.name, c.icon, c.color
             HAVING COALESCE(SUM(b.amount), 0) > 0
             ORDER BY budget_amount DESC

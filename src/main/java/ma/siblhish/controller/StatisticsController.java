@@ -86,19 +86,17 @@ public class StatisticsController {
      * @param userId ID de l'utilisateur
      * @param startDate Date de début (format: YYYY-MM-DD)
      * @param endDate Date de fin (format: YYYY-MM-DD)
-     * @param limit Nombre maximum de résultats (optionnel, par défaut 5)
      */
     @GetMapping("/top-budget-categories/{userId}")
     public ResponseEntity<ApiResponse<List<TopBudgetCategoryDto>>> getTopBudgetCategories(
             @PathVariable Long userId,
             @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Integer limit) {
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
         }
-        List<TopBudgetCategoryDto> data = statisticsService.getTopBudgetCategories(userId, startDate, endDate, limit);
+        List<TopBudgetCategoryDto> data = statisticsService.getTopBudgetCategories(userId, startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
