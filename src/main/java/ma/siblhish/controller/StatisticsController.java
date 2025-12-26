@@ -81,24 +81,6 @@ public class StatisticsController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
-    /**
-     * Top Catégories Budgétisées : Liste les catégories avec les budgets les plus importants
-     * @param userId ID de l'utilisateur
-     * @param startDate Date de début (format: YYYY-MM-DD)
-     * @param endDate Date de fin (format: YYYY-MM-DD)
-     */
-    @GetMapping("/top-budget-categories/{userId}")
-    public ResponseEntity<ApiResponse<List<TopBudgetCategoryDto>>> getTopBudgetCategories(
-            @PathVariable Long userId,
-            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        if (startDate.isAfter(endDate)) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
-        }
-        List<TopBudgetCategoryDto> data = statisticsService.getTopBudgetCategories(userId, startDate, endDate);
-        return ResponseEntity.ok(ApiResponse.success(data));
-    }
 
     /**
      * Efficacité Budgétaire : Mesure globale de l'efficacité des budgets

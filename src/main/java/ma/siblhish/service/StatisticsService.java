@@ -163,19 +163,18 @@ public class StatisticsService {
     private List<Object[]> getBudgetStatisticsData(Long userId, LocalDate startDate, LocalDate endDate) {
         String sql = """
             SELECT 
-                COALESCE(b.category_id, 0) as category_id,
-                COALESCE(c.name, 'Budget Global') as category_name,
-                COALESCE(c.icon, '') as category_icon,
-                COALESCE(c.color, '#9E9E9E') as category_color,
+                b.category_id,
+                c.name as category_name,
+                c.icon as category_icon,
+                c.color as category_color,
                 SUM(b.amount) as budget_amount,
-                SUM(COALESCE(e.amount, 0)) as actual_amount,
-                COUNT(DISTINCT b.id) as budget_count
+                SUM(COALESCE(e.amount, 0)) as actual_amount
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             LEFT JOIN expenses e ON e.user_id = :userId
               AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
               AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
-              AND (b.category_id IS NULL OR e.category_id = b.category_id)
+              AND e.category_id = b.category_id
             WHERE b.user_id = :userId
               AND DATE(b.start_date) <= :endDate
               AND DATE(b.end_date) >= :startDate
@@ -207,8 +206,7 @@ public class StatisticsService {
         List<BudgetVsActualDto> data = new ArrayList<>();
         for (Object[] row : results) {
             BudgetVsActualDto dto = new BudgetVsActualDto();
-            Long categoryId = row[0] != null && ((Number) row[0]).longValue() != 0 ? 
-                ((Number) row[0]).longValue() : null;
+            Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
             dto.setCategoryId(categoryId);
             dto.setCategoryName((String) row[1]);
             dto.setIcon((String) row[2]);
@@ -228,39 +226,6 @@ public class StatisticsService {
         return data;
     }
 
-    /**
-     * Top Catégories Budgétisées : Liste les catégories avec les budgets les plus importants
-     * Utilise la requête unifiée pour optimiser les performances
-     * @param userId ID de l'utilisateur
-     * @param startDate Date de début
-     * @param endDate Date de fin
-     */
-    public List<TopBudgetCategoryDto> getTopBudgetCategories(Long userId, LocalDate startDate, LocalDate endDate) {
-        List<Object[]> results = getBudgetStatisticsData(userId, startDate, endDate);
-
-        List<TopBudgetCategoryDto> data = new ArrayList<>();
-        for (Object[] row : results) {
-            TopBudgetCategoryDto dto = new TopBudgetCategoryDto();
-            Long categoryId = row[0] != null && ((Number) row[0]).longValue() != 0 ? 
-                ((Number) row[0]).longValue() : null;
-            dto.setCategoryId(categoryId);
-            dto.setCategoryName((String) row[1]);
-            dto.setIcon((String) row[2]);
-            dto.setColor((String) row[3]);
-            
-            Double budgetAmount = mapper.convertToDouble(row[4]);
-            Double spentAmount = mapper.convertToDouble(row[5]);
-            
-            dto.setBudgetAmount(budgetAmount);
-            dto.setSpentAmount(spentAmount);
-            dto.setRemainingAmount(budgetAmount - spentAmount);
-            dto.setPercentageUsed(budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0.0);
-            
-            data.add(dto);
-        }
-
-        return data;
-    }
 
     /**
      * Efficacité Budgétaire : Mesure globale de l'efficacité des budgets
@@ -280,7 +245,7 @@ public class StatisticsService {
             LEFT JOIN expenses e ON e.user_id = :userId
               AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
               AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
-              AND (b.category_id IS NULL OR e.category_id = b.category_id)
+              AND e.category_id = b.category_id
             WHERE b.user_id = :userId
               AND DATE(b.start_date) <= :endDate
               AND DATE(b.end_date) >= :startDate
@@ -351,8 +316,7 @@ public class StatisticsService {
         List<BudgetDistributionDto> data = new ArrayList<>();
         for (Object[] row : results) {
             BudgetDistributionDto dto = new BudgetDistributionDto();
-            Long categoryId = row[0] != null && ((Number) row[0]).longValue() != 0 ? 
-                ((Number) row[0]).longValue() : null;
+            Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
             dto.setCategoryId(categoryId);
             dto.setCategoryName((String) row[1]);
             dto.setIcon((String) row[2]);
