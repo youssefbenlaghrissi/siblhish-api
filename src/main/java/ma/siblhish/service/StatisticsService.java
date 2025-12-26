@@ -81,7 +81,7 @@ public class StatisticsService {
      * - daily (1 jour) : agrégation par jour
      * - weekly (7 jours) : agrégation par jour pour voir chaque jour de la semaine
      * - monthly (30 jours) : agrégation par jour pour voir chaque jour du mois
-     * - 3months (90 jours) : agrégation par semaine pour voir chaque semaine
+     * - 3months (90 jours) : agrégation par mois pour voir chaque mois (3 points)
      * - 6months (180 jours) : agrégation par mois pour voir chaque mois
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
@@ -99,13 +99,9 @@ public class StatisticsService {
             // weekly (7 jours) ou monthly (30 jours) → agrégation par jour
             // Pour voir chaque jour de la semaine/mois
             periodFormat = "TO_CHAR(creation_date, 'YYYY-MM-DD')";
-        } else if (daysBetween <= 93) {
-            // 3months (~90 jours) → agrégation par semaine
-            // Pour voir chaque semaine des 3 mois
-            periodFormat = "TO_CHAR(DATE_TRUNC('week', creation_date), 'YYYY-MM-DD')";
         } else {
-            // 6months (~180 jours) ou plus → agrégation par mois
-            // Pour voir chaque mois
+            // 3months (~90 jours) ou 6months (~180 jours) ou plus → agrégation par mois
+            // Pour voir chaque mois (3 points pour 3 mois, 6 points pour 6 mois)
             periodFormat = "TO_CHAR(creation_date, 'YYYY-MM')";
         }
 
