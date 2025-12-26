@@ -62,5 +62,102 @@ public class StatisticsController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
+    /**
+     * Budget vs Réel : Compare le budget prévu avec les dépenses réelles par catégorie
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
+     */
+    @GetMapping("/budget-vs-actual/{userId}")
+    public ResponseEntity<ApiResponse<List<BudgetVsActualDto>>> getBudgetVsActual(
+            @PathVariable Long userId,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        List<BudgetVsActualDto> data = statisticsService.getBudgetVsActual(userId, startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    /**
+     * Top Catégories Budgétisées : Liste les catégories avec les budgets les plus importants
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
+     * @param limit Nombre maximum de résultats (optionnel, par défaut 5)
+     */
+    @GetMapping("/top-budget-categories/{userId}")
+    public ResponseEntity<ApiResponse<List<TopBudgetCategoryDto>>> getTopBudgetCategories(
+            @PathVariable Long userId,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer limit) {
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        List<TopBudgetCategoryDto> data = statisticsService.getTopBudgetCategories(userId, startDate, endDate, limit);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    /**
+     * Efficacité Budgétaire : Mesure globale de l'efficacité des budgets
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
+     */
+    @GetMapping("/budget-efficiency/{userId}")
+    public ResponseEntity<ApiResponse<BudgetEfficiencyDto>> getBudgetEfficiency(
+            @PathVariable Long userId,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        BudgetEfficiencyDto data = statisticsService.getBudgetEfficiency(userId, startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    /**
+     * Tendance Mensuelle Budgets : Évolution des budgets sur plusieurs mois
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
+     */
+    @GetMapping("/monthly-budget-trend/{userId}")
+    public ResponseEntity<ApiResponse<List<MonthlyBudgetTrendDto>>> getMonthlyBudgetTrend(
+            @PathVariable Long userId,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        List<MonthlyBudgetTrendDto> data = statisticsService.getMonthlyBudgetTrend(userId, startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    /**
+     * Répartition des Budgets : Répartition du budget total par catégorie (pour pie chart)
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début (format: YYYY-MM-DD)
+     * @param endDate Date de fin (format: YYYY-MM-DD)
+     */
+    @GetMapping("/budget-distribution/{userId}")
+    public ResponseEntity<ApiResponse<List<BudgetDistributionDto>>> getBudgetDistribution(
+            @PathVariable Long userId,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
+        }
+        List<BudgetDistributionDto> data = statisticsService.getBudgetDistribution(userId, startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
 }
 

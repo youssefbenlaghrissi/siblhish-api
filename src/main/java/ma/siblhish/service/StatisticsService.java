@@ -154,5 +154,403 @@ public class StatisticsService {
 
         return summaries;
     }
+
+    /**
+     * Budget vs Réel : Compare le budget prévu avec les dépenses réelles par catégorie
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début
+     * @param endDate Date de fin
+     */
+    public List<BudgetVsActualDto> getBudgetVsActual(Long userId, LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            SELECT 
+                COALESCE(b.category_id, 0) as category_id,
+                COALESCE(c.name, 'Budget Global') as category_name,
+                COALESCE(c.icon, '') as category_icon,
+                COALESCE(c.color, '#9E9E9E') as category_color,
+                COALESCE(SUM(b.amount), 0) as budget_amount,
+                COALESCE(SUM(
+                    CASE 
+                        WHEN b.category_id IS NULL THEN (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = b.user_id
+                              AND DATE(e.creation_date) >= GREATEST(b.start_date, :startDate)
+                              AND DATE(e.creation_date) <= LEAST(b.end_date, :endDate)
+                        )
+                        ELSE (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = b.user_id
+                              AND e.category_id = b.category_id
+                              AND DATE(e.creation_date) >= GREATEST(b.start_date, :startDate)
+                              AND DATE(e.creation_date) <= LEAST(b.end_date, :endDate)
+                        )
+                    END
+                ), 0) as actual_amount
+            FROM budgets b
+            LEFT JOIN categories c ON b.category_id = c.id
+            WHERE b.user_id = :userId
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
+            GROUP BY b.category_id, c.name, c.icon, c.color
+            HAVING COALESCE(SUM(b.amount), 0) > 0
+            ORDER BY budget_amount DESC
+        """;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        query.setParameter("startDate", startDate);
+        query.setParameter("endDate", endDate);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+
+        List<BudgetVsActualDto> data = new ArrayList<>();
+        for (Object[] row : results) {
+            BudgetVsActualDto dto = new BudgetVsActualDto();
+            Long categoryId = row[0] != null && ((Number) row[0]).longValue() != 0 ? 
+                ((Number) row[0]).longValue() : null;
+            dto.setCategoryId(categoryId);
+            dto.setCategoryName((String) row[1]);
+            dto.setIcon((String) row[2]);
+            dto.setColor((String) row[3]);
+            
+            Double budgetAmount = mapper.convertToDouble(row[4]);
+            Double actualAmount = mapper.convertToDouble(row[5]);
+            
+            dto.setBudgetAmount(budgetAmount);
+            dto.setActualAmount(actualAmount);
+            dto.setDifference(budgetAmount - actualAmount);
+            dto.setPercentageUsed(budgetAmount > 0 ? (actualAmount / budgetAmount) * 100 : 0.0);
+            
+            data.add(dto);
+        }
+
+        return data;
+    }
+
+    /**
+     * Top Catégories Budgétisées : Liste les catégories avec les budgets les plus importants
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début
+     * @param endDate Date de fin
+     * @param limit Nombre maximum de résultats (par défaut 5)
+     */
+    public List<TopBudgetCategoryDto> getTopBudgetCategories(Long userId, LocalDate startDate, LocalDate endDate, Integer limit) {
+        if (limit == null || limit <= 0) {
+            limit = 5;
+        }
+
+        String sql = """
+            SELECT 
+                COALESCE(b.category_id, 0) as category_id,
+                COALESCE(c.name, 'Budget Global') as category_name,
+                COALESCE(c.icon, '') as category_icon,
+                COALESCE(c.color, '#9E9E9E') as category_color,
+                COALESCE(SUM(b.amount), 0) as budget_amount,
+                COALESCE(SUM(
+                    CASE 
+                        WHEN b.category_id IS NULL THEN (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = :userId
+                              AND DATE(e.creation_date) >= b.start_date
+                              AND DATE(e.creation_date) <= b.end_date
+                        )
+                        ELSE (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = :userId
+                              AND e.category_id = b.category_id
+                              AND DATE(e.creation_date) >= b.start_date
+                              AND DATE(e.creation_date) <= b.end_date
+                        )
+                    END
+                ), 0) as spent_amount
+            FROM budgets b
+            LEFT JOIN categories c ON b.category_id = c.id
+            WHERE b.user_id = :userId
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
+            GROUP BY b.category_id, c.name, c.icon, c.color
+            HAVING COALESCE(SUM(b.amount), 0) > 0
+            ORDER BY budget_amount DESC
+            LIMIT :limit
+        """;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        query.setParameter("startDate", startDate);
+        query.setParameter("endDate", endDate);
+        query.setParameter("limit", limit);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+
+        List<TopBudgetCategoryDto> data = new ArrayList<>();
+        for (Object[] row : results) {
+            TopBudgetCategoryDto dto = new TopBudgetCategoryDto();
+            Long categoryId = row[0] != null && ((Number) row[0]).longValue() != 0 ? 
+                ((Number) row[0]).longValue() : null;
+            dto.setCategoryId(categoryId);
+            dto.setCategoryName((String) row[1]);
+            dto.setIcon((String) row[2]);
+            dto.setColor((String) row[3]);
+            
+            Double budgetAmount = mapper.convertToDouble(row[4]);
+            Double spentAmount = mapper.convertToDouble(row[5]);
+            
+            dto.setBudgetAmount(budgetAmount);
+            dto.setSpentAmount(spentAmount);
+            dto.setRemainingAmount(budgetAmount - spentAmount);
+            dto.setPercentageUsed(budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0.0);
+            
+            data.add(dto);
+        }
+
+        return data;
+    }
+
+    /**
+     * Efficacité Budgétaire : Mesure globale de l'efficacité des budgets
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début
+     * @param endDate Date de fin
+     */
+    public BudgetEfficiencyDto getBudgetEfficiency(Long userId, LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            SELECT 
+                COUNT(DISTINCT b.id) as total_budgets,
+                COALESCE(SUM(b.amount), 0) as total_budget_amount,
+                COALESCE(SUM(
+                    CASE 
+                        WHEN b.category_id IS NULL THEN (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = :userId
+                              AND DATE(e.creation_date) >= b.start_date
+                              AND DATE(e.creation_date) <= b.end_date
+                        )
+                        ELSE (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = :userId
+                              AND e.category_id = b.category_id
+                              AND DATE(e.creation_date) >= b.start_date
+                              AND DATE(e.creation_date) <= b.end_date
+                        )
+                    END
+                ), 0) as total_spent_amount,
+                COUNT(DISTINCT CASE 
+                    WHEN (
+                        CASE 
+                            WHEN b.category_id IS NULL THEN (
+                                SELECT COALESCE(SUM(e.amount), 0)
+                                FROM expenses e
+                                WHERE e.user_id = :userId
+                                  AND DATE(e.creation_date) >= b.start_date
+                                  AND DATE(e.creation_date) <= b.end_date
+                            )
+                            ELSE (
+                                SELECT COALESCE(SUM(e.amount), 0)
+                                FROM expenses e
+                                WHERE e.user_id = :userId
+                                  AND e.category_id = b.category_id
+                                  AND DATE(e.creation_date) >= b.start_date
+                                  AND DATE(e.creation_date) <= b.end_date
+                            )
+                        END
+                    ) <= b.amount THEN b.id
+                    ELSE NULL
+                END) as budgets_on_track,
+                COUNT(DISTINCT CASE 
+                    WHEN (
+                        CASE 
+                            WHEN b.category_id IS NULL THEN (
+                                SELECT COALESCE(SUM(e.amount), 0)
+                                FROM expenses e
+                                WHERE e.user_id = :userId
+                                  AND DATE(e.creation_date) >= b.start_date
+                                  AND DATE(e.creation_date) <= b.end_date
+                            )
+                            ELSE (
+                                SELECT COALESCE(SUM(e.amount), 0)
+                                FROM expenses e
+                                WHERE e.user_id = :userId
+                                  AND e.category_id = b.category_id
+                                  AND DATE(e.creation_date) >= b.start_date
+                                  AND DATE(e.creation_date) <= b.end_date
+                            )
+                        END
+                    ) > b.amount THEN b.id
+                    ELSE NULL
+                END) as budgets_exceeded
+            FROM budgets b
+            WHERE b.user_id = :userId
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
+        """;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        query.setParameter("startDate", startDate);
+        query.setParameter("endDate", endDate);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+
+        BudgetEfficiencyDto dto = new BudgetEfficiencyDto();
+        if (!results.isEmpty()) {
+            Object[] row = results.get(0);
+            
+            Integer totalBudgets = ((Number) row[0]).intValue();
+            Double totalBudgetAmount = mapper.convertToDouble(row[1]);
+            Double totalSpentAmount = mapper.convertToDouble(row[2]);
+            Integer budgetsOnTrack = ((Number) row[3]).intValue();
+            Integer budgetsExceeded = ((Number) row[4]).intValue();
+            
+            dto.setTotalBudgets(totalBudgets);
+            dto.setTotalBudgetAmount(totalBudgetAmount);
+            dto.setTotalSpentAmount(totalSpentAmount);
+            dto.setTotalRemainingAmount(totalBudgetAmount - totalSpentAmount);
+            dto.setAveragePercentageUsed(totalBudgetAmount > 0 ? (totalSpentAmount / totalBudgetAmount) * 100 : 0.0);
+            dto.setBudgetsOnTrack(budgetsOnTrack);
+            dto.setBudgetsExceeded(budgetsExceeded);
+        } else {
+            dto.setTotalBudgets(0);
+            dto.setTotalBudgetAmount(0.0);
+            dto.setTotalSpentAmount(0.0);
+            dto.setTotalRemainingAmount(0.0);
+            dto.setAveragePercentageUsed(0.0);
+            dto.setBudgetsOnTrack(0);
+            dto.setBudgetsExceeded(0);
+        }
+
+        return dto;
+    }
+
+    /**
+     * Tendance Mensuelle Budgets : Évolution des budgets sur plusieurs mois
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début
+     * @param endDate Date de fin
+     */
+    public List<MonthlyBudgetTrendDto> getMonthlyBudgetTrend(Long userId, LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            SELECT 
+                TO_CHAR(b.start_date, 'YYYY-MM') as month,
+                COUNT(DISTINCT b.id) as budget_count,
+                COALESCE(SUM(b.amount), 0) as total_budget_amount,
+                COALESCE(SUM(
+                    CASE 
+                        WHEN b.category_id IS NULL THEN (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = :userId
+                              AND DATE(e.creation_date) >= b.start_date
+                              AND DATE(e.creation_date) <= b.end_date
+                        )
+                        ELSE (
+                            SELECT COALESCE(SUM(e.amount), 0)
+                            FROM expenses e
+                            WHERE e.user_id = :userId
+                              AND e.category_id = b.category_id
+                              AND DATE(e.creation_date) >= b.start_date
+                              AND DATE(e.creation_date) <= b.end_date
+                        )
+                    END
+                ), 0) as total_spent_amount
+            FROM budgets b
+            WHERE b.user_id = :userId
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
+            GROUP BY TO_CHAR(b.start_date, 'YYYY-MM')
+            ORDER BY month
+        """;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        query.setParameter("startDate", startDate);
+        query.setParameter("endDate", endDate);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+
+        List<MonthlyBudgetTrendDto> data = new ArrayList<>();
+        for (Object[] row : results) {
+            MonthlyBudgetTrendDto dto = new MonthlyBudgetTrendDto();
+            dto.setMonth((String) row[0]);
+            dto.setBudgetCount(((Number) row[1]).intValue());
+            
+            Double totalBudgetAmount = mapper.convertToDouble(row[2]);
+            Double totalSpentAmount = mapper.convertToDouble(row[3]);
+            
+            dto.setTotalBudgetAmount(totalBudgetAmount);
+            dto.setTotalSpentAmount(totalSpentAmount);
+            dto.setAveragePercentageUsed(totalBudgetAmount > 0 ? (totalSpentAmount / totalBudgetAmount) * 100 : 0.0);
+            
+            data.add(dto);
+        }
+
+        return data;
+    }
+
+    /**
+     * Répartition des Budgets : Répartition du budget total par catégorie (pour pie chart)
+     * @param userId ID de l'utilisateur
+     * @param startDate Date de début
+     * @param endDate Date de fin
+     */
+    public List<BudgetDistributionDto> getBudgetDistribution(Long userId, LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            SELECT 
+                COALESCE(b.category_id, 0) as category_id,
+                COALESCE(c.name, 'Budget Global') as category_name,
+                COALESCE(c.icon, '') as category_icon,
+                COALESCE(c.color, '#9E9E9E') as category_color,
+                COALESCE(SUM(b.amount), 0) as budget_amount
+            FROM budgets b
+            LEFT JOIN categories c ON b.category_id = c.id
+            WHERE b.user_id = :userId
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
+            GROUP BY b.category_id, c.name, c.icon, c.color
+            HAVING COALESCE(SUM(b.amount), 0) > 0
+            ORDER BY budget_amount DESC
+        """;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter("userId", userId);
+        query.setParameter("startDate", startDate);
+        query.setParameter("endDate", endDate);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = query.getResultList();
+
+        // Calculer le total pour les pourcentages
+        double totalBudgetAmount = results.stream()
+                .mapToDouble(row -> mapper.convertToDouble(row[4]))
+                .sum();
+
+        List<BudgetDistributionDto> data = new ArrayList<>();
+        for (Object[] row : results) {
+            BudgetDistributionDto dto = new BudgetDistributionDto();
+            Long categoryId = row[0] != null && ((Number) row[0]).longValue() != 0 ? 
+                ((Number) row[0]).longValue() : null;
+            dto.setCategoryId(categoryId);
+            dto.setCategoryName((String) row[1]);
+            dto.setIcon((String) row[2]);
+            dto.setColor((String) row[3]);
+            
+            Double budgetAmount = mapper.convertToDouble(row[4]);
+            dto.setBudgetAmount(budgetAmount);
+            dto.setPercentage(totalBudgetAmount > 0 ? (budgetAmount / totalBudgetAmount) * 100 : 0.0);
+            
+            data.add(dto);
+        }
+
+        return data;
+    }
 }
 
