@@ -22,6 +22,7 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
             LEFT JOIN FETCH sp.category
             LEFT JOIN FETCH sp.recurrenceDaysOfWeek
             WHERE sp.user.id = :userId
+                  and sp.deleted = false
             ORDER BY sp.id DESC
     """)
     List<ScheduledPayment> findByUserId(@Param("userId") Long userId);
