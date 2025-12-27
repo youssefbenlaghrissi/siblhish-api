@@ -11,7 +11,7 @@ import java.util.List;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     // Catégories utilisées par l'utilisateur (via ses dépenses)
-    @Query("SELECT DISTINCT c FROM Category c JOIN c.expenses e WHERE e.user.id = :userId AND e.deleted = false AND c.deleted = false ORDER BY c.id DESC")
+    @Query("SELECT DISTINCT c FROM Category c JOIN c.expenses e WHERE e.user.id = :userId AND e.deleted = false AND c.deleted = false ORDER BY c.name ASC")
     List<Category> findCategoriesByUserId(@Param("userId") Long userId);
     
     // Toutes les catégories (pour les paramètres)
