@@ -27,7 +27,7 @@ public class StatisticsService {
      * @param startDate Date de début
      * @param endDate Date de fin
      */
-    public StatisticsDto getExpensesByCategory(Long userId, LocalDate startDate, LocalDate endDate) {
+    public CategoryExpensesDto getExpensesByCategory(Long userId, LocalDate startDate, LocalDate endDate) {
         String sql = """
             SELECT 
                 c.id as category_id,
@@ -72,7 +72,7 @@ public class StatisticsService {
             categories.add(dto);
         }
 
-        return new StatisticsDto(totalAmount, categories);
+        return new CategoryExpensesDto(totalAmount, categories);
     }
 
     /**
@@ -157,8 +157,7 @@ public class StatisticsService {
 
     /**
      * Requête unifiée pour récupérer toutes les données budgets par catégorie
-     * Cette méthode privée est utilisée par toutes les méthodes de statistiques budgets
-     * pour éviter de faire plusieurs requêtes SQL similaires
+     * Utilisée par getAllBudgetStatisticsUnified() pour éviter les requêtes SQL dupliquées
      */
     private List<Object[]> getBudgetStatisticsData(Long userId, LocalDate startDate, LocalDate endDate) {
         String sql = """
@@ -193,18 +192,27 @@ public class StatisticsService {
         return results;
     }
 
+
     /**
-     * Budget vs Réel : Compare le budget prévu avec les dépenses réelles par catégorie
-     * Utilise la requête unifiée pour optimiser les performances
+     * Récupérer toutes les statistiques budgets en une seule requête optimisée
+     * Utilisée par getAllStatistics() pour réduire les appels API
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
+     * @return DTO unifié contenant toutes les statistiques budgets
      */
-    public List<BudgetVsActualDto> getBudgetVsActual(Long userId, LocalDate startDate, LocalDate endDate) {
-        List<Object[]> results = getBudgetStatisticsData(userId, startDate, endDate);
-
-        List<BudgetVsActualDto> data = new ArrayList<>();
-        for (Object[] row : results) {
+    public BudgetStatisticsDto getAllBudgetStatisticsUnified(Long userId, LocalDate startDate, LocalDate endDate) {
+        BudgetStatisticsDto unified = new BudgetStatisticsDto();
+        
+        // Récupérer les données par catégorie (utilisé pour BudgetVsActual et Distribution)
+        List<Object[]> categoryResults = getBudgetStatisticsData(userId, startDate, endDate);
+        
+        // Mapper vers BudgetVsActualDto
+        List<BudgetVsActualDto> budgetVsActual = new ArrayList<>();
+        double totalBudgetAmount = 0.0;
+        double totalSpentAmount = 0.0;
+        
+        for (Object[] row : categoryResults) {
             BudgetVsActualDto dto = new BudgetVsActualDto();
             Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
             dto.setCategoryId(categoryId);
@@ -220,23 +228,34 @@ public class StatisticsService {
             dto.setDifference(budgetAmount - actualAmount);
             dto.setPercentageUsed(budgetAmount > 0 ? (actualAmount / budgetAmount) * 100 : 0.0);
             
-            data.add(dto);
+            budgetVsActual.add(dto);
+            totalBudgetAmount += budgetAmount;
+            totalSpentAmount += actualAmount;
         }
-
-        return data;
-    }
-
-
-    /**
-     * Efficacité Budgétaire : Mesure globale de l'efficacité des budgets
-     * Utilise la requête unifiée pour optimiser les performances
-     * @param userId ID de l'utilisateur
-     * @param startDate Date de début
-     * @param endDate Date de fin
-     */
-    public BudgetEfficiencyDto getBudgetEfficiency(Long userId, LocalDate startDate, LocalDate endDate) {
-        // Récupérer les données par budget individuel pour calculer on_track/exceeded
-        String sql = """
+        
+        unified.setBudgetVsActual(budgetVsActual);
+        
+        // Mapper vers BudgetDistributionDto
+        List<BudgetDistributionDto> distribution = new ArrayList<>();
+        for (Object[] row : categoryResults) {
+            BudgetDistributionDto dto = new BudgetDistributionDto();
+            Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
+            dto.setCategoryId(categoryId);
+            dto.setCategoryName((String) row[1]);
+            dto.setIcon((String) row[2]);
+            dto.setColor((String) row[3]);
+            
+            Double budgetAmount = mapper.convertToDouble(row[4]);
+            dto.setBudgetAmount(budgetAmount);
+            dto.setPercentage(totalBudgetAmount > 0 ? (budgetAmount / totalBudgetAmount) * 100 : 0.0);
+            
+            distribution.add(dto);
+        }
+        
+        unified.setDistribution(distribution);
+        
+        // Récupérer les données par budget individuel pour calculer efficiency
+        String budgetSql = """
             SELECT 
                 b.id,
                 b.amount,
@@ -252,29 +271,15 @@ public class StatisticsService {
             GROUP BY b.id, b.amount
         """;
 
-        Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("userId", userId);
-        query.setParameter("startDate", startDate);
-        query.setParameter("endDate", endDate);
+        Query budgetQuery = entityManager.createNativeQuery(budgetSql);
+        budgetQuery.setParameter("userId", userId);
+        budgetQuery.setParameter("startDate", startDate);
+        budgetQuery.setParameter("endDate", endDate);
 
         @SuppressWarnings("unchecked")
-        List<Object[]> budgetResults = query.getResultList();
-
-        // Utiliser les données unifiées pour les totaux
-        List<Object[]> categoryResults = getBudgetStatisticsData(userId, startDate, endDate);
-
-        BudgetEfficiencyDto dto = new BudgetEfficiencyDto();
+        List<Object[]> budgetResults = budgetQuery.getResultList();
         
-        // Calculer les totaux depuis les données par catégorie
-        int totalBudgets = budgetResults.size();
-        double totalBudgetAmount = categoryResults.stream()
-                .mapToDouble(row -> mapper.convertToDouble(row[4]))
-                .sum();
-        double totalSpentAmount = categoryResults.stream()
-                .mapToDouble(row -> mapper.convertToDouble(row[5]))
-                .sum();
-        
-        // Calculer budgets on track et exceeded depuis les données par budget
+        // Calculer budgets on track et exceeded
         int budgetsOnTrack = 0;
         int budgetsExceeded = 0;
         for (Object[] row : budgetResults) {
@@ -287,49 +292,38 @@ public class StatisticsService {
             }
         }
         
-        dto.setTotalBudgets(totalBudgets);
-        dto.setTotalBudgetAmount(totalBudgetAmount);
-        dto.setTotalSpentAmount(totalSpentAmount);
-        dto.setTotalRemainingAmount(totalBudgetAmount - totalSpentAmount);
-        dto.setAveragePercentageUsed(totalBudgetAmount > 0 ? (totalSpentAmount / totalBudgetAmount) * 100 : 0.0);
-        dto.setBudgetsOnTrack(budgetsOnTrack);
-        dto.setBudgetsExceeded(budgetsExceeded);
-
-        return dto;
+        // Créer BudgetEfficiencyDto
+        BudgetEfficiencyDto efficiency = new BudgetEfficiencyDto();
+        efficiency.setTotalBudgets(budgetResults.size());
+        efficiency.setTotalBudgetAmount(totalBudgetAmount);
+        efficiency.setTotalSpentAmount(totalSpentAmount);
+        efficiency.setTotalRemainingAmount(totalBudgetAmount - totalSpentAmount);
+        efficiency.setAveragePercentageUsed(totalBudgetAmount > 0 ? (totalSpentAmount / totalBudgetAmount) * 100 : 0.0);
+        efficiency.setBudgetsOnTrack(budgetsOnTrack);
+        efficiency.setBudgetsExceeded(budgetsExceeded);
+        
+        unified.setEfficiency(efficiency);
+        
+        return unified;
     }
 
     /**
-     * Répartition des Budgets : Répartition du budget total par catégorie (pour pie chart)
-     * Utilise la requête unifiée pour optimiser les performances
+     * Récupérer TOUTES les statistiques en une seule requête optimisée
+     * Cette méthode unifie tous les endpoints pour réduire les appels API de 6 à 1
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
+     * @return DTO unifié contenant toutes les statistiques
      */
-    public List<BudgetDistributionDto> getBudgetDistribution(Long userId, LocalDate startDate, LocalDate endDate) {
-        List<Object[]> results = getBudgetStatisticsData(userId, startDate, endDate);
-
-        // Calculer le total pour les pourcentages
-        double totalBudgetAmount = results.stream()
-                .mapToDouble(row -> mapper.convertToDouble(row[4]))
-                .sum();
-
-        List<BudgetDistributionDto> data = new ArrayList<>();
-        for (Object[] row : results) {
-            BudgetDistributionDto dto = new BudgetDistributionDto();
-            Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
-            dto.setCategoryId(categoryId);
-            dto.setCategoryName((String) row[1]);
-            dto.setIcon((String) row[2]);
-            dto.setColor((String) row[3]);
-            
-            Double budgetAmount = mapper.convertToDouble(row[4]);
-            dto.setBudgetAmount(budgetAmount);
-            dto.setPercentage(totalBudgetAmount > 0 ? (budgetAmount / totalBudgetAmount) * 100 : 0.0);
-            
-            data.add(dto);
-        }
-
-        return data;
+    public StatisticsDto getAllStatistics(Long userId, LocalDate startDate, LocalDate endDate) {
+        StatisticsDto all = new StatisticsDto();
+        
+        // Charger toutes les données en utilisant les méthodes existantes
+        all.setMonthlySummary(getPeriodSummary(userId, startDate, endDate));
+        all.setCategoryExpenses(getExpensesByCategory(userId, startDate, endDate));
+        all.setBudgetStatistics(getAllBudgetStatisticsUnified(userId, startDate, endDate));
+        
+        return all;
     }
 }
 
