@@ -93,6 +93,8 @@ public class BudgetService {
             baseQuery += " AND b.start_date <= :lastDayOfMonth AND b.end_date >= :firstDayOfMonth";
         }
         
+        baseQuery += " ORDER BY b.id DESC";
+        
         return baseQuery;
     }
 

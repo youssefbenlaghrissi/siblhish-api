@@ -48,7 +48,7 @@ public class RecurringBudgetScheduler {
             LocalDate lastDayOfMonth = currentMonth.atEndOfMonth();
 
             // Récupérer tous les budgets récurrents (templates)
-            List<Budget> recurringBudgets = budgetRepository.findByIsRecurringTrue();
+            List<Budget> recurringBudgets = budgetRepository.findByIsRecurringTrueOrderByIdDesc();
 
             for (Budget templateBudget : recurringBudgets) {
                 Long userId = templateBudget.getUser().getId();
@@ -56,10 +56,18 @@ public class RecurringBudgetScheduler {
 
                 // Vérifier si un budget pour ce mois existe déjà
                 boolean exists;
-                List<Budget> existingBudgets = budgetRepository.findByUserIdAndCategoryIdAndStartDateAndEndDate(
-                            userId, category.getId(), firstDayOfMonth, lastDayOfMonth
-                    );
-                exists = !existingBudgets.isEmpty();
+                if (category != null) {
+                    List<Budget> existingBudgets = budgetRepository.findByUserIdAndCategoryIdAndStartDateAndEndDateOrderByIdDesc(
+                                userId, category.getId(), firstDayOfMonth, lastDayOfMonth
+                        );
+                    exists = !existingBudgets.isEmpty();
+                } else {
+                    // Pour les budgets globaux (category null)
+                    List<Budget> existingBudgets = budgetRepository.findByUserIdAndCategoryIsNullAndStartDateAndEndDateOrderByIdDesc(
+                                userId, firstDayOfMonth, lastDayOfMonth
+                        );
+                    exists = !existingBudgets.isEmpty();
+                }
 
                 if (!exists) {
                     // Créer un nouveau budget pour ce mois avec toute la logique métier

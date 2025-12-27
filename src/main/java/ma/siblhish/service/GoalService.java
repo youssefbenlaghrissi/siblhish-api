@@ -25,7 +25,7 @@ public class GoalService {
     private final EntityMapper mapper;
 
     public List<GoalDto> getGoalsByUserId(Long userId) {
-        List<Goal> goals = goalRepository.findByUserId(userId);
+        List<Goal> goals = goalRepository.findByUserIdOrderByIdDesc(userId);
         return mapper.toGoalDtoList(goals);
     }
 

@@ -48,7 +48,7 @@ public class RecurringTransactionService {
         LocalDate todayDate = targetDate.toLocalDate();
         
         // Traiter les dépenses récurrentes
-        List<Expense> recurringExpenses = expenseRepository.findByIsRecurringTrue();
+        List<Expense> recurringExpenses = expenseRepository.findByIsRecurringTrueOrderByIdDesc();
         int expensesGenerated = 0;
         
         for (Expense template : recurringExpenses) {
@@ -83,7 +83,7 @@ public class RecurringTransactionService {
         }
         
         // Traiter les revenus récurrents
-        List<Income> recurringIncomes = incomeRepository.findByIsRecurringTrue();
+        List<Income> recurringIncomes = incomeRepository.findByIsRecurringTrueOrderByIdDesc();
         int incomesGenerated = 0;
         
         for (Income template : recurringIncomes) {

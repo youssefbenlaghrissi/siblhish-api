@@ -269,6 +269,7 @@ public class StatisticsService {
               AND DATE(b.start_date) <= :endDate
               AND DATE(b.end_date) >= :startDate
             GROUP BY b.id, b.amount
+            ORDER BY b.id DESC
         """;
 
         Query budgetQuery = entityManager.createNativeQuery(budgetSql);

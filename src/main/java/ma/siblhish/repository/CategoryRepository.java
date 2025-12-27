@@ -11,11 +11,11 @@ import java.util.List;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     // Catégories utilisées par l'utilisateur (via ses dépenses)
-    @Query("SELECT DISTINCT c FROM Category c JOIN c.expenses e WHERE e.user.id = :userId")
+    @Query("SELECT DISTINCT c FROM Category c JOIN c.expenses e WHERE e.user.id = :userId ORDER BY c.id DESC")
     List<Category> findCategoriesByUserId(@Param("userId") Long userId);
     
     // Toutes les catégories (pour les paramètres)
-    @Query("SELECT c FROM Category c ORDER BY c.name")
+    @Query("SELECT c FROM Category c ORDER BY c.id DESC")
     List<Category> findAllCategories();
 }
 

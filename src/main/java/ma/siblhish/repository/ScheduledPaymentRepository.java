@@ -22,7 +22,7 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
             LEFT JOIN FETCH sp.category
             LEFT JOIN FETCH sp.recurrenceDaysOfWeek
             WHERE sp.user.id = :userId
-            ORDER BY sp.creationDate DESC
+            ORDER BY sp.id DESC
     """)
     List<ScheduledPayment> findByUserId(@Param("userId") Long userId);
 
@@ -34,7 +34,7 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
            "LEFT JOIN FETCH sp.category " +
            "LEFT JOIN FETCH sp.recurrenceDaysOfWeek " +
            "WHERE sp.user.id = :userId AND sp.isPaid = false " +
-           "ORDER BY sp.creationDate DESC")
+           "ORDER BY sp.id DESC")
     List<ScheduledPayment> findUnpaidByUserId(@Param("userId") Long userId);
 
 }

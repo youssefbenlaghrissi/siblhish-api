@@ -21,7 +21,7 @@ public class CardService {
      * @return Liste de toutes les cartes avec leurs informations
      */
     public List<CardDto> getAllCards() {
-        List<Card> cards = cardRepository.findAllByOrderByIdAsc();
+        List<Card> cards = cardRepository.findAllByOrderByIdDesc();
         return mapper.toCardDtoList(cards);
     }
 }

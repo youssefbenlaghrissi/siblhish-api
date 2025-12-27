@@ -15,7 +15,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Query("SELECT n FROM Notification n WHERE n.user.id = :userId " +
            "AND (:isRead IS NULL OR n.isRead = :isRead) " +
-           "AND (:type IS NULL OR n.type = :type)")
+           "AND (:type IS NULL OR n.type = :type) " +
+           "ORDER BY n.id DESC")
     Page<Notification> findNotificationsWithFilters(
             @Param("userId") Long userId,
             @Param("isRead") Boolean isRead,

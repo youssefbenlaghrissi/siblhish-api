@@ -178,7 +178,7 @@ public class HomeService {
         // Joindre les parties avec UNION ALL
         sql.append(String.join(" UNION ALL ", unionParts));
         sql.append(") AS transactions ");
-        sql.append("ORDER BY date DESC ");
+        sql.append("ORDER BY id DESC ");
         sql.append("LIMIT :limit");
         
         // Exécuter la requête avec EntityManager

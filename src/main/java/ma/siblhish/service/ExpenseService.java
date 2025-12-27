@@ -97,7 +97,7 @@ public class ExpenseService {
     }
 
     public List<ExpenseDto> getExpensesByUser(Long userId) {
-        List<Expense> expenses = expenseRepository.findByUserIdOrderByCreationDateDesc(userId);
+        List<Expense> expenses = expenseRepository.findByUserIdOrderByIdDesc(userId);
         return mapper.toExpenseDtoList(expenses);
     }
 }

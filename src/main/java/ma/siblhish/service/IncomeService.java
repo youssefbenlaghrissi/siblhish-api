@@ -79,7 +79,7 @@ public class IncomeService {
     }
 
     public List<IncomeDto> getIncomesByUser(Long userId) {
-        List<Income> incomes = incomeRepository.findByUserIdOrderByCreationDateDesc(userId);
+        List<Income> incomes = incomeRepository.findByUserIdOrderByIdDesc(userId);
         return mapper.toIncomeDtoList(incomes);
     }
 }

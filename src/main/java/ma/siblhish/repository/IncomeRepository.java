@@ -14,9 +14,9 @@ import java.util.List;
 
 @Repository
 public interface IncomeRepository extends JpaRepository<Income, Long> {
-    List<Income> findByIsRecurringTrue();
+    List<Income> findByIsRecurringTrueOrderByIdDesc();
     
-    List<Income> findByUserIdOrderByCreationDateDesc(Long userId);
+    List<Income> findByUserIdOrderByIdDesc(Long userId);
     
     @Query("SELECT SUM(i.amount) FROM Income i WHERE i.user.id = :userId")
     Double getTotalIncomeByUserId(@Param("userId") Long userId);

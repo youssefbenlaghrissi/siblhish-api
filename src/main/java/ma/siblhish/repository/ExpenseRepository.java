@@ -20,7 +20,8 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "AND (:categoryId IS NULL OR e.category.id = :categoryId) " +
            "AND (:minAmount IS NULL OR e.amount >= :minAmount) " +
            "AND (:maxAmount IS NULL OR e.amount <= :maxAmount) " +
-           "AND (:paymentMethod IS NULL OR e.method = :paymentMethod)")
+           "AND (:paymentMethod IS NULL OR e.method = :paymentMethod) " +
+           "ORDER BY e.id DESC")
     Page<Expense> findExpensesWithFilters(
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,
@@ -31,9 +32,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("paymentMethod") PaymentMethod paymentMethod,
             Pageable pageable);
 
-    List<Expense> findByIsRecurringTrue();
+    List<Expense> findByIsRecurringTrueOrderByIdDesc();
     
-    List<Expense> findByUserIdOrderByCreationDateDesc(Long userId);
+    List<Expense> findByUserIdOrderByIdDesc(Long userId);
     
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId")
     Double getTotalExpensesByUserId(@Param("userId") Long userId);
