@@ -20,15 +20,6 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     /**
-     * Liste des catégories de l'utilisateur
-     */
-    @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<List<CategoryDto>>> getUserCategories(@PathVariable Long userId) {
-        List<CategoryDto> categories = categoryService.getUserCategories(userId);
-        return ResponseEntity.ok(ApiResponse.success(categories));
-    }
-
-    /**
      * Créer une catégorie
      */
     @PostMapping

@@ -18,11 +18,6 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
 
-    public List<CategoryDto> getUserCategories(Long userId) {
-        List<Category> categories = categoryRepository.findCategoriesByUserId(userId);
-        return mapper.toCategoryDtoList(categories);
-    }
-
     @Transactional
     public CategoryDto createCategory(CategoryRequestDto request) {
         Category category = new Category();
