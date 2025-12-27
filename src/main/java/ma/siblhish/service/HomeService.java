@@ -134,7 +134,11 @@ public class HomeService {
             }
             
             if (!expenseConditions.isEmpty()) {
-                expenseQuery.append("AND ").append(String.join(" AND ", expenseConditions));
+                expenseQuery.append("AND ");
+                for (int i = 0; i < expenseConditions.size(); i++) {
+                    if (i > 0) expenseQuery.append(" AND ");
+                    expenseQuery.append(expenseConditions.get(i));
+                }
             }
             
             unionParts.add(expenseQuery.toString());
@@ -169,14 +173,21 @@ public class HomeService {
             }
             
             if (!incomeConditions.isEmpty()) {
-                incomeQuery.append("AND ").append(String.join(" AND ", incomeConditions));
+                incomeQuery.append("AND ");
+                for (int i = 0; i < incomeConditions.size(); i++) {
+                    if (i > 0) incomeQuery.append(" AND ");
+                    incomeQuery.append(incomeConditions.get(i));
+                }
             }
             
             unionParts.add(incomeQuery.toString());
         }
         
         // Joindre les parties avec UNION ALL
-        sql.append(String.join(" UNION ALL ", unionParts));
+        for (int i = 0; i < unionParts.size(); i++) {
+            if (i > 0) sql.append(" UNION ALL ");
+            sql.append(unionParts.get(i));
+        }
         sql.append(") AS transactions ");
         sql.append("ORDER BY id DESC ");
         sql.append("LIMIT :limit");

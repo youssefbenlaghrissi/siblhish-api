@@ -65,11 +65,13 @@ public class RecurringTransactionService {
                             template.getMethod(), today, true)) {
                         Expense created = createRecurringExpense(template, today);
                         // Créer une notification pour l'utilisateur
+                        StringBuilder descBuilder = new StringBuilder("Une dépense récurrente de ");
+                        descBuilder.append(String.format("%.2f", template.getAmount()));
+                        descBuilder.append(" MAD a été créée automatiquement.");
                         createRecurringTransactionNotification(
                             template.getUser().getId(),
                             "Dépense récurrente créée",
-                            String.format("Une dépense récurrente de %.2f MAD a été créée automatiquement.", 
-                                template.getAmount()),
+                            descBuilder.toString(),
                             created.getCategory() != null ? created.getCategory().getName() : "Dépense",
                             "EXPENSE"
                         );
@@ -100,11 +102,13 @@ public class RecurringTransactionService {
                             template.getMethod(), today, false)) {
                         Income created = createRecurringIncome(template, today);
                         // Créer une notification pour l'utilisateur
+                        StringBuilder descBuilder = new StringBuilder("Un revenu récurrent de ");
+                        descBuilder.append(String.format("%.2f", template.getAmount()));
+                        descBuilder.append(" MAD a été créé automatiquement.");
                         createRecurringTransactionNotification(
                             template.getUser().getId(),
                             "Revenu récurrent créé",
-                            String.format("Un revenu récurrent de %.2f MAD a été créé automatiquement.", 
-                                template.getAmount()),
+                            descBuilder.toString(),
                             template.getSource() != null ? template.getSource() : "Revenu",
                             "INCOME"
                         );

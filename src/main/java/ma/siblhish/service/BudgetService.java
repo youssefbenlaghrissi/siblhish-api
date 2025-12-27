@@ -63,7 +63,7 @@ public class BudgetService {
     }
 
     private String buildBudgetQuery(String month) {
-        String baseQuery = """
+        StringBuilder query = new StringBuilder("""
             SELECT 
                 b.id,
                 b.user_id,
@@ -87,15 +87,15 @@ public class BudgetService {
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             WHERE b.user_id = :userId
-        """;
+        """);
         
         if (month != null && !month.isEmpty() && parseMonth(month) != null) {
-            baseQuery += " AND b.start_date <= :lastDayOfMonth AND b.end_date >= :firstDayOfMonth";
+            query.append(" AND b.start_date <= :lastDayOfMonth AND b.end_date >= :firstDayOfMonth");
         }
         
-        baseQuery += " ORDER BY b.id DESC";
+        query.append(" ORDER BY b.id DESC");
         
-        return baseQuery;
+        return query.toString();
     }
 
     private YearMonth parseMonth(String month) {
@@ -226,10 +226,16 @@ public class BudgetService {
         
         if (percentageUsed >= 100) {
             status = "EXCEEDED";
-            message = "Budget exceeded by " + String.format("%.2f", Math.abs(remaining)) + " MAD";
+            StringBuilder msgBuilder = new StringBuilder("Budget exceeded by ");
+            msgBuilder.append(String.format("%.2f", Math.abs(remaining)));
+            msgBuilder.append(" MAD");
+            message = msgBuilder.toString();
         } else if (percentageUsed >= 90) {
             status = "WARNING";
-            message = "You have used " + String.format("%.1f", percentageUsed) + "% of your budget";
+            StringBuilder msgBuilder = new StringBuilder("You have used ");
+            msgBuilder.append(String.format("%.1f", percentageUsed));
+            msgBuilder.append("% of your budget");
+            message = msgBuilder.toString();
         }
         
         return new BudgetStatusResponseDto(

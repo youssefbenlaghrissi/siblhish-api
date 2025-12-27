@@ -105,7 +105,7 @@ public class StatisticsService {
             periodFormat = "TO_CHAR(creation_date, 'YYYY-MM')";
         }
 
-        String sql = String.format("""
+        StringBuilder sqlBuilder = new StringBuilder("""
             SELECT 
                 period,
                 SUM(total_income) as total_income,
@@ -113,7 +113,9 @@ public class StatisticsService {
                 SUM(total_income) - SUM(total_expenses) as balance
             FROM (
                 SELECT 
-                    %s as period,
+            """);
+        sqlBuilder.append(periodFormat).append(" as period, ");
+        sqlBuilder.append("""
                     amount as total_income,
                     0 as total_expenses
                 FROM incomes
@@ -122,7 +124,9 @@ public class StatisticsService {
                     AND DATE(creation_date) <= :endDate
                 UNION ALL
                 SELECT 
-                    %s as period,
+            """);
+        sqlBuilder.append(periodFormat).append(" as period, ");
+        sqlBuilder.append("""
                     0 as total_income,
                     amount as total_expenses
                 FROM expenses
@@ -132,7 +136,8 @@ public class StatisticsService {
             ) combined
             GROUP BY period
             ORDER BY period
-        """, periodFormat, periodFormat);
+        """);
+        String sql = sqlBuilder.toString();
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
