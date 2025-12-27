@@ -101,8 +101,8 @@ public class HomeService {
         // Construire la requête SQL dynamiquement pour éviter les problèmes avec les paramètres NULL
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ");
-        sql.append("id, type, amount, method, source, location, ");
-        sql.append("category_name, category_icon, category_color, description, date ");
+        sql.append("id, type, amount, method, source, location, description, date, ");
+        sql.append("category_id, category_name, category_icon, category_color ");
         sql.append("FROM (");
         
         List<String> unionParts = new ArrayList<>();
@@ -112,9 +112,9 @@ public class HomeService {
             StringBuilder expenseQuery = new StringBuilder();
             expenseQuery.append("SELECT ");
             expenseQuery.append("e.id, 'expense' as type, ");
-            expenseQuery.append("e.amount, e.payment_method as method, CAST(NULL AS VARCHAR) as source, e.location, ");
-            expenseQuery.append("c.name as category_name, c.icon as category_icon, c.color as category_color, ");
-            expenseQuery.append("e.description, e.creation_date as date ");
+            expenseQuery.append("e.amount, e.payment_method as method, NULL as source, e.location, ");
+            expenseQuery.append("e.description, e.creation_date as date, ");
+            expenseQuery.append("c.id as category_id, c.name as category_name, c.icon as category_icon, c.color as category_color ");
             expenseQuery.append("FROM expenses e ");
             expenseQuery.append("LEFT JOIN categories c ON e.category_id = c.id ");
             expenseQuery.append("WHERE e.user_id = :userId ");
@@ -145,11 +145,12 @@ public class HomeService {
             StringBuilder incomeQuery = new StringBuilder();
             incomeQuery.append("SELECT ");
             incomeQuery.append("i.id, 'income' as type, ");
-            incomeQuery.append("i.amount, i.payment_method as method, i.source, CAST(NULL AS VARCHAR) as location, ");
-            incomeQuery.append("CAST(NULL AS VARCHAR) as category_name, ");
-            incomeQuery.append("CAST(NULL AS VARCHAR) as category_icon, ");
-            incomeQuery.append("CAST(NULL AS VARCHAR) as category_color, ");
-            incomeQuery.append("i.description, i.creation_date as date ");
+            incomeQuery.append("i.amount, i.payment_method as method, i.source, NULL as location, ");
+            incomeQuery.append("i.description, i.creation_date as date, ");
+            incomeQuery.append("NULL as category_id, ");
+            incomeQuery.append("NULL as category_name, ");
+            incomeQuery.append("NULL as category_icon, ");
+            incomeQuery.append("NULL as category_color ");
             incomeQuery.append("FROM incomes i ");
             incomeQuery.append("WHERE i.user_id = :userId ");
             

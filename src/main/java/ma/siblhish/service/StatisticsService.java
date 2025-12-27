@@ -34,7 +34,7 @@ public class StatisticsService {
                 c.name as category_name,
                 c.icon as category_icon,
                 c.color as category_color,
-                COALESCE(SUM(e.amount), 0) as total_amount,
+                SUM(e.amount) as total_amount,
                 COUNT(e.id) as transaction_count
             FROM categories c
             LEFT JOIN expenses e ON c.id = e.category_id 
@@ -42,7 +42,7 @@ public class StatisticsService {
                 AND DATE(e.creation_date) >= :startDate 
                 AND DATE(e.creation_date) <= :endDate
             GROUP BY c.id, c.name, c.icon, c.color
-            HAVING COALESCE(SUM(e.amount), 0) > 0
+            HAVING SUM(e.amount) > 0
             ORDER BY total_amount DESC
         """;
 
@@ -108,9 +108,9 @@ public class StatisticsService {
         String sql = String.format("""
             SELECT 
                 period,
-                COALESCE(SUM(total_income), 0) as total_income,
-                COALESCE(SUM(total_expenses), 0) as total_expenses,
-                COALESCE(SUM(total_income), 0) - COALESCE(SUM(total_expenses), 0) as balance
+                SUM(total_income) as total_income,
+                SUM(total_expenses) as total_expenses,
+                SUM(total_income) - SUM(total_expenses) as balance
             FROM (
                 SELECT 
                     %s as period,
@@ -167,7 +167,7 @@ public class StatisticsService {
                 c.icon as category_icon,
                 c.color as category_color,
                 SUM(b.amount) as budget_amount,
-                SUM(COALESCE(e.amount, 0)) as actual_amount
+                SUM(e.amount) as actual_amount
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             LEFT JOIN expenses e ON e.user_id = :userId
@@ -259,7 +259,7 @@ public class StatisticsService {
             SELECT 
                 b.id,
                 b.amount,
-                SUM(COALESCE(e.amount, 0)) as spent_amount
+                SUM(e.amount) as spent_amount
             FROM budgets b
             LEFT JOIN expenses e ON e.user_id = :userId
               AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)

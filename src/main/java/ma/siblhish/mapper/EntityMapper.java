@@ -5,6 +5,7 @@ import ma.siblhish.entities.*;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -199,19 +200,39 @@ public class EntityMapper {
     }
 
     // Transaction DTO from SQL Result Row (Object[])
+    // OPTIMISATION : Retourne CategoryDto imbriqué au lieu de champs séparés
     public TransactionDto toTransactionDtoFromRow(Object[] row) {
+        Long id = row[0] != null ? ((Number) row[0]).longValue() : null;
+        String type = (String) row[1];
+        Double amount = row[2] != null ? ((Number) row[2]).doubleValue() : null;
+        String method = (String) row[3];
+        String source = (String) row[4];
+        String location = (String) row[5];
+        String description = (String) row[6];
+        LocalDateTime date = row[7] != null ? (java.time.LocalDateTime) row[7] : null;
+        
+        // Créer CategoryDto depuis les colonnes (category_id, category_name, category_icon, category_color)
+        CategoryDto category = null;
+        Long categoryId = row[8] != null ? ((Number) row[8]).longValue() : null;
+        String categoryName = (String) row[9];
+        String categoryIcon = (String) row[10];
+        String categoryColor = (String) row[11];
+        
+        // Créer CategoryDto seulement si on a au moins un nom de catégorie (pour les expenses)
+        if (categoryName != null && !categoryName.isEmpty()) {
+            category = new CategoryDto(categoryId, categoryName, categoryIcon, categoryColor);
+        }
+        
         return new TransactionDto(
-                row[0] != null ? ((Number) row[0]).longValue() : null,  // id
-                (String) row[1],          // type
-                row[2] != null ? ((Number) row[2]).doubleValue() : null,  // amount
-                (String) row[3],          // method
-                (String) row[4],          // source
-                (String) row[5],          // location
-                (String) row[6],          // categoryName
-                (String) row[7],          // categoryIcon
-                (String) row[8],          // categoryColor
-                (String) row[9],          // description
-                row[10] != null ? (java.time.LocalDateTime) row[10] : null  // date
+                id,
+                type,
+                amount,
+                method,
+                source,
+                location,
+                description,
+                date,
+                category
         );
     }
 

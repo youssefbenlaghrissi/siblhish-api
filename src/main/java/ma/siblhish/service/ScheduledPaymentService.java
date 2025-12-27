@@ -33,17 +33,6 @@ public class ScheduledPaymentService {
         return payments.stream().map(mapper::toScheduledPaymentDto).toList();
     }
 
-    public List<ScheduledPaymentDto> getUnpaidPaymentsByUser(Long userId) {
-        List<ScheduledPayment> payments = scheduledPaymentRepository.findUnpaidByUserId(userId);
-        return payments.stream().map(mapper::toScheduledPaymentDto).toList();
-    }
-
-    public ScheduledPaymentDto getScheduledPaymentById(Long paymentId) {
-        ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
-        return mapper.toScheduledPaymentDto(payment);
-    }
-
     @Transactional
     public ScheduledPaymentDto createScheduledPayment(ScheduledPaymentRequestDto request) {
         User user = userRepository.findById(request.getUserId())

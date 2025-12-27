@@ -77,13 +77,13 @@ public class BudgetService {
                 c.color as category_color,
                 b.creation_date,
                 b.update_date,
-                COALESCE((
+                (
                     SELECT SUM(e.amount)
                     FROM expenses e
                     WHERE e.user_id = b.user_id
                       AND e.creation_date BETWEEN b.start_date AND b.end_date
                       AND (b.category_id IS NULL OR e.category_id = b.category_id)
-                ), 0) as spent
+                ) as spent
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             WHERE b.user_id = :userId
@@ -243,7 +243,7 @@ public class BudgetService {
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
         
         // Construire la requête SQL dynamiquement pour éviter les problèmes avec les paramètres NULL
-        StringBuilder sql = new StringBuilder("SELECT COALESCE(SUM(e.amount), 0) FROM expenses e WHERE e.user_id = :userId ");
+        StringBuilder sql = new StringBuilder("SELECT SUM(e.amount) FROM expenses e WHERE e.user_id = :userId ");
         
         // Ajouter les conditions seulement si elles sont nécessaires
         sql.append("AND e.creation_date >= :startDate AND e.creation_date <= :endDate ");

@@ -12,10 +12,29 @@ import java.util.List;
 @Repository
 public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayment, Long> {
 
-    @Query("SELECT DISTINCT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId ORDER BY sp.creationDate DESC")
+    /**
+     * Récupère les paiements planifiés avec toutes les relations chargées en une seule requête
+     * Optimisation N+1 : utilise JOIN FETCH pour charger category et recurrenceDaysOfWeek
+     */
+    @Query("""
+            SELECT DISTINCT sp
+            FROM ScheduledPayment sp
+            LEFT JOIN FETCH sp.category
+            LEFT JOIN FETCH sp.recurrenceDaysOfWeek
+            WHERE sp.user.id = :userId
+            ORDER BY sp.creationDate DESC
+    """)
     List<ScheduledPayment> findByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT DISTINCT sp FROM ScheduledPayment sp WHERE sp.user.id = :userId AND sp.isPaid = false ORDER BY sp.creationDate DESC")
+    /**
+     * Récupère les paiements non payés avec toutes les relations chargées en une seule requête
+     * Optimisation N+1 : utilise JOIN FETCH pour charger category et recurrenceDaysOfWeek
+     */
+    @Query("SELECT DISTINCT sp FROM ScheduledPayment sp " +
+           "LEFT JOIN FETCH sp.category " +
+           "LEFT JOIN FETCH sp.recurrenceDaysOfWeek " +
+           "WHERE sp.user.id = :userId AND sp.isPaid = false " +
+           "ORDER BY sp.creationDate DESC")
     List<ScheduledPayment> findUnpaidByUserId(@Param("userId") Long userId);
 
 }
