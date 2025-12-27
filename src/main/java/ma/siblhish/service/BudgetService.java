@@ -206,7 +206,6 @@ public class BudgetService {
     }
 
     @Transactional
-    @CacheEvict(value = "budgets", allEntries = true)
     public void deleteBudget(Long budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
