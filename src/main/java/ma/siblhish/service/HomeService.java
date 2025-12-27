@@ -117,7 +117,7 @@ public class HomeService {
             expenseQuery.append("c.id as category_id, c.name as category_name, c.icon as category_icon, c.color as category_color ");
             expenseQuery.append("FROM expenses e ");
             expenseQuery.append("LEFT JOIN categories c ON e.category_id = c.id ");
-            expenseQuery.append("WHERE e.user_id = :userId ");
+            expenseQuery.append("WHERE e.user_id = :userId AND e.deleted = false ");
             
             List<String> expenseConditions = new ArrayList<>();
             if (minAmount != null) {
@@ -156,7 +156,7 @@ public class HomeService {
             incomeQuery.append("NULL as category_icon, ");
             incomeQuery.append("NULL as category_color ");
             incomeQuery.append("FROM incomes i ");
-            incomeQuery.append("WHERE i.user_id = :userId ");
+            incomeQuery.append("WHERE i.user_id = :userId AND i.deleted = false ");
             
             List<String> incomeConditions = new ArrayList<>();
             if (minAmount != null) {

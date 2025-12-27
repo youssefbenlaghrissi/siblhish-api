@@ -54,7 +54,8 @@ public class NotificationService {
     public void deleteNotification(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found with id: " + notificationId));
-        notificationRepository.delete(notification);
+        notification.setDeleted(true);
+        notificationRepository.save(notification);
     }
 
     public UnreadCountDto getUnreadCount(Long userId) {
@@ -81,7 +82,6 @@ public class NotificationService {
         notification.setUser(user);
         LocalDateTime now = LocalDateTime.now();
         notification.setCreationDate(now);
-        notification.setUpdateDate(now);
         
         notificationRepository.save(notification);
     }

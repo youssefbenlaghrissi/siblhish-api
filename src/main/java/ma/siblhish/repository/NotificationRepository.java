@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     @Query("SELECT n FROM Notification n WHERE n.user.id = :userId " +
+           "AND n.deleted = false " +
            "AND (:isRead IS NULL OR n.isRead = :isRead) " +
            "AND (:type IS NULL OR n.type = :type) " +
            "ORDER BY n.id DESC")
@@ -23,11 +24,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("type") TypeNotification type,
             Pageable pageable);
     
-    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.isRead = false")
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.isRead = false AND n.deleted = false")
     Long countUnreadByUserId(@Param("userId") Long userId);
     
     @Modifying
-    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId")
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.deleted = false")
     void markAllAsReadByUserId(@Param("userId") Long userId);
 }
 

@@ -38,7 +38,6 @@ public class ExpenseService {
         expense.setMethod(request.getMethod());
         LocalDateTime now = LocalDateTime.now();
         expense.setCreationDate(request.getDate() != null ? request.getDate() : now);
-        expense.setUpdateDate(now);
         expense.setDescription(request.getDescription());
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -71,7 +70,6 @@ public class ExpenseService {
         if (request.getDate() != null) {
             expense.setCreationDate(request.getDate());
         }
-        expense.setUpdateDate(LocalDateTime.now());
         expense.setDescription(request.getDescription());
         expense.setLocation(request.getLocation());
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -93,7 +91,8 @@ public class ExpenseService {
     public void deleteExpense(Long expenseId) {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found with id: " + expenseId));
-        expenseRepository.delete(expense);
+        expense.setDeleted(true);
+        expenseRepository.save(expense);
     }
 
     public List<ExpenseDto> getExpensesByUser(Long userId) {

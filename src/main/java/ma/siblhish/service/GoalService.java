@@ -44,7 +44,6 @@ public class GoalService {
         goal.setUser(user);
         LocalDateTime now = LocalDateTime.now();
         goal.setCreationDate(now);
-        goal.setUpdateDate(now);
         
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -114,7 +113,8 @@ public class GoalService {
     public void deleteGoal(Long goalId) {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
-        goalRepository.delete(goal);
+        goal.setDeleted(true);
+        goalRepository.save(goal);
     }
 
 }

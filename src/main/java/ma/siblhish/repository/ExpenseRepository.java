@@ -15,6 +15,7 @@ import java.util.List;
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @Query("SELECT e FROM Expense e WHERE e.user.id = :userId " +
+           "AND e.deleted = false " +
            "AND (:startDate IS NULL OR e.creationDate >= :startDate) " +
            "AND (:endDate IS NULL OR e.creationDate <= :endDate) " +
            "AND (:categoryId IS NULL OR e.category.id = :categoryId) " +
@@ -32,14 +33,17 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("paymentMethod") PaymentMethod paymentMethod,
             Pageable pageable);
 
+    @Query("SELECT e FROM Expense e WHERE e.isRecurring = true AND e.deleted = false ORDER BY e.id DESC")
     List<Expense> findByIsRecurringTrueOrderByIdDesc();
     
-    List<Expense> findByUserIdOrderByIdDesc(Long userId);
+    @Query("SELECT e FROM Expense e WHERE e.user.id = :userId AND e.deleted = false ORDER BY e.id DESC")
+    List<Expense> findByUserIdOrderByIdDesc(@Param("userId") Long userId);
     
-    @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId")
+    @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId AND e.deleted = false")
     Double getTotalExpensesByUserId(@Param("userId") Long userId);
     
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user.id = :userId " +
+           "AND e.deleted = false " +
            "AND e.creationDate >= :startDate AND e.creationDate <= :endDate")
     Double getTotalExpensesByUserIdAndDateRange(
             @Param("userId") Long userId,

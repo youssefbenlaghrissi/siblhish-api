@@ -18,6 +18,6 @@ public abstract class AbstractEntity {
     @Column(name = "creation_date")
     private LocalDateTime creationDate;
 
-    @Column(name = "update_date")
-    private LocalDateTime updateDate;
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
 }

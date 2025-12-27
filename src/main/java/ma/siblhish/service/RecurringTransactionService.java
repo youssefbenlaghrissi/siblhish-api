@@ -227,7 +227,6 @@ public class RecurringTransactionService {
         newExpense.setAmount(template.getAmount());
         newExpense.setMethod(template.getMethod());
         newExpense.setCreationDate(date);
-        newExpense.setUpdateDate(LocalDateTime.now());
         newExpense.setDescription(template.getDescription());
         newExpense.setLocation(template.getLocation());
         newExpense.setIsRecurring(false); // La transaction générée n'est pas récurrente
@@ -249,7 +248,6 @@ public class RecurringTransactionService {
         newIncome.setAmount(template.getAmount());
         newIncome.setMethod(template.getMethod());
         newIncome.setCreationDate(date);
-        newIncome.setUpdateDate(LocalDateTime.now());
         newIncome.setDescription(template.getDescription());
         newIncome.setSource(template.getSource());
         newIncome.setIsRecurring(false); // La transaction générée n'est pas récurrente

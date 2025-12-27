@@ -39,6 +39,7 @@ public class StatisticsService {
             FROM categories c
             LEFT JOIN expenses e ON c.id = e.category_id 
                 AND e.user_id = :userId 
+                AND e.deleted = false
                 AND DATE(e.creation_date) >= :startDate 
                 AND DATE(e.creation_date) <= :endDate
             GROUP BY c.id, c.name, c.icon, c.color
@@ -120,6 +121,7 @@ public class StatisticsService {
                     0 as total_expenses
                 FROM incomes
                 WHERE user_id = :userId 
+                    AND deleted = false
                     AND DATE(creation_date) >= :startDate 
                     AND DATE(creation_date) <= :endDate
                 UNION ALL
@@ -131,6 +133,7 @@ public class StatisticsService {
                     amount as total_expenses
                 FROM expenses
                 WHERE user_id = :userId 
+                    AND deleted = false
                     AND DATE(creation_date) >= :startDate 
                     AND DATE(creation_date) <= :endDate
             ) combined
@@ -176,10 +179,12 @@ public class StatisticsService {
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             LEFT JOIN expenses e ON e.user_id = :userId
+              AND e.deleted = false
               AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
               AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
               AND e.category_id = b.category_id
             WHERE b.user_id = :userId
+              AND b.deleted = false
               AND DATE(b.start_date) <= :endDate
               AND DATE(b.end_date) >= :startDate
             GROUP BY b.category_id, c.name, c.icon, c.color
@@ -267,10 +272,12 @@ public class StatisticsService {
                 SUM(e.amount) as spent_amount
             FROM budgets b
             LEFT JOIN expenses e ON e.user_id = :userId
+              AND e.deleted = false
               AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
               AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
               AND e.category_id = b.category_id
             WHERE b.user_id = :userId
+              AND b.deleted = false
               AND DATE(b.start_date) <= :endDate
               AND DATE(b.end_date) >= :startDate
             GROUP BY b.id, b.amount

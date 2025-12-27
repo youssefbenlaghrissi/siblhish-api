@@ -53,7 +53,6 @@ public class UserService {
                     newUser.setLanguage("fr");
                     LocalDateTime now = LocalDateTime.now();
                     newUser.setCreationDate(now);
-                    newUser.setUpdateDate(now);
                     User savedUser = userRepository.save(newUser);
                     
                     // Créer les favoris par défaut

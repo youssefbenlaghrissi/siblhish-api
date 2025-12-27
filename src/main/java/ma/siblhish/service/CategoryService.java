@@ -31,7 +31,6 @@ public class CategoryService {
         category.setColor(request.getColor());
         LocalDateTime now = LocalDateTime.now();
         category.setCreationDate(now);
-        category.setUpdateDate(now);
         
         Category saved = categoryRepository.save(category);
         return mapper.toCategoryDto(saved);
@@ -45,7 +44,6 @@ public class CategoryService {
         category.setName(request.getName());
         if (request.getIcon() != null) category.setIcon(request.getIcon());
         if (request.getColor() != null) category.setColor(request.getColor());
-        category.setUpdateDate(LocalDateTime.now());
         
         Category saved = categoryRepository.save(category);
         return mapper.toCategoryDto(saved);
@@ -55,7 +53,8 @@ public class CategoryService {
     public void deleteCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
-        categoryRepository.delete(category);
+        category.setDeleted(true);
+        categoryRepository.save(category);
     }
 
     public List<CategoryDto> getAllCategories() {

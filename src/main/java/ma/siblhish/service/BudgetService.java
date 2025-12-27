@@ -76,17 +76,18 @@ public class BudgetService {
                 c.icon as category_icon,
                 c.color as category_color,
                 b.creation_date,
-                b.update_date,
                 (
                     SELECT SUM(e.amount)
                     FROM expenses e
                     WHERE e.user_id = b.user_id
+                      AND e.deleted = false
                       AND e.creation_date BETWEEN b.start_date AND b.end_date
                       AND (b.category_id IS NULL OR e.category_id = b.category_id)
                 ) as spent
             FROM budgets b
             LEFT JOIN categories c ON b.category_id = c.id
             WHERE b.user_id = :userId
+              AND b.deleted = false
         """);
         
         if (month != null && !month.isEmpty() && parseMonth(month) != null) {
@@ -125,13 +126,12 @@ public class BudgetService {
         }
         
         budget.setCreationDate(convertToLocalDateTime(row[10]));
-        budget.setUpdateDate(convertToLocalDateTime(row[11]));
         
         User user = new User();
         user.setId(((Number) row[1]).longValue());
         budget.setUser(user);
         
-        Double spent = mapper.convertToDouble(row[12]);
+        Double spent = mapper.convertToDouble(row[11]);
         return mapper.toBudgetDto(budget, spent);
     }
     
@@ -191,7 +191,6 @@ public class BudgetService {
         if (request.getIsRecurring() != null) {
             budget.setIsRecurring(request.getIsRecurring());
         }
-        budget.setUpdateDate(LocalDateTime.now());
         
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -207,10 +206,12 @@ public class BudgetService {
     }
 
     @Transactional
+    @CacheEvict(value = "budgets", allEntries = true)
     public void deleteBudget(Long budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
-        budgetRepository.delete(budget);
+        budget.setDeleted(true);
+        budgetRepository.save(budget);
     }
 
     public BudgetStatusResponseDto getBudgetStatus(Long budgetId) {
@@ -251,7 +252,7 @@ public class BudgetService {
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
         
         // Construire la requête SQL dynamiquement pour éviter les problèmes avec les paramètres NULL
-        StringBuilder sql = new StringBuilder("SELECT SUM(e.amount) FROM expenses e WHERE e.user_id = :userId ");
+        StringBuilder sql = new StringBuilder("SELECT SUM(e.amount) FROM expenses e WHERE e.user_id = :userId AND e.deleted = false ");
         
         // Ajouter les conditions seulement si elles sont nécessaires
         sql.append("AND e.creation_date >= :startDate AND e.creation_date <= :endDate ");

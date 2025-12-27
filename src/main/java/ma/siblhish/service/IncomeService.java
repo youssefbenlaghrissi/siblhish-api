@@ -31,7 +31,6 @@ public class IncomeService {
         income.setMethod(request.getMethod());
         LocalDateTime now = LocalDateTime.now();
         income.setCreationDate(request.getDate() != null ? request.getDate() : now);
-        income.setUpdateDate(now);
         income.setDescription(request.getDescription());
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -57,7 +56,6 @@ public class IncomeService {
         if (request.getDate() != null) {
             income.setCreationDate(request.getDate());
         }
-        income.setUpdateDate(LocalDateTime.now());
         income.setDescription(request.getDescription());
         income.setSource(request.getSource());
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
@@ -75,7 +73,8 @@ public class IncomeService {
     public void deleteIncome(Long incomeId) {
         Income income = incomeRepository.findById(incomeId)
                 .orElseThrow(() -> new RuntimeException("Income not found with id: " + incomeId));
-        incomeRepository.delete(income);
+        income.setDeleted(true);
+        incomeRepository.save(income);
     }
 
     public List<IncomeDto> getIncomesByUser(Long userId) {

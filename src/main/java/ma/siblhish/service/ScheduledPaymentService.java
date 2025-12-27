@@ -62,7 +62,6 @@ public class ScheduledPaymentService {
         payment.setCategory(category);
         LocalDateTime now = LocalDateTime.now();
         payment.setCreationDate(now);
-        payment.setUpdateDate(now);
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         return mapper.toScheduledPaymentDto(saved);
@@ -99,7 +98,6 @@ public class ScheduledPaymentService {
         if (request.getRecurrenceDayOfMonth() != null) payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         if (request.getRecurrenceDayOfYear() != null) payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         if (request.getNotificationOption() != null) payment.setNotificationOption(request.getNotificationOption());
-        payment.setUpdateDate(LocalDateTime.now());
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         return mapper.toScheduledPaymentDto(saved);
@@ -186,7 +184,6 @@ public class ScheduledPaymentService {
         nextPayment.setCategory(payment.getCategory());
         LocalDateTime now = LocalDateTime.now();
         nextPayment.setCreationDate(now);
-        nextPayment.setUpdateDate(now);
 
         LocalDateTime nextDueDate = switch (payment.getRecurrenceFrequency()) {
             case DAILY -> payment.getDueDate().plusDays(1);
@@ -209,7 +206,8 @@ public class ScheduledPaymentService {
             throw new RuntimeException("Un paiement planifié déjà payé ne peut pas être supprimé");
         }
         
-        scheduledPaymentRepository.delete(payment);
+        payment.setDeleted(true);
+        scheduledPaymentRepository.save(payment);
     }
 }
 
