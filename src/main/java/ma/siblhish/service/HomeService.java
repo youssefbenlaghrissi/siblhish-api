@@ -189,7 +189,7 @@ public class HomeService {
             sql.append(unionParts.get(i));
         }
         sql.append(") AS transactions ");
-        sql.append("ORDER BY id DESC ");
+        sql.append("ORDER BY date DESC ");
         sql.append("LIMIT :limit");
         
         // Exécuter la requête avec EntityManager
