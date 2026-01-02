@@ -108,6 +108,7 @@ public class EntityMapper {
                 (goal.getCurrentAmount() / goal.getTargetAmount()) * 100 : 0.0);
         dto.setTargetDate(goal.getTargetDate());
         dto.setIsAchieved(goal.getIsAchieved());
+        dto.setAchievedDate(goal.getAchievedDate());
         dto.setUserId(goal.getUser().getId());
         dto.setCategory(toCategoryDto(goal.getCategory()));
         return dto;

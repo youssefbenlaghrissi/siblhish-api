@@ -48,4 +48,7 @@ public class Goal extends AbstractEntity {
 
     @Column(name = "is_achieved", nullable = false)
     private Boolean isAchieved = false;
+
+    @Column(name = "achieved_date")
+    private LocalDate achievedDate;
 }

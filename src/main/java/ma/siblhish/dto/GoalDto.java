@@ -18,6 +18,7 @@ public class GoalDto {
     private Double progress; // Calculated: (currentAmount / targetAmount) * 100
     private LocalDate targetDate;
     private Boolean isAchieved;
+    private LocalDate achievedDate;
     private Long userId;
     private CategoryDto category;
 }
