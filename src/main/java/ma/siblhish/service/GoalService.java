@@ -75,6 +75,10 @@ public class GoalService {
             goal.setCategory(null);
         }
 
+        if(Boolean.TRUE.equals(request.getIsAchieved())){
+            goal.setIsAchieved(true);
+            goal.setAchievedDate(LocalDateTime.now());
+        }
         // Check if goal is achieved
         if (goal.getCurrentAmount() >= goal.getTargetAmount()) {
             goal.setIsAchieved(true);
@@ -108,7 +112,7 @@ public class GoalService {
         goal.setCurrentAmount(goal.getCurrentAmount() + request.getAmount());
         
         goal.setIsAchieved(true);
-        goal.setAchievedDate(LocalDate.now());
+        goal.setAchievedDate(LocalDateTime.now());
 
         Goal saved = goalRepository.save(goal);
         return mapper.toGoalDto(saved);
@@ -122,7 +126,7 @@ public class GoalService {
         goal.setCurrentAmount(goal.getTargetAmount());
         goal.setIsAchieved(true);
         if (goal.getAchievedDate() == null) {
-            goal.setAchievedDate(LocalDate.now());
+            goal.setAchievedDate(LocalDateTime.now());
         }
         Goal saved = goalRepository.save(goal);
         return mapper.toGoalDto(saved);

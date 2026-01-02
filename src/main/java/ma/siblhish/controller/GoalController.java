@@ -42,6 +42,10 @@ public class GoalController {
 
     /**
      * Mettre à jour un objectif
+     * Peut être utilisé pour :
+     * - Modifier les champs de l'objectif (name, description, targetAmount, etc.)
+     * - Marquer un objectif comme atteint (en passant isAchieved: true dans le body)
+     *   Dans ce cas, achievedDate sera automatiquement enregistré avec la date/heure actuelle
      */
     @PutMapping("/{goalId}")
     public ResponseEntity<ApiResponse<GoalDto>> updateGoal(

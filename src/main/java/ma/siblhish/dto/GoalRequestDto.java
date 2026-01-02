@@ -30,5 +30,7 @@ public class GoalRequestDto {
 
     private Double currentAmount;
 
+    private Boolean isAchieved; // Permettre de mettre à jour isAchieved via PUT
+
 }
 

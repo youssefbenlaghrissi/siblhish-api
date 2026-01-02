@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -18,7 +19,7 @@ public class GoalDto {
     private Double progress; // Calculated: (currentAmount / targetAmount) * 100
     private LocalDate targetDate;
     private Boolean isAchieved;
-    private LocalDate achievedDate;
+    private LocalDateTime achievedDate; // Date et heure d'atteinte au format ISO 8601
     private Long userId;
     private CategoryDto category;
 }

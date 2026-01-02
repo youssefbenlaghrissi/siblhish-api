@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "goals")
@@ -50,5 +51,5 @@ public class Goal extends AbstractEntity {
     private Boolean isAchieved = false;
 
     @Column(name = "achieved_date")
-    private LocalDate achievedDate;
+    private LocalDateTime achievedDate; // Date et heure d'atteinte de l'objectif
 }
