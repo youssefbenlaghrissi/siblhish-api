@@ -12,7 +12,6 @@ import ma.siblhish.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -51,7 +50,7 @@ public class GoalService {
                     .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
             goal.setCategory(category);
         }
-        
+
         Goal saved = goalRepository.save(goal);
         return mapper.toGoalDto(saved);
     }
@@ -60,7 +59,7 @@ public class GoalService {
     public GoalDto updateGoal(Long goalId, GoalRequestDto request) {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
-        
+
         goal.setName(request.getName());
         goal.setDescription(request.getDescription());
         goal.setTargetAmount(request.getTargetAmount());
@@ -75,13 +74,32 @@ public class GoalService {
             goal.setCategory(null);
         }
 
-        if(Boolean.TRUE.equals(request.getIsAchieved())){
+        // Gérer isAchieved selon la logique métier
+        if (Boolean.TRUE.equals(request.getIsAchieved())) {
             goal.setIsAchieved(true);
-            goal.setAchievedDate(LocalDateTime.now());
-        }
-        // Check if goal is achieved
-        if (goal.getCurrentAmount() >= goal.getTargetAmount()) {
-            goal.setIsAchieved(true);
+            // Si une date/heure d'atteinte est fournie dans la requête, l'utiliser
+            // Sinon, si achievedDate n'existe pas déjà, utiliser maintenant
+            if (request.getAchievedDate() != null) {
+                goal.setAchievedDate(request.getAchievedDate());
+            } else if (goal.getAchievedDate() == null) {
+                goal.setAchievedDate(LocalDateTime.now());
+            }
+            // S'assurer que currentAmount est au moins égal à targetAmount
+            if (goal.getCurrentAmount() < goal.getTargetAmount()) {
+                goal.setCurrentAmount(goal.getTargetAmount());
+            }
+        } else {
+            // Si isAchieved n'est pas fourni, vérifier automatiquement selon currentAmount
+            if (goal.getCurrentAmount() >= goal.getTargetAmount()) {
+                goal.setIsAchieved(true);
+                if (goal.getAchievedDate() == null) {
+                    goal.setAchievedDate(LocalDateTime.now());
+                }
+            } else {
+                // Si currentAmount < targetAmount, l'objectif ne peut pas être atteint
+                goal.setIsAchieved(false);
+                // Ne pas supprimer achievedDate si elle existe déjà (historique)
+            }
         }
         
         Goal saved = goalRepository.save(goal);
@@ -92,12 +110,7 @@ public class GoalService {
     public GoalDto addAmountToGoal(Long goalId, AddAmountDto request) {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
-        
-        // Vérifier si l'objectif est déjà atteint
-        if (goal.getIsAchieved()) {
-            throw new IllegalArgumentException("L'objectif est déjà atteint. Vous ne pouvez plus ajouter de montant.");
-        }
-        
+
         // Calculer le montant restant nécessaire pour atteindre l'objectif
         Double remainingAmount = goal.getTargetAmount() - goal.getCurrentAmount();
         
@@ -108,26 +121,20 @@ public class GoalService {
                     request.getAmount(), remainingAmount)
             );
         }
-        
+
+        // Ajouter le montant au montant actuel
         goal.setCurrentAmount(goal.getCurrentAmount() + request.getAmount());
-        
-        goal.setIsAchieved(true);
-        goal.setAchievedDate(LocalDateTime.now());
 
-        Goal saved = goalRepository.save(goal);
-        return mapper.toGoalDto(saved);
-    }
-
-    @Transactional
-    public GoalDto achieveGoal(Long goalId) {
-        Goal goal = goalRepository.findById(goalId)
-                .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
-        
-        goal.setCurrentAmount(goal.getTargetAmount());
-        goal.setIsAchieved(true);
-        if (goal.getAchievedDate() == null) {
-            goal.setAchievedDate(LocalDateTime.now());
+        // Vérifier si l'objectif est maintenant atteint (currentAmount >= targetAmount)
+        if (goal.getCurrentAmount() >= goal.getTargetAmount()) {
+            goal.setIsAchieved(true);
+            // Si l'objectif vient d'être atteint et qu'il n'y a pas encore de date d'atteinte, l'enregistrer
+            if (goal.getAchievedDate() == null) {
+                goal.setAchievedDate(LocalDateTime.now());
+            }
         }
+
+
         Goal saved = goalRepository.save(goal);
         return mapper.toGoalDto(saved);
     }
@@ -136,6 +143,12 @@ public class GoalService {
     public void deleteGoal(Long goalId) {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
+        
+        // Vérifier que l'objectif n'est pas déjà supprimé
+        if (Boolean.TRUE.equals(goal.getDeleted())) {
+            throw new IllegalArgumentException("L'objectif a déjà été supprimé.");
+        }
+        
         goal.setDeleted(true);
         goalRepository.save(goal);
     }

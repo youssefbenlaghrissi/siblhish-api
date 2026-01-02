@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -31,6 +32,8 @@ public class GoalRequestDto {
     private Double currentAmount;
 
     private Boolean isAchieved; // Permettre de mettre à jour isAchieved via PUT
+    
+    private LocalDateTime achievedDate; // Date et heure d'atteinte (optionnel, peut être fourni par le frontend)
 
 }
 

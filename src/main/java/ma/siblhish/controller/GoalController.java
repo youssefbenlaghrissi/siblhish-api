@@ -67,15 +67,6 @@ public class GoalController {
     }
 
     /**
-     * Marquer un objectif comme atteint
-     */
-    @PatchMapping("/{goalId}/achieve")
-    public ResponseEntity<ApiResponse<GoalDto>> achieveGoal(@PathVariable Long goalId) {
-        GoalDto goal = goalService.achieveGoal(goalId);
-        return ResponseEntity.ok(ApiResponse.success(goal));
-    }
-
-    /**
      * Supprimer un objectif
      */
     @DeleteMapping("/{goalId}")
