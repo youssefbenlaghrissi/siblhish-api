@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.service.BudgetService;
+import ma.siblhish.service.BudgetSuggestionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,7 @@ import java.util.List;
 public class BudgetController {
 
     private final BudgetService budgetService;
+    private final BudgetSuggestionService budgetSuggestionService;
 
     /**
      * Liste des budgets de l'utilisateur
@@ -68,6 +70,21 @@ public class BudgetController {
     public ResponseEntity<ApiResponse<BudgetStatusResponseDto>> getBudgetStatus(@PathVariable Long budgetId) {
         BudgetStatusResponseDto status = budgetService.getBudgetStatus(budgetId);
         return ResponseEntity.ok(ApiResponse.success(status));
+    }
+
+    /**
+     * Suggérer des budgets basés sur le revenu, la situation et les catégories
+     */
+    @PostMapping("/suggest")
+    public ResponseEntity<ApiResponse<BudgetSuggestionResponse>> suggestBudgets(
+            @Valid @RequestBody BudgetSuggestionRequest request) {
+        try {
+            BudgetSuggestionResponse response = budgetSuggestionService.suggestBudgets(request);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur lors du calcul des budgets suggérés: " + e.getMessage()));
+        }
     }
 
 }
