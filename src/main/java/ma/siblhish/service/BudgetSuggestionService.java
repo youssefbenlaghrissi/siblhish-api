@@ -133,8 +133,6 @@ public class BudgetSuggestionService {
         double normalizationFactor = totalPercentage > 1.0 ? 1.0 / totalPercentage : 1.0;
         double maxTotalBudget = monthlyIncome * MAX_BUDGET_PERCENTAGE;
         double maxCategoryBudget = monthlyIncome * MAX_BUDGET_PERCENTAGE_PER_CATEGORY;
-        double incomePercent100 = monthlyIncome * 100.0;
-        double incomePercent10 = monthlyIncome * 10.0;
         
         // OPTIMISATION 5 : Calculer tous les budgets en une seule passe
         int validSize = validCategories.size();
@@ -156,8 +154,9 @@ public class BudgetSuggestionService {
             // Arrondir le montant (une seule fois)
             budget = Math.round(budget * 100.0) / 100.0;
             
-            // Calculer le pourcentage final (optimisé)
-            double finalPercentage = Math.round((budget * 1000.0) / incomePercent10) / 10.0;
+            // Calculer le pourcentage final : (budget / monthlyIncome) * 100
+            // Exemple: 2070 / 15000 = 0.138, puis 0.138 * 100 = 13.8%
+            double finalPercentage = Math.round((budget / monthlyIncome) * 10000.0) / 100.0;
             
             suggestions.add(new BudgetSuggestion(
                 category.getId(),
@@ -179,7 +178,8 @@ public class BudgetSuggestionService {
             for (BudgetSuggestion suggestion : suggestions) {
                 double scaledAmount = Math.round(suggestion.getAmount() * scaleFactor * 100.0) / 100.0;
                 suggestion.setAmount(scaledAmount);
-                suggestion.setPercentage(Math.round((scaledAmount * 1000.0) / incomePercent10) / 10.0);
+                // Calculer le pourcentage : (scaledAmount / monthlyIncome) * 100
+                suggestion.setPercentage(Math.round((scaledAmount / monthlyIncome) * 10000.0) / 100.0);
                 totalBudget += scaledAmount;
             }
         } else {
