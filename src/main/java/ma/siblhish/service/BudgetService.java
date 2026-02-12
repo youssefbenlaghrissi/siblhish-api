@@ -296,5 +296,45 @@ public class BudgetService {
         // Si endDate est null, utiliser la date d'aujourd'hui
         return LocalDate.now();
     }
+
+    /**
+     * Créer plusieurs budgets en une seule transaction
+     * Si une erreur survient, tous les budgets sont annulés (rollback)
+     */
+    @Transactional
+    public List<BudgetDto> createBudgets(List<BudgetRequestDto> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("La liste des budgets ne peut pas être vide");
+        }
+
+        List<BudgetDto> createdBudgets = new java.util.ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (BudgetRequestDto request : requests) {
+            // Valider que l'utilisateur existe
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
+
+            Budget budget = new Budget();
+            budget.setAmount(request.getAmount());
+            budget.setStartDate(request.getStartDate());
+            budget.setEndDate(request.getEndDate());
+            budget.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
+            budget.setUser(user);
+            budget.setCreationDate(now);
+
+            if (request.getCategoryId() != null) {
+                Category category = categoryRepository.findById(request.getCategoryId())
+                        .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
+                budget.setCategory(category);
+            }
+
+            Budget saved = budgetRepository.save(budget);
+            createdBudgets.add(mapper.toBudgetDto(saved, 0.0));
+        }
+
+        logger.info("Création de {} budgets réussie en une seule transaction", createdBudgets.size());
+        return createdBudgets;
+    }
 }
 

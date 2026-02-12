@@ -87,5 +87,24 @@ public class BudgetController {
         }
     }
 
+    /**
+     * Créer plusieurs budgets en une seule transaction
+     * Si une erreur survient, tous les budgets sont annulés (rollback)
+     */
+    @PostMapping("/batch")
+    public ResponseEntity<ApiResponse<List<BudgetDto>>> createBudgets(
+            @Valid @RequestBody CreateBudgetsRequestDto request) {
+        try {
+            List<BudgetDto> createdBudgets = budgetService.createBudgets(request.getBudgets());
+            return ResponseEntity.status(201).body(ApiResponse.success(createdBudgets));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur de validation: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur lors de la création des budgets: " + e.getMessage()));
+        }
+    }
+
 }
 
