@@ -94,7 +94,7 @@ public class BudgetService {
             query.append(" AND b.start_date <= :lastDayOfMonth AND b.end_date >= :firstDayOfMonth");
         }
         
-        query.append(" ORDER BY b.id DESC");
+        query.append(" ORDER BY b.amount DESC");
         
         return query.toString();
     }
