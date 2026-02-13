@@ -213,6 +213,30 @@ public class BudgetService {
         budgetRepository.save(budget);
     }
 
+    /**
+     * Supprimer plusieurs budgets en une seule transaction
+     * Si une erreur survient, tous les budgets sont annulés (rollback)
+     */
+    @Transactional
+    public void deleteBudgets(List<Long> budgetIds) {
+        if (budgetIds == null || budgetIds.isEmpty()) {
+            throw new IllegalArgumentException("La liste des budgets à supprimer ne peut pas être vide");
+        }
+
+        List<Budget> budgetsToDelete = budgetRepository.findAllById(budgetIds);
+        
+        if (budgetsToDelete.size() != budgetIds.size()) {
+            throw new RuntimeException("Certains budgets n'ont pas été trouvés");
+        }
+
+        for (Budget budget : budgetsToDelete) {
+            budget.setDeleted(true);
+        }
+        
+        budgetRepository.saveAll(budgetsToDelete);
+        logger.info("Suppression de {} budgets réussie en une seule transaction", budgetsToDelete.size());
+    }
+
     public BudgetStatusResponseDto getBudgetStatus(Long budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));

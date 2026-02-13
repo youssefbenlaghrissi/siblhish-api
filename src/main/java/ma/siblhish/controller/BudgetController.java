@@ -106,5 +106,28 @@ public class BudgetController {
         }
     }
 
+    /**
+     * Supprimer plusieurs budgets en une seule transaction
+     * Si une erreur survient, tous les budgets sont annulés (rollback)
+     */
+    @DeleteMapping("/batch")
+    public ResponseEntity<ApiResponse<Void>> deleteBudgets(
+            @RequestBody List<Long> budgetIds) {
+        try {
+            if (budgetIds == null || budgetIds.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("La liste des budgets à supprimer ne peut pas être vide"));
+            }
+            budgetService.deleteBudgets(budgetIds);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur de validation: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur lors de la suppression des budgets: " + e.getMessage()));
+        }
+    }
+
 }
 
