@@ -21,11 +21,46 @@ public class BudgetSuggestionService {
     
     // Constantes
     private static final double MAX_BUDGET_PERCENTAGE = 0.80; // 80% du revenu maximum
-    private static final double MIN_BUDGET_AMOUNT = 100.0; // Minimum 100 MAD par catégorie
+    private static final double MIN_BUDGET_AMOUNT = 100.0; // Minimum 100 MAD par catégorie (par défaut)
     private static final double MAX_BUDGET_PERCENTAGE_PER_CATEGORY = 0.50; // 50% max par catégorie
     
-    // Cache statique pour les pourcentages de catégories (ne change jamais)
-    private static final Map<String, Double> CATEGORY_PERCENTAGES = initializeCategoryPercentages();
+    /**
+     * Contraintes min/max spécifiques par catégorie (basées sur les coûts réels au Maroc)
+     * Format: Map<CategoryName, {min, max}>
+     */
+    private static Map<String, CategoryConstraints> getCategoryConstraints() {
+        Map<String, CategoryConstraints> constraints = new HashMap<>();
+        
+        // Eau : 50-200 MAD
+        constraints.put("Eau", new CategoryConstraints(50.0, 200.0));
+        
+        // Électricité : 80-300 MAD
+        constraints.put("Électricité", new CategoryConstraints(80.0, 300.0));
+        
+        // Téléphone : 50-300 MAD
+        constraints.put("Téléphone", new CategoryConstraints(50.0, 300.0));
+        
+        // Abonnements : 50-300 MAD
+        constraints.put("Abonnements", new CategoryConstraints(50.0, 300.0));
+        
+        return constraints;
+    }
+    
+    /**
+     * Classe interne pour stocker les contraintes min/max d'une catégorie
+     */
+    private static class CategoryConstraints {
+        final double min;
+        final double max;
+        
+        CategoryConstraints(double min, double max) {
+            this.min = min;
+            this.max = max;
+        }
+    }
+    
+    // Note: Les pourcentages sont maintenant calculés dynamiquement selon l'intervalle de revenu
+    // Plus besoin de cache statique
     
     // Cache statique pour les multiplicateurs de situation
     private static final Map<String, Double> SITUATION_MULTIPLIERS = createSituationMultipliers();
@@ -116,6 +151,9 @@ public class BudgetSuggestionService {
         // OPTIMISATION 2 : Récupérer toutes les catégories en une seule requête
         List<Category> allSelectedCategories = categoryRepository.findAllById(categoryIds);
         
+        // OPTIMISATION 2.5 : Obtenir les pourcentages selon l'intervalle de revenu
+        Map<String, Double> categoryPercentages = getCategoryPercentages(monthlyIncome);
+        
         // OPTIMISATION 3 : Filtrer et calculer en une seule passe
         int size = allSelectedCategories.size();
         List<Category> validCategories = new ArrayList<>(size);
@@ -125,7 +163,7 @@ public class BudgetSuggestionService {
             if (!category.getDeleted()) {
                 validCategories.add(category);
                 String categoryName = category.getName();
-                totalPercentage += CATEGORY_PERCENTAGES.getOrDefault(categoryName, 0.10);
+                totalPercentage += categoryPercentages.getOrDefault(categoryName, 0.10);
             }
         }
         
@@ -134,7 +172,10 @@ public class BudgetSuggestionService {
         double maxTotalBudget = monthlyIncome * MAX_BUDGET_PERCENTAGE;
         double maxCategoryBudget = monthlyIncome * MAX_BUDGET_PERCENTAGE_PER_CATEGORY;
         
-        // OPTIMISATION 5 : Calculer tous les budgets en une seule passe
+        // OPTIMISATION 5 : Calculer les contraintes une seule fois (hors boucle)
+        Map<String, CategoryConstraints> categoryConstraints = getCategoryConstraints();
+        
+        // OPTIMISATION 6 : Calculer tous les budgets en une seule passe
         int validSize = validCategories.size();
         List<BudgetSuggestion> suggestions = new ArrayList<>(validSize);
         double totalBudget = 0.0;
@@ -142,14 +183,23 @@ public class BudgetSuggestionService {
         for (Category category : validCategories) {
             String categoryName = category.getName();
             
-            // Calculer le budget
-            double basePercentage = CATEGORY_PERCENTAGES.getOrDefault(categoryName, 0.10);
+            // Calculer le budget avec les pourcentages adaptés au revenu
+            double basePercentage = categoryPercentages.getOrDefault(categoryName, 0.10);
             double budget = monthlyIncome * basePercentage * situationMultiplier * locationMultiplier;
             budget *= normalizationFactor;
             
-            // Appliquer les contraintes min/max
-            budget = Math.max(budget, MIN_BUDGET_AMOUNT);
-            budget = Math.min(budget, maxCategoryBudget);
+            // Appliquer les contraintes min/max spécifiques par catégorie
+            CategoryConstraints constraints = categoryConstraints.get(categoryName);
+            
+            if (constraints != null) {
+                // Contraintes spécifiques pour cette catégorie
+                budget = Math.max(budget, constraints.min);
+                budget = Math.min(budget, Math.min(constraints.max, maxCategoryBudget));
+            } else {
+                // Contraintes par défaut
+                budget = Math.max(budget, MIN_BUDGET_AMOUNT);
+                budget = Math.min(budget, maxCategoryBudget);
+            }
             
             // Arrondir le montant (une seule fois)
             budget = Math.round(budget * 100.0) / 100.0;
@@ -170,13 +220,22 @@ public class BudgetSuggestionService {
             totalBudget += budget;
         }
         
-        // OPTIMISATION 6 : Normalisation finale si nécessaire (une seule passe)
+        // OPTIMISATION 7 : Normalisation finale si nécessaire (une seule passe)
         if (totalBudget > maxTotalBudget) {
             double scaleFactor = maxTotalBudget / totalBudget;
             totalBudget = 0.0; // Recalculer le total
             
             for (BudgetSuggestion suggestion : suggestions) {
+                String categoryName = suggestion.getCategoryName();
                 double scaledAmount = Math.round(suggestion.getAmount() * scaleFactor * 100.0) / 100.0;
+                
+                // Réappliquer les contraintes spécifiques après normalisation
+                CategoryConstraints constraints = categoryConstraints.get(categoryName);
+                if (constraints != null) {
+                    scaledAmount = Math.max(scaledAmount, constraints.min);
+                    scaledAmount = Math.min(scaledAmount, constraints.max);
+                }
+                
                 suggestion.setAmount(scaledAmount);
                 // Calculer le pourcentage : (scaledAmount / monthlyIncome) * 100
                 suggestion.setPercentage(Math.round((scaledAmount / monthlyIncome) * 10000.0) / 100.0);
@@ -191,9 +250,305 @@ public class BudgetSuggestionService {
     }
     
     /**
+     * Obtenir les pourcentages par catégorie selon l'intervalle de revenu
+     * Les pourcentages sont plus élevés pour les petits revenus (coûts fixes)
+     * et plus faibles pour les grands revenus (économies d'échelle)
+     */
+    private Map<String, Double> getCategoryPercentages(double monthlyIncome) {
+        // Déterminer l'intervalle de revenu
+        IncomeRange range = getIncomeRange(monthlyIncome);
+        
+        // Retourner les pourcentages selon l'intervalle
+        return switch (range) {
+            case VERY_LOW -> getPercentagesForVeryLowIncome();
+            case LOW -> getPercentagesForLowIncome();
+            case MEDIUM -> getPercentagesForMediumIncome();
+            case HIGH -> getPercentagesForHighIncome();
+            case VERY_HIGH -> getPercentagesForVeryHighIncome();
+        };
+    }
+    
+    /**
+     * Déterminer l'intervalle de revenu
+     */
+    private IncomeRange getIncomeRange(double monthlyIncome) {
+        if (monthlyIncome < 3000) return IncomeRange.VERY_LOW;      // < 3000 MAD
+        if (monthlyIncome < 5000) return IncomeRange.LOW;            // 3000-5000 MAD
+        if (monthlyIncome < 10000) return IncomeRange.MEDIUM;        // 5000-10000 MAD
+        if (monthlyIncome < 20000) return IncomeRange.HIGH;          // 10000-20000 MAD
+        return IncomeRange.VERY_HIGH;                                // >= 20000 MAD
+    }
+    
+    /**
+     * Enum pour les intervalles de revenu
+     */
+    private enum IncomeRange {
+        VERY_LOW, LOW, MEDIUM, HIGH, VERY_HIGH
+    }
+    
+    /**
+     * Pourcentages pour revenus très faibles (< 3000 MAD)
+     * Pourcentages plus élevés car les coûts fixes représentent une part importante
+     */
+    private Map<String, Double> getPercentagesForVeryLowIncome() {
+        Map<String, Double> percentages = new HashMap<>();
+        
+        // ALIMENTATION - Plus élevé pour petits revenus (coûts fixes)
+        percentages.put("Alimentation", 0.25);      // 25% - Plus élevé car minimum vital
+        percentages.put("Restaurant", 0.02);         // 2% - Réduit
+        percentages.put("Café", 0.01);              // 1% - Réduit
+        
+        // TRANSPORT
+        percentages.put("Transport", 0.08);          // 8% - Plus élevé
+        percentages.put("Carburant", 0.10);         // 10% - Plus élevé
+        percentages.put("Parking", 0.01);
+        percentages.put("Vignette", 0.005);
+        percentages.put("Assurance voiture", 0.02);
+        percentages.put("Entretien voiture", 0.02);
+        percentages.put("Contrôle technique", 0.003);
+        percentages.put("Péage", 0.005);
+        percentages.put("Lavage voiture", 0.005);
+        
+        // LOGEMENT - Plus élevé (coûts fixes)
+        percentages.put("Loyer", 0.35);              // 35% - Plus élevé
+        percentages.put("Électricité", 0.05);       // 5% - Plus élevé
+        percentages.put("Eau", 0.03);                // 3% - Plus élevé
+        percentages.put("Internet", 0.03);          // 3% - Plus élevé
+        percentages.put("Gaz", 0.03);               // 3% - Plus élevé
+        
+        // SANTÉ
+        percentages.put("Santé", 0.05);              // 5% - Plus élevé
+        percentages.put("Médical", 0.03);           // 3% - Plus élevé
+        percentages.put("Salle de sport", 0.01);
+        percentages.put("Sport", 0.01);
+        
+        // FINANCE
+        percentages.put("Crédit", 0.05);
+        percentages.put("Assurance", 0.03);
+        percentages.put("Impôts", 0.02);
+        percentages.put("Épargne", 0.01);          // 1% - Réduit
+        
+        // LOISIRS - Réduit
+        percentages.put("Loisirs", 0.02);
+        percentages.put("Voyage", 0.01);
+        percentages.put("Sorties", 0.01);
+        percentages.put("Streaming", 0.01);
+        
+        // SHOPPING - Réduit
+        percentages.put("Shopping", 0.01);
+        percentages.put("Vêtements", 0.01);
+        percentages.put("Électronique", 0.01);
+        
+        // FAMILLE
+        percentages.put("Éducation", 0.03);
+        percentages.put("Enfants", 0.02);
+        percentages.put("Cadeaux", 0.01);
+        
+        // ABONNEMENTS
+        percentages.put("Abonnements", 0.02);
+        percentages.put("Téléphone", 0.02);
+        
+        // AUTRES
+        percentages.put("Factures", 0.02);
+        percentages.put("Animaux", 0.01);
+        percentages.put("Beauté", 0.01);
+        percentages.put("Autres", 0.02);
+        
+        return percentages;
+    }
+    
+    /**
+     * Pourcentages pour revenus faibles (3000-5000 MAD)
+     */
+    private Map<String, Double> getPercentagesForLowIncome() {
+        Map<String, Double> percentages = new HashMap<>();
+        
+        percentages.put("Alimentation", 0.20);      // 20%
+        percentages.put("Restaurant", 0.03);
+        percentages.put("Café", 0.015);
+        
+        percentages.put("Transport", 0.06);
+        percentages.put("Carburant", 0.08);
+        percentages.put("Parking", 0.01);
+        percentages.put("Vignette", 0.005);
+        percentages.put("Assurance voiture", 0.015);
+        percentages.put("Entretien voiture", 0.015);
+        percentages.put("Contrôle technique", 0.003);
+        percentages.put("Péage", 0.005);
+        percentages.put("Lavage voiture", 0.007);
+        
+        percentages.put("Loyer", 0.30);              // 30%
+        percentages.put("Électricité", 0.04);
+        percentages.put("Eau", 0.025);
+        percentages.put("Internet", 0.025);
+        percentages.put("Gaz", 0.025);
+        
+        percentages.put("Santé", 0.04);
+        percentages.put("Médical", 0.025);
+        percentages.put("Salle de sport", 0.012);
+        percentages.put("Sport", 0.012);
+        
+        percentages.put("Crédit", 0.04);
+        percentages.put("Assurance", 0.025);
+        percentages.put("Impôts", 0.02);
+        percentages.put("Épargne", 0.015);
+        
+        percentages.put("Loisirs", 0.03);
+        percentages.put("Voyage", 0.02);
+        percentages.put("Sorties", 0.015);
+        percentages.put("Streaming", 0.015);
+        
+        percentages.put("Shopping", 0.02);
+        percentages.put("Vêtements", 0.02);
+        percentages.put("Électronique", 0.02);
+        
+        percentages.put("Éducation", 0.04);
+        percentages.put("Enfants", 0.025);
+        percentages.put("Cadeaux", 0.015);
+        
+        percentages.put("Abonnements", 0.018);
+        percentages.put("Téléphone", 0.018);
+        
+        percentages.put("Factures", 0.02);
+        percentages.put("Animaux", 0.015);
+        percentages.put("Beauté", 0.015);
+        percentages.put("Autres", 0.025);
+        
+        return percentages;
+    }
+    
+    /**
+     * Pourcentages pour revenus moyens (5000-10000 MAD) - BASE
+     */
+    private Map<String, Double> getPercentagesForMediumIncome() {
+        return initializeCategoryPercentages(); // Utiliser les pourcentages de base
+    }
+    
+    /**
+     * Pourcentages pour revenus élevés (10000-20000 MAD)
+     */
+    private Map<String, Double> getPercentagesForHighIncome() {
+        Map<String, Double> percentages = new HashMap<>();
+        
+        percentages.put("Alimentation", 0.10);      // 10% - Réduit
+        percentages.put("Restaurant", 0.05);        // 5% - Augmenté
+        percentages.put("Café", 0.025);
+        
+        percentages.put("Transport", 0.025);
+        percentages.put("Carburant", 0.035);
+        percentages.put("Parking", 0.01);
+        percentages.put("Vignette", 0.005);
+        percentages.put("Assurance voiture", 0.008);
+        percentages.put("Entretien voiture", 0.008);
+        percentages.put("Contrôle technique", 0.003);
+        percentages.put("Péage", 0.005);
+        percentages.put("Lavage voiture", 0.007);
+        
+        percentages.put("Loyer", 0.18);             // 18% - Réduit
+        percentages.put("Électricité", 0.025);
+        percentages.put("Eau", 0.015);
+        percentages.put("Internet", 0.012);
+        percentages.put("Gaz", 0.012);
+        
+        percentages.put("Santé", 0.025);
+        percentages.put("Médical", 0.018);
+        percentages.put("Salle de sport", 0.018);
+        percentages.put("Sport", 0.018);
+        
+        percentages.put("Crédit", 0.04);
+        percentages.put("Assurance", 0.018);
+        percentages.put("Impôts", 0.025);
+        percentages.put("Épargne", 0.025);          // 2.5% - Augmenté
+        
+        percentages.put("Loisirs", 0.05);
+        percentages.put("Voyage", 0.05);
+        percentages.put("Sorties", 0.025);
+        percentages.put("Streaming", 0.025);
+        
+        percentages.put("Shopping", 0.04);
+        percentages.put("Vêtements", 0.03);
+        percentages.put("Électronique", 0.03);
+        
+        percentages.put("Éducation", 0.06);
+        percentages.put("Enfants", 0.04);
+        percentages.put("Cadeaux", 0.025);
+        
+        percentages.put("Abonnements", 0.015);
+        percentages.put("Téléphone", 0.015);
+        
+        percentages.put("Factures", 0.02);
+        percentages.put("Animaux", 0.025);
+        percentages.put("Beauté", 0.025);
+        percentages.put("Autres", 0.04);
+        
+        return percentages;
+    }
+    
+    /**
+     * Pourcentages pour revenus très élevés (>= 20000 MAD)
+     */
+    private Map<String, Double> getPercentagesForVeryHighIncome() {
+        Map<String, Double> percentages = new HashMap<>();
+        
+        percentages.put("Alimentation", 0.08);       // 8% - Encore plus réduit
+        percentages.put("Restaurant", 0.06);         // 6% - Augmenté
+        percentages.put("Café", 0.03);
+        
+        percentages.put("Transport", 0.02);
+        percentages.put("Carburant", 0.03);
+        percentages.put("Parking", 0.01);
+        percentages.put("Vignette", 0.005);
+        percentages.put("Assurance voiture", 0.008);
+        percentages.put("Entretien voiture", 0.008);
+        percentages.put("Contrôle technique", 0.003);
+        percentages.put("Péage", 0.005);
+        percentages.put("Lavage voiture", 0.007);
+        
+        percentages.put("Loyer", 0.15);              // 15% - Encore plus réduit
+        percentages.put("Électricité", 0.02);
+        percentages.put("Eau", 0.012);
+        percentages.put("Internet", 0.01);
+        percentages.put("Gaz", 0.01);
+        
+        percentages.put("Santé", 0.02);
+        percentages.put("Médical", 0.015);
+        percentages.put("Salle de sport", 0.02);
+        percentages.put("Sport", 0.02);
+        
+        percentages.put("Crédit", 0.04);
+        percentages.put("Assurance", 0.015);
+        percentages.put("Impôts", 0.03);
+        percentages.put("Épargne", 0.05);           // 5% - Beaucoup augmenté
+        
+        percentages.put("Loisirs", 0.06);
+        percentages.put("Voyage", 0.08);            // 8% - Augmenté
+        percentages.put("Sorties", 0.03);
+        percentages.put("Streaming", 0.03);
+        
+        percentages.put("Shopping", 0.05);
+        percentages.put("Vêtements", 0.04);
+        percentages.put("Électronique", 0.04);
+        
+        percentages.put("Éducation", 0.08);
+        percentages.put("Enfants", 0.06);
+        percentages.put("Cadeaux", 0.03);
+        
+        percentages.put("Abonnements", 0.015);
+        percentages.put("Téléphone", 0.015);
+        
+        percentages.put("Factures", 0.02);
+        percentages.put("Animaux", 0.03);
+        percentages.put("Beauté", 0.03);
+        percentages.put("Autres", 0.05);
+        
+        return percentages;
+    }
+    
+    /**
      * Initialiser les pourcentages par catégorie (méthode statique appelée une seule fois)
      * Table de référence : pourcentage standard du revenu alloué à chaque catégorie
      * Basé sur la règle 50/30/20 (Essentiels/Personnel/Épargne)
+     * Utilisé pour les revenus moyens (5000-10000 MAD)
      */
     private static Map<String, Double> initializeCategoryPercentages() {
         Map<String, Double> percentages = new HashMap<>();
