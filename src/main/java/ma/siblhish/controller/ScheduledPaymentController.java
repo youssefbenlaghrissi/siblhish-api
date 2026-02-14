@@ -71,5 +71,20 @@ public class ScheduledPaymentController {
         scheduledPaymentService.deleteScheduledPayment(paymentId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Déclencher manuellement le batch de génération des prochains paiements planifiés récurrents
+     * Utile pour tester sans attendre le scheduler automatique (04:00)
+     */
+    @PostMapping("/recurring/generate")
+    public ResponseEntity<ApiResponse<String>> generateNextRecurringPayments() {
+        try {
+            recurringScheduledPaymentScheduler.createNextRecurringPaymentsInternal();
+            return ResponseEntity.ok(ApiResponse.success("Batch exécuté. Vérifiez les logs pour voir combien de paiements ont été générés."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur lors de la génération des prochains paiements récurrents: " + e.getMessage()));
+        }
+    }
 }
 
