@@ -20,6 +20,7 @@ import java.util.List;
 public class ScheduledPaymentController {
 
     private final ScheduledPaymentService scheduledPaymentService;
+    private final ma.siblhish.scheduler.RecurringScheduledPaymentScheduler recurringScheduledPaymentScheduler;
 
     /**
      * Liste des paiements planifiés par utilisateur
