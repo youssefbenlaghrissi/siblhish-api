@@ -143,7 +143,12 @@ public class UserService {
         }
         
         if (language != null && !language.trim().isEmpty()) {
-            user.setLanguage(language);
+            // Valider que la langue est supportée (fr, en, ar)
+            String lang = language.trim().toLowerCase();
+            if (!lang.equals("fr") && !lang.equals("en") && !lang.equals("ar")) {
+                throw new RuntimeException("Langue non supportée. Les langues supportées sont: fr, en, ar");
+            }
+            user.setLanguage(lang);
         }
         
         User savedUser = userRepository.save(user);
