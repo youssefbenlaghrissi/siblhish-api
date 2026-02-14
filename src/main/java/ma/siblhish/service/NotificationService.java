@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final EntityMapper mapper;
+    private final FcmNotificationServiceV1 fcmNotificationService;
 
     public PageResponseDto<NotificationDto> getNotifications(Long userId, Boolean isRead, 
                                                              TypeNotification type, Integer page, Integer size) {
@@ -83,7 +86,26 @@ public class NotificationService {
         LocalDateTime now = LocalDateTime.now();
         notification.setCreationDate(now);
         
-        notificationRepository.save(notification);
+        Notification savedNotification = notificationRepository.save(notification);
+        
+        // Envoyer une notification push à l'utilisateur
+        try {
+            // Préparer les données supplémentaires pour la notification push
+            Map<String, String> data = new HashMap<>();
+            data.put("type", "NOTIFICATION");
+            data.put("notificationId", savedNotification.getId().toString());
+            data.put("notificationType", type.toString());
+            if (transactionType != null) {
+                data.put("transactionType", transactionType);
+            }
+            
+            // Envoyer la notification push
+            fcmNotificationService.sendNotification(user, title, description != null ? description : title, data);
+        } catch (Exception e) {
+            // Ne pas faire échouer la création de la notification si l'envoi push échoue
+            // On log juste l'erreur
+            System.err.println("Failed to send push notification: " + e.getMessage());
+        }
     }
 }
 
