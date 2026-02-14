@@ -69,11 +69,6 @@ public class NotificationService {
     }
 
     @Transactional
-    public void createNotification(Long userId, String title, String description, TypeNotification type) {
-        createNotification(userId, title, description, type, null);
-    }
-
-    @Transactional
     public void createNotification(Long userId, String title, String description, TypeNotification type, String transactionType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));

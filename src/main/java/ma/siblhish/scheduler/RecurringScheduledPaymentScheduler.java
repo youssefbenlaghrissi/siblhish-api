@@ -3,7 +3,9 @@ package ma.siblhish.scheduler;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.entities.ScheduledPayment;
 import ma.siblhish.enums.RecurrenceFrequency;
+import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.repository.ScheduledPaymentRepository;
+import ma.siblhish.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,6 +34,7 @@ public class RecurringScheduledPaymentScheduler {
     private static final Logger logger = LoggerFactory.getLogger(RecurringScheduledPaymentScheduler.class);
     
     private final ScheduledPaymentRepository scheduledPaymentRepository;
+    private final NotificationService notificationService;
     
     /**
      * Créer les prochains paiements planifiés récurrents.
@@ -99,6 +102,17 @@ public class RecurringScheduledPaymentScheduler {
                     ScheduledPayment nextPayment = createNextPayment(payment, nextDueDate);
                     scheduledPaymentRepository.save(nextPayment);
                     paymentsCreated++;
+                    
+                    // Créer une notification pour l'utilisateur
+                    createRecurringScheduledPaymentNotification(
+                        payment.getUser().getId(),
+                        "Paiement planifié récurrent créé",
+                        String.format("Un paiement planifié récurrent de %.2f MAD (%s) a été créé automatiquement avec une date d'échéance le %s.", 
+                            payment.getAmount(), 
+                            payment.getName(),
+                            nextDueDate.toLocalDate().toString()),
+                        payment.getCategory() != null ? payment.getCategory().getName() : "Paiement planifié"
+                    );
                     
                     logger.debug("✅ Prochain paiement créé : {} - Due: {} (Paiement précédent: {} - Payé: {})", 
                             nextPayment.getName(), nextDueDate, 
@@ -176,6 +190,27 @@ public class RecurringScheduledPaymentScheduler {
         nextPayment.setCreationDate(LocalDateTime.now());
         
         return nextPayment;
+    }
+
+    /**
+     * Crée une notification pour un paiement planifié récurrent créé automatiquement
+     */
+    private void createRecurringScheduledPaymentNotification(Long userId, String title, 
+                                                             String description, String categoryName) {
+        try {
+            notificationService.createNotification(
+                userId,
+                title,
+                description + (categoryName != null ? " (" + categoryName + ")" : ""),
+                TypeNotification.RECURRING_SCHEDULED_PAYMENT,
+                "SCHEDULED_PAYMENT"
+            );
+            logger.debug("📬 Notification créée pour l'utilisateur {} - Paiement planifié récurrent", userId);
+        } catch (Exception e) {
+            logger.error("❌ Erreur lors de la création de la notification pour l'utilisateur {}: {}", 
+                    userId, e.getMessage());
+            // Ne pas bloquer la création du paiement si la notification échoue
+        }
     }
 }
 
