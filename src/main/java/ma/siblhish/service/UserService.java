@@ -41,7 +41,7 @@ public class UserService {
      * Trouve un utilisateur par email ou en crée un nouveau
      */
     @Transactional
-    private User findOrCreateByEmail(String email, String displayName, String provider) {
+    protected User findOrCreateByEmail(String email, String displayName, String provider) {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     String[] names = displayName != null ? displayName.split(" ", 2) : new String[]{"User"};

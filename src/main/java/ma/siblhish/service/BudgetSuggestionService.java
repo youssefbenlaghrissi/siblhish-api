@@ -294,7 +294,7 @@ public class BudgetSuggestionService {
         Map<String, Double> percentages = new HashMap<>();
         
         // ALIMENTATION - Plus élevé pour petits revenus (coûts fixes)
-        percentages.put("Alimentation", 0.25);      // 25% - Plus élevé car minimum vital
+        percentages.put("Alimentation", 0.30);      // 30% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.02);         // 2% - Réduit
         percentages.put("Café", 0.01);              // 1% - Réduit
         
@@ -363,7 +363,7 @@ public class BudgetSuggestionService {
     private Map<String, Double> getPercentagesForLowIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
-        percentages.put("Alimentation", 0.20);      // 20%
+        percentages.put("Alimentation", 0.25);      // 25% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.03);
         percentages.put("Café", 0.015);
         
@@ -430,7 +430,7 @@ public class BudgetSuggestionService {
     private Map<String, Double> getPercentagesForHighIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
-        percentages.put("Alimentation", 0.10);      // 10% - Réduit
+        percentages.put("Alimentation", 0.15);      // 15% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.05);        // 5% - Augmenté
         percentages.put("Café", 0.025);
         
@@ -490,7 +490,7 @@ public class BudgetSuggestionService {
     private Map<String, Double> getPercentagesForVeryHighIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
-        percentages.put("Alimentation", 0.08);       // 8% - Encore plus réduit
+        percentages.put("Alimentation", 0.12);       // 12% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.06);         // 6% - Augmenté
         percentages.put("Café", 0.03);
         
@@ -554,7 +554,7 @@ public class BudgetSuggestionService {
         Map<String, Double> percentages = new HashMap<>();
         
         // ========== ALIMENTATION (18% du revenu) ==========
-        percentages.put("Alimentation", 0.12);      // 12% - Base alimentation
+        percentages.put("Alimentation", 0.18);      // 18% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.04);         // 4% - Restaurants
         percentages.put("Café", 0.02);              // 2% - Cafés
         
