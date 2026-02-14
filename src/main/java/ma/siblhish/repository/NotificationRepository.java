@@ -30,5 +30,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.deleted = false")
     void markAllAsReadByUserId(@Param("userId") Long userId);
+    
+    /**
+     * Vérifie si une notification récente existe pour un paiement planifié.
+     * Optimisé : utilise COUNT() au lieu de charger toutes les notifications.
+     */
+    @Query("""
+        SELECT COUNT(n) > 0 FROM Notification n
+        WHERE n.user.id = :userId
+        AND n.type = :type
+        AND n.creationDate > :since
+        AND n.description LIKE CONCAT('%ID: ', :paymentIdStr, '%')
+    """)
+    boolean hasRecentNotificationForPayment(
+            @Param("userId") Long userId,
+            @Param("type") TypeNotification type,
+            @Param("since") java.time.LocalDateTime since,
+            @Param("paymentIdStr") String paymentIdStr);
 }
 

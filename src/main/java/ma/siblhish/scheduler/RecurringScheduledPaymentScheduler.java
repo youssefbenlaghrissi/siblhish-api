@@ -57,23 +57,8 @@ public class RecurringScheduledPaymentScheduler {
         try {
             LocalDateTime now = LocalDateTime.now();
             
-            // Récupérer tous les paiements planifiés récurrents qui nécessitent la création du prochain paiement
-            // Conditions :
-            // 1. isRecurring = true
-            // 2. recurrenceFrequency défini
-            // 3. Soit le paiement est payé, soit la date d'échéance est passée (pour continuer le cycle même si non payé)
-            List<ScheduledPayment> recurringPayments = scheduledPaymentRepository.findAll().stream()
-                    .filter(p -> Boolean.TRUE.equals(p.getIsRecurring()))
-                    .filter(p -> p.getRecurrenceFrequency() != null)
-                    .filter(p -> !Boolean.TRUE.equals(p.getDeleted()))
-                    .filter(p -> {
-                        // Inclure si :
-                        // - Le paiement est payé, OU
-                        // - La date d'échéance est passée (même si non payé, pour continuer le cycle)
-                        return Boolean.TRUE.equals(p.getIsPaid()) 
-                            || (p.getDueDate() != null && p.getDueDate().isBefore(now));
-                    })
-                    .toList();
+            // OPTIMISATION : Requête spécifique au lieu de findAll()
+            List<ScheduledPayment> recurringPayments = scheduledPaymentRepository.findRecurringPaymentsToProcess(now);
             
             int paymentsCreated = 0;
             
@@ -146,21 +131,20 @@ public class RecurringScheduledPaymentScheduler {
     
     /**
      * Vérifie si le prochain paiement existe déjà
+     * OPTIMISÉ : Utilise une requête COUNT() au lieu de charger tous les paiements
      */
     private boolean nextPaymentExists(ScheduledPayment template, LocalDateTime nextDueDate) {
-        // Vérifier s'il existe un paiement non payé avec les mêmes caractéristiques
-        List<ScheduledPayment> existing = scheduledPaymentRepository.findAll().stream()
-                .filter(p -> p.getUser().getId().equals(template.getUser().getId()))
-                .filter(p -> p.getName().equals(template.getName()))
-                .filter(p -> p.getAmount().equals(template.getAmount()))
-                .filter(p -> p.getPaymentMethod().equals(template.getPaymentMethod()))
-                .filter(p -> p.getDueDate().toLocalDate().equals(nextDueDate.toLocalDate()))
-                .filter(p -> Boolean.FALSE.equals(p.getIsPaid()))
-                .filter(p -> Boolean.TRUE.equals(p.getIsRecurring()))
-                .filter(p -> !Boolean.TRUE.equals(p.getDeleted()))
-                .toList();
+        Long categoryId = template.getCategory() != null ? template.getCategory().getId() : null;
         
-        return !existing.isEmpty();
+        // OPTIMISATION : Requête COUNT() au lieu de findAll()
+        return scheduledPaymentRepository.existsSimilarPayment(
+                template.getUser().getId(),
+                template.getName(),
+                template.getAmount(),
+                template.getPaymentMethod(),
+                nextDueDate,
+                categoryId
+        );
     }
     
     /**

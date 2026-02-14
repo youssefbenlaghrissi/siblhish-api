@@ -63,22 +63,8 @@ public class ScheduledPaymentReminderScheduler {
             LocalDate today = LocalDate.now();
             LocalDateTime now = LocalDateTime.now();
             
-            // Récupérer tous les paiements planifiés non payés
-            // Inclure ceux avec notification activée OU ceux en retard (pour PAYMENT_OVERDUE)
-            List<ScheduledPayment> paymentsToNotify = scheduledPaymentRepository.findAll().stream()
-                    .filter(p -> Boolean.FALSE.equals(p.getIsPaid()) || p.getIsPaid() == null)
-                    .filter(p -> p.getDueDate() != null)
-                    .filter(p -> !Boolean.TRUE.equals(p.getDeleted()))
-                    .filter(p -> {
-                        // Inclure si :
-                        // 1. Notification activée (pour les rappels)
-                        // 2. OU paiement en retard (pour PAYMENT_OVERDUE, même sans notification activée)
-                        LocalDate dueDate = p.getDueDate().toLocalDate();
-                        boolean isOverdue = dueDate.isBefore(today);
-                        boolean hasNotification = p.getNotificationOption() != null && p.getNotificationOption() != NotificationOption.NONE;
-                        return hasNotification || isOverdue;
-                    })
-                    .toList();
+            // OPTIMISATION : Requête spécifique au lieu de findAll()
+            List<ScheduledPayment> paymentsToNotify = scheduledPaymentRepository.findPaymentsToNotify(now);
             
             int notificationsSent = 0;
             
@@ -123,7 +109,7 @@ public class ScheduledPaymentReminderScheduler {
                     }
                     
                     // Vérifier si une notification a déjà été envoyée récemment (dans les 24h) pour éviter les doublons
-                    if (shouldSendNotification && !hasRecentNotification(payment.getId(), reminderType)) {
+                    if (shouldSendNotification && !hasRecentNotification(payment.getId(), payment.getUser().getId(), reminderType)) {
                         sendReminderNotification(payment, reminderType, daysUntilDue);
                         notificationsSent++;
                     }
@@ -145,18 +131,33 @@ public class ScheduledPaymentReminderScheduler {
     /**
      * Vérifie si une notification a déjà été envoyée récemment pour ce paiement
      * Évite les doublons en vérifiant les notifications des dernières 24h
+     * OPTIMISÉ : Utilise COUNT() directement en SQL au lieu de charger toutes les notifications
      */
-    private boolean hasRecentNotification(Long paymentId, String reminderType) {
+    private boolean hasRecentNotification(Long paymentId, Long userId, String reminderType) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
         
-        // Vérifier s'il existe une notification récente pour ce paiement avec le même type
-        long count = notificationRepository.findAll().stream()
-                .filter(n -> n.getUser() != null && n.getType() == TypeNotification.PAYMENT_REMINDER)
-                .filter(n -> n.getCreationDate() != null && n.getCreationDate().isAfter(yesterday))
-                .filter(n -> n.getDescription() != null && n.getDescription().contains("ID: " + paymentId))
-                .count();
+        // OPTIMISATION : Requête COUNT() au lieu de findAll()
+        // Déterminer le type de notification selon le contexte
+        TypeNotification notificationType = determineNotificationType(reminderType);
         
-        return count > 0;
+        return notificationRepository.hasRecentNotificationForPayment(
+                userId,
+                notificationType,
+                yesterday,
+                String.valueOf(paymentId)
+        );
+    }
+    
+    /**
+     * Détermine le type de notification selon le type de rappel
+     */
+    private TypeNotification determineNotificationType(String reminderType) {
+        if ("en retard".equals(reminderType)) {
+            return TypeNotification.PAYMENT_OVERDUE;
+        } else if ("aujourd'hui".equals(reminderType)) {
+            return TypeNotification.PAYMENT_DUE_TODAY;
+        }
+        return TypeNotification.PAYMENT_REMINDER;
     }
     
     /**

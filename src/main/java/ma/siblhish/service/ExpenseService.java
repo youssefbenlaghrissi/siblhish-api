@@ -116,30 +116,19 @@ public class ExpenseService {
     
     /**
      * Vérifie les budgets affectés par cette dépense et envoie des notifications si nécessaire
+     * OPTIMISÉ : Utilise des requêtes spécifiques au lieu de findAll()
      */
     private void checkAndNotifyBudgetStatus(Long userId, Long categoryId, LocalDateTime expenseDate, Double expenseAmount) {
         try {
             LocalDate expenseLocalDate = expenseDate.toLocalDate();
             
-            // Récupérer tous les budgets actifs pour cet utilisateur et cette catégorie
-            List<Budget> budgets = budgetRepository.findAll().stream()
-                    .filter(b -> b.getUser().getId().equals(userId))
-                    .filter(b -> !Boolean.TRUE.equals(b.getDeleted()))
-                    .filter(b -> {
-                        // Vérifier si la dépense est dans la période du budget
-                        LocalDate startDate = b.getStartDate() != null ? b.getStartDate() : LocalDate.MIN;
-                        LocalDate endDate = b.getEndDate() != null ? b.getEndDate() : LocalDate.MAX;
-                        return !expenseLocalDate.isBefore(startDate) && !expenseLocalDate.isAfter(endDate);
-                    })
-                    .filter(b -> {
-                        // Vérifier si le budget correspond à la catégorie (ou est global)
-                        return b.getCategory() == null || b.getCategory().getId().equals(categoryId);
-                    })
-                    .toList();
+            // OPTIMISATION : Requête spécifique au lieu de findAll()
+            List<Budget> budgets = budgetRepository.findActiveBudgetsForExpense(
+                    userId, expenseLocalDate, categoryId);
             
             for (Budget budget : budgets) {
-                // Calculer le montant dépensé pour ce budget
-                Double spent = calculateSpentForBudget(budget);
+                // OPTIMISATION : Calcul direct en SQL au lieu de charger toutes les dépenses
+                Double spent = calculateSpentForBudgetOptimized(budget);
                 Double percentageUsed = budget.getAmount() > 0 ? (spent / budget.getAmount()) * 100 : 0.0;
                 
                 // Vérifier si le budget est dépassé
@@ -161,30 +150,24 @@ public class ExpenseService {
     
     /**
      * Calcule le montant dépensé pour un budget donné
+     * OPTIMISÉ : Utilise SUM() directement en SQL au lieu de charger toutes les dépenses
      */
-    private Double calculateSpentForBudget(Budget budget) {
+    private Double calculateSpentForBudgetOptimized(Budget budget) {
         LocalDate startDate = budget.getStartDate() != null ? budget.getStartDate() : LocalDate.MIN;
         LocalDate endDate = budget.getEndDate() != null ? budget.getEndDate() : LocalDate.MAX;
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
         
-        return expenseRepository.findAll().stream()
-                .filter(e -> e.getUser().getId().equals(budget.getUser().getId()))
-                .filter(e -> !Boolean.TRUE.equals(e.getDeleted()))
-                .filter(e -> {
-                    LocalDateTime expenseDate = e.getCreationDate();
-                    if (expenseDate == null) return false;
-                    LocalDate expenseLocalDate = expenseDate.toLocalDate();
-                    return !expenseLocalDate.isBefore(startDate) && !expenseLocalDate.isAfter(endDate);
-                })
-                .filter(e -> {
-                    // Si le budget a une catégorie, filtrer par catégorie
-                    if (budget.getCategory() != null) {
-                        return e.getCategory() != null && e.getCategory().getId().equals(budget.getCategory().getId());
-                    }
-                    // Budget global : inclure toutes les dépenses
-                    return true;
-                })
-                .mapToDouble(e -> e.getAmount() != null ? e.getAmount() : 0.0)
-                .sum();
+        Long categoryId = budget.getCategory() != null ? budget.getCategory().getId() : null;
+        
+        Double result = expenseRepository.calculateSpentForBudget(
+                budget.getUser().getId(),
+                startDateTime,
+                endDateTime,
+                categoryId
+        );
+        
+        return result != null ? result : 0.0;
     }
     
     /**

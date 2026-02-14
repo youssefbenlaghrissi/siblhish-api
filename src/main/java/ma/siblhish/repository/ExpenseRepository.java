@@ -50,5 +50,24 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
+    /**
+     * Calcule le montant total dépensé pour un budget spécifique.
+     * Optimisé : utilise SUM() directement en SQL au lieu de charger toutes les dépenses.
+     */
+    @Query("""
+        SELECT COALESCE(SUM(e.amount), 0.0) 
+        FROM Expense e 
+        WHERE e.user.id = :userId 
+        AND e.deleted = false
+        AND e.creationDate >= :startDate 
+        AND e.creationDate <= :endDate
+        AND (:categoryId IS NULL OR e.category.id = :categoryId)
+    """)
+    Double calculateSpentForBudget(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("categoryId") Long categoryId);
+
 }
 

@@ -44,5 +44,25 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
         @Param("endDate") LocalDate endDate
     );
     
+    /**
+     * Trouve les budgets actifs pour un utilisateur dans une période donnée.
+     * Optimisé pour la vérification des budgets lors de la création d'une dépense.
+     */
+    @Query("""
+        SELECT b FROM Budget b 
+        LEFT JOIN FETCH b.category 
+        LEFT JOIN FETCH b.user
+        WHERE b.user.id = :userId 
+        AND b.deleted = false
+        AND b.startDate <= :expenseDate 
+        AND b.endDate >= :expenseDate
+        AND (b.category IS NULL OR b.category.id = :categoryId)
+    """)
+    List<Budget> findActiveBudgetsForExpense(
+        @Param("userId") Long userId,
+        @Param("expenseDate") LocalDate expenseDate,
+        @Param("categoryId") Long categoryId
+    );
+    
 }
 
