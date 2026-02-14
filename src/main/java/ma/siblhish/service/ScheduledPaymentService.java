@@ -1,16 +1,19 @@
 package ma.siblhish.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.siblhish.dto.ExpenseRequestDto;
 import ma.siblhish.dto.ScheduledPaymentDto;
 import ma.siblhish.dto.ScheduledPaymentRequestDto;
 import ma.siblhish.entities.Category;
 import ma.siblhish.entities.ScheduledPayment;
 import ma.siblhish.entities.User;
+import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.ScheduledPaymentRepository;
 import ma.siblhish.repository.UserRepository;
+import ma.siblhish.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScheduledPaymentService {
@@ -27,6 +31,7 @@ public class ScheduledPaymentService {
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
     private final ExpenseService expenseService;
+    private final NotificationService notificationService;
 
     public List<ScheduledPaymentDto> getScheduledPaymentsByUser(Long userId) {
         List<ScheduledPayment> payments = scheduledPaymentRepository.findByUserId(userId);
@@ -128,6 +133,10 @@ public class ScheduledPaymentService {
         }
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
+        
+        // Créer une notification de confirmation
+        createPaymentMarkedAsPaidNotification(saved);
+        
         return mapper.toScheduledPaymentDto(saved);
     }
 
@@ -208,6 +217,48 @@ public class ScheduledPaymentService {
         
         payment.setDeleted(true);
         scheduledPaymentRepository.save(payment);
+    }
+    
+    /**
+     * Crée une notification lorsqu'un paiement planifié est marqué comme payé
+     */
+    private void createPaymentMarkedAsPaidNotification(ScheduledPayment payment) {
+        try {
+            String title = "Paiement confirmé";
+            StringBuilder description = new StringBuilder();
+            description.append("✅ Votre paiement planifié \"");
+            description.append(payment.getName());
+            description.append("\" d'un montant de ");
+            description.append(String.format("%.2f", payment.getAmount()));
+            description.append(" MAD a été marqué comme payé");
+            
+            if (payment.getPaidDate() != null) {
+                description.append(" le ");
+                description.append(payment.getPaidDate().toLocalDate().toString());
+            }
+            
+            if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
+                description.append(" - Bénéficiaire : ").append(payment.getBeneficiary());
+            }
+            
+            if (payment.getCategory() != null) {
+                description.append(" - Catégorie : ").append(payment.getCategory().getName());
+            }
+            
+            notificationService.createNotification(
+                payment.getUser().getId(),
+                title,
+                description.toString(),
+                TypeNotification.PAYMENT_MARKED_AS_PAID,
+                "PAYMENT"
+            );
+            
+            log.debug("📬 Notification créée pour le paiement marqué comme payé (ID: {})", payment.getId());
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de la création de la notification pour le paiement ID: {}", 
+                    payment.getId(), e);
+            // Ne pas bloquer le processus si la notification échoue
+        }
     }
 }
 

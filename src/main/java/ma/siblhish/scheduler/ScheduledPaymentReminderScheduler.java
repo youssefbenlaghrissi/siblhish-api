@@ -44,17 +44,7 @@ public class ScheduledPaymentReminderScheduler {
     private final ScheduledPaymentRepository scheduledPaymentRepository;
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
-    
-    /**
-     * Envoie les notifications de rappel pour les paiements planifiés.
-     * Exécuté tous les jours à 08:00 (recommandé)
-     * 
-     * Alternatives de fréquence :
-     * - "0 0 8 * * ?" : Tous les jours à 08:00 (recommandé)
-     * - "0 0 8,20 * * ?" : Deux fois par jour (08:00 et 20:00)
-     * - "0 0 */6 * * ?" : Toutes les 6 heures
-     * - "0 0 9 * * ?" : Tous les jours à 09:00
-     */
+
     @Scheduled(cron = "0 0 8 * * ?") // Tous les jours à 08:00
     @Transactional
     public void sendPaymentReminders() {
@@ -73,12 +63,21 @@ public class ScheduledPaymentReminderScheduler {
             LocalDate today = LocalDate.now();
             LocalDateTime now = LocalDateTime.now();
             
-            // Récupérer tous les paiements planifiés non payés avec notification activée
+            // Récupérer tous les paiements planifiés non payés
+            // Inclure ceux avec notification activée OU ceux en retard (pour PAYMENT_OVERDUE)
             List<ScheduledPayment> paymentsToNotify = scheduledPaymentRepository.findAll().stream()
                     .filter(p -> Boolean.FALSE.equals(p.getIsPaid()) || p.getIsPaid() == null)
-                    .filter(p -> p.getNotificationOption() != null && p.getNotificationOption() != NotificationOption.NONE)
                     .filter(p -> p.getDueDate() != null)
                     .filter(p -> !Boolean.TRUE.equals(p.getDeleted()))
+                    .filter(p -> {
+                        // Inclure si :
+                        // 1. Notification activée (pour les rappels)
+                        // 2. OU paiement en retard (pour PAYMENT_OVERDUE, même sans notification activée)
+                        LocalDate dueDate = p.getDueDate().toLocalDate();
+                        boolean isOverdue = dueDate.isBefore(today);
+                        boolean hasNotification = p.getNotificationOption() != null && p.getNotificationOption() != NotificationOption.NONE;
+                        return hasNotification || isOverdue;
+                    })
                     .toList();
             
             int notificationsSent = 0;
@@ -91,29 +90,36 @@ public class ScheduledPaymentReminderScheduler {
                     boolean shouldSendNotification = false;
                     String reminderType = "";
                     
-                    // Déterminer si une notification doit être envoyée selon l'option
-                    switch (payment.getNotificationOption()) {
-                        case THREE_DAYS_BEFORE:
-                            if (daysUntilDue == 3) {
-                                shouldSendNotification = true;
-                                reminderType = "3 jours";
-                            }
-                            break;
-                        case ONE_DAY_BEFORE:
-                            if (daysUntilDue == 1) {
-                                shouldSendNotification = true;
-                                reminderType = "1 jour";
-                            }
-                            break;
-                        case ON_DUE_DATE:
-                            if (daysUntilDue == 0) {
-                                shouldSendNotification = true;
-                                reminderType = "aujourd'hui";
-                            }
-                            break;
-                        case NONE:
-                            // Ne devrait pas arriver ici grâce au filtre
-                            break;
+                    // Vérifier d'abord si le paiement est en retard
+                    if (daysUntilDue < 0) {
+                        // Paiement en retard
+                        shouldSendNotification = true;
+                        reminderType = "en retard";
+                    } else {
+                        // Déterminer si une notification doit être envoyée selon l'option
+                        switch (payment.getNotificationOption()) {
+                            case THREE_DAYS_BEFORE:
+                                if (daysUntilDue == 3) {
+                                    shouldSendNotification = true;
+                                    reminderType = "3 jours";
+                                }
+                                break;
+                            case ONE_DAY_BEFORE:
+                                if (daysUntilDue == 1) {
+                                    shouldSendNotification = true;
+                                    reminderType = "1 jour";
+                                }
+                                break;
+                            case ON_DUE_DATE:
+                                if (daysUntilDue == 0) {
+                                    shouldSendNotification = true;
+                                    reminderType = "aujourd'hui";
+                                }
+                                break;
+                            case NONE:
+                                // Ne devrait pas arriver ici grâce au filtre (sauf si en retard)
+                                break;
+                        }
                     }
                     
                     // Vérifier si une notification a déjà été envoyée récemment (dans les 24h) pour éviter les doublons
@@ -158,14 +164,31 @@ public class ScheduledPaymentReminderScheduler {
      */
     private void sendReminderNotification(ScheduledPayment payment, String reminderType, long daysUntilDue) {
         try {
-            String title = "Rappel de paiement planifié";
+            TypeNotification notificationType;
+            String title;
+            
+            // Déterminer le type de notification selon le contexte
+            if (daysUntilDue < 0) {
+                // Paiement en retard
+                notificationType = TypeNotification.PAYMENT_OVERDUE;
+                title = "⚠️ Paiement en retard";
+            } else if (daysUntilDue == 0) {
+                // Paiement dû aujourd'hui
+                notificationType = TypeNotification.PAYMENT_DUE_TODAY;
+                title = "📅 Paiement dû aujourd'hui";
+            } else {
+                // Rappel avant échéance
+                notificationType = TypeNotification.PAYMENT_REMINDER;
+                title = "Rappel de paiement planifié";
+            }
+            
             String description = buildReminderDescription(payment, reminderType, daysUntilDue);
             
             notificationService.createNotification(
                 payment.getUser().getId(),
                 title,
                 description,
-                TypeNotification.RECURRING_SCHEDULED_PAYMENT,
+                notificationType,
                 "PAYMENT_REMINDER"
             );
             
@@ -185,7 +208,9 @@ public class ScheduledPaymentReminderScheduler {
     private String buildReminderDescription(ScheduledPayment payment, String reminderType, long daysUntilDue) {
         StringBuilder desc = new StringBuilder();
         
-        if (daysUntilDue == 0) {
+        if (daysUntilDue < 0) {
+            desc.append("⚠️ Votre paiement planifié \"");
+        } else if (daysUntilDue == 0) {
             desc.append("⚠️ Votre paiement planifié \"");
         } else {
             desc.append("📅 Rappel : Votre paiement planifié \"");
@@ -196,7 +221,15 @@ public class ScheduledPaymentReminderScheduler {
         desc.append(String.format("%.2f", payment.getAmount()));
         desc.append(" MAD ");
         
-        if (daysUntilDue == 0) {
+        if (daysUntilDue < 0) {
+            long daysOverdue = Math.abs(daysUntilDue);
+            desc.append("était dû il y a ").append(daysOverdue);
+            if (daysOverdue == 1) {
+                desc.append(" jour");
+            } else {
+                desc.append(" jours");
+            }
+        } else if (daysUntilDue == 0) {
             desc.append("est dû aujourd'hui");
         } else if (daysUntilDue == 1) {
             desc.append("est dû demain");
