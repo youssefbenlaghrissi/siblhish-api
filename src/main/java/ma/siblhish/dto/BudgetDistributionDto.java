@@ -16,7 +16,7 @@ public class BudgetDistributionDto {
     private String categoryName;
     private String icon;
     private String color;
-    private Double budgetAmount; // Montant budgété pour cette catégorie
+    private Double budgetAmount;
     private Double percentage; // Pourcentage du budget total
 }
 
