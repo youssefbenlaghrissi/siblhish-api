@@ -29,6 +29,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.postgresql:postgresql:42.7.8'
     
+    // Spring Security Crypto pour le hashage des mots de passe
+    implementation 'org.springframework.security:spring-security-crypto:6.3.0'
+    
     // Firebase Admin SDK pour l'API V1 (recommandé)
     implementation 'com.google.firebase:firebase-admin:9.3.0'
     

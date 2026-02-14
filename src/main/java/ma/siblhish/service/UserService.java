@@ -1,12 +1,14 @@
 package ma.siblhish.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Favorite;
 import ma.siblhish.entities.User;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.FavoriteRepository;
 import ma.siblhish.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -21,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final EntityMapper mapper;
     private final FavoriteRepository favoriteRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserProfileDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
@@ -153,6 +157,97 @@ public class UserService {
         
         User savedUser = userRepository.save(user);
         return mapper.toUserProfileDto(savedUser);
+    }
+
+    /**
+     * Créer un nouveau compte utilisateur avec email et mot de passe
+     * 
+     * @param firstName Prénom
+     * @param lastName Nom
+     * @param email Email
+     * @param password Mot de passe (sera hashé)
+     * @param language Langue (défaut: "fr")
+     * @param notificationsEnabled Statut des notifications
+     * @return UserProfileDto
+     * @throws IllegalArgumentException si l'email existe déjà
+     */
+    @Transactional
+    public UserProfileDto register(
+            String firstName,
+            String lastName,
+            String email,
+            String password,
+            String language,
+            Boolean notificationsEnabled) {
+        
+        // Vérifier si l'email existe déjà
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Un compte avec cet email existe déjà");
+        }
+
+        // Créer un nouvel utilisateur
+        User newUser = new User();
+        newUser.setFirstName(firstName);
+        newUser.setLastName(lastName);
+        newUser.setEmail(email);
+        
+        // Hasher le mot de passe avec BCrypt
+        newUser.setPassword(passwordEncoder.encode(password));
+        
+        // Définir la langue (par défaut "fr" si non fourni)
+        newUser.setLanguage(language != null ? language : "fr");
+        
+        // Définir le statut des notifications (par défaut true si non fourni)
+        newUser.setNotificationsEnabled(
+            notificationsEnabled != null 
+                ? notificationsEnabled 
+                : true
+        );
+
+        LocalDateTime now = LocalDateTime.now();
+        newUser.setCreationDate(now);
+
+        // Sauvegarder l'utilisateur
+        User savedUser = userRepository.save(newUser);
+        
+        log.info("✅ Utilisateur créé avec succès - ID: {}, Email: {}", 
+            savedUser.getId(), savedUser.getEmail());
+
+        // Créer les favoris par défaut
+        initializeDefaultFavorites(savedUser);
+
+        // Convertir en DTO
+        return mapper.toUserProfileDto(savedUser);
+    }
+
+    /**
+     * Authentifier un utilisateur avec email et mot de passe
+     * 
+     * @param email Email
+     * @param password Mot de passe (non hashé)
+     * @return UserProfileDto
+     * @throws IllegalArgumentException si l'email ou le mot de passe est incorrect
+     */
+    public UserProfileDto login(String email, String password) {
+        // Trouver l'utilisateur par email
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect"));
+
+        // Vérifier si c'est un utilisateur OAuth (password commence par "oauth_")
+        if (user.getPassword() != null && user.getPassword().startsWith("oauth_")) {
+            throw new IllegalArgumentException("Ce compte a été créé avec une connexion sociale. Veuillez utiliser la connexion Google.");
+        }
+
+        // Vérifier le mot de passe avec BCrypt
+        if (user.getPassword() == null || !passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Email ou mot de passe incorrect");
+        }
+
+        log.info("✅ Utilisateur authentifié avec succès - ID: {}, Email: {}", 
+            user.getId(), user.getEmail());
+
+        // Convertir en DTO
+        return mapper.toUserProfileDto(user);
     }
 }
 
