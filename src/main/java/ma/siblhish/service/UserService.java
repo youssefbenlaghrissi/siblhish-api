@@ -87,5 +87,21 @@ public class UserService {
         
         favoriteRepository.saveAll(defaultFavorites);
     }
+
+    /**
+     * Mettre à jour le token FCM d'un utilisateur
+     * 
+     * @param userId ID de l'utilisateur
+     * @param fcmToken Token FCM à enregistrer
+     * @throws RuntimeException si l'utilisateur n'existe pas
+     */
+    @Transactional
+    public void updateFcmToken(Long userId, String fcmToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        user.setFcmToken(fcmToken);
+        userRepository.save(user);
+    }
 }
 

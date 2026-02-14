@@ -42,6 +42,9 @@ public class User extends AbstractEntity {
     @Column(name = "notifications_enabled", nullable = false)
     private Boolean notificationsEnabled = true;
 
+    @Column(name = "fcm_token", length = 500)
+    private String fcmToken;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Expense> expenses = new ArrayList<>();
 
