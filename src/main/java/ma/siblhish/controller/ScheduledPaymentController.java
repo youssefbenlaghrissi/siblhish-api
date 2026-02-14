@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.ApiResponse;
 import ma.siblhish.dto.ScheduledPaymentDto;
 import ma.siblhish.dto.ScheduledPaymentRequestDto;
+import ma.siblhish.scheduler.RecurringScheduledPaymentScheduler;
+import ma.siblhish.scheduler.ScheduledPaymentReminderScheduler;
 import ma.siblhish.service.ScheduledPaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +22,8 @@ import java.util.List;
 public class ScheduledPaymentController {
 
     private final ScheduledPaymentService scheduledPaymentService;
-    private final ma.siblhish.scheduler.RecurringScheduledPaymentScheduler recurringScheduledPaymentScheduler;
+    private final RecurringScheduledPaymentScheduler recurringScheduledPaymentScheduler;
+    private final ScheduledPaymentReminderScheduler scheduledPaymentReminderScheduler;
 
     /**
      * Liste des paiements planifiés par utilisateur
@@ -84,6 +87,21 @@ public class ScheduledPaymentController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Erreur lors de la génération des prochains paiements récurrents: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Déclencher manuellement l'envoi des notifications de rappel pour les paiements planifiés
+     * Utile pour tester sans attendre le scheduler automatique (08:00)
+     */
+    @PostMapping("/reminders/send")
+    public ResponseEntity<ApiResponse<String>> sendPaymentReminders() {
+        try {
+            scheduledPaymentReminderScheduler.sendPaymentRemindersInternal();
+            return ResponseEntity.ok(ApiResponse.success("Notifications de rappel envoyées. Vérifiez les logs pour voir combien de notifications ont été envoyées."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Erreur lors de l'envoi des notifications de rappel: " + e.getMessage()));
         }
     }
 }
