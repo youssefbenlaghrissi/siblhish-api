@@ -14,4 +14,12 @@ public class SocialLoginRequest {
     private String email;
     private String displayName;
     private String photoUrl;
+    
+    /**
+     * Statut des notifications activées ou non
+     * true si l'utilisateur a accepté les permissions de notifications
+     * false si l'utilisateur a refusé les permissions
+     * null si les permissions n'ont pas encore été demandées
+     */
+    private Boolean notificationsEnabled;
 }

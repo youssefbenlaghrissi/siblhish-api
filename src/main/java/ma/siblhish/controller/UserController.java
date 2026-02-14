@@ -66,5 +66,46 @@ public class UserController {
         }
     }
 
+    /**
+     * Mettre à jour uniquement les préférences utilisateur
+     * (notificationsEnabled et language)
+     * 
+     * Endpoint: PATCH /api/v1/users/{userId}/preferences
+     * 
+     * À quoi ça sert ?
+     * - Permettre à l'utilisateur de modifier uniquement ses préférences
+     * - Ne permet PAS de modifier firstName, lastName ou email (sécurité)
+     * - Les deux champs sont optionnels (on peut modifier l'un ou l'autre)
+     * 
+     * @param userId ID de l'utilisateur
+     * @param request DTO contenant notificationsEnabled et language (optionnels)
+     * @return UserProfileDto mis à jour
+     */
+    @PatchMapping("/{userId}/preferences")
+    public ResponseEntity<ApiResponse<UserProfileDto>> updatePreferences(
+            @PathVariable Long userId,
+            @Valid @RequestBody UserPreferencesRequest request) {
+        
+        try {
+            UserProfileDto updatedProfile = userService.updatePreferences(
+                userId, 
+                request.getNotificationsEnabled(), 
+                request.getLanguage()
+            );
+            
+            return ResponseEntity.ok(ApiResponse.success(
+                updatedProfile, 
+                "Préférences mises à jour avec succès"
+            ));
+            
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Erreur lors de la mise à jour des préférences: " + e.getMessage()));
+        }
+    }
+
 }
 

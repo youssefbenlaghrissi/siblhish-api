@@ -26,7 +26,8 @@ public class AuthController {
         UserProfileDto profile = userService.socialLogin(
                 request.getEmail(),
                 request.getDisplayName(),
-                request.getProvider()
+                request.getProvider(),
+                request.getNotificationsEnabled()
         );
         return ResponseEntity.ok(ApiResponse.success(profile, "Login successful"));
     }

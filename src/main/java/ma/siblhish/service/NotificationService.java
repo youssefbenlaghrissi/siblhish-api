@@ -1,6 +1,7 @@
 package ma.siblhish.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Notification;
 import ma.siblhish.entities.User;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -25,7 +27,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final EntityMapper mapper;
-    private final FcmNotificationServiceV1 fcmNotificationService;
+    private final FcmNotificationService fcmNotificationService;
 
     public PageResponseDto<NotificationDto> getNotifications(Long userId, Boolean isRead, 
                                                              TypeNotification type, Integer page, Integer size) {
@@ -90,6 +92,13 @@ public class NotificationService {
         
         // Envoyer une notification push à l'utilisateur
         try {
+            log.info("📬 Création de notification pour l'utilisateur {} - Titre: {}, Description: {}", 
+                userId, title, description);
+            log.info("📬 Token FCM de l'utilisateur: {}", 
+                user.getFcmToken() != null && !user.getFcmToken().trim().isEmpty() 
+                    ? user.getFcmToken().substring(0, Math.min(20, user.getFcmToken().length())) + "..." 
+                    : "NULL ou VIDE");
+            
             // Préparer les données supplémentaires pour la notification push
             Map<String, String> data = new HashMap<>();
             data.put("type", "NOTIFICATION");
@@ -100,11 +109,16 @@ public class NotificationService {
             }
             
             // Envoyer la notification push
-            fcmNotificationService.sendNotification(user, title, description != null ? description : title, data);
+            boolean sent = fcmNotificationService.sendNotification(user, title, description != null ? description : title, data);
+            if (sent) {
+                log.info("✅ Notification push envoyée avec succès pour l'utilisateur {}", userId);
+            } else {
+                log.warn("⚠️ Échec de l'envoi de la notification push pour l'utilisateur {}", userId);
+            }
         } catch (Exception e) {
             // Ne pas faire échouer la création de la notification si l'envoi push échoue
             // On log juste l'erreur
-            System.err.println("Failed to send push notification: " + e.getMessage());
+            log.error("❌ Erreur lors de l'envoi de la notification push pour l'utilisateur {}: {}", userId, e.getMessage(), e);
         }
     }
 }

@@ -30,20 +30,35 @@ public class UserService {
 
     /**
      * Authentification sociale - trouve ou crée un utilisateur et retourne son profil
+     * 
+     * @param email Email de l'utilisateur
+     * @param displayName Nom d'affichage
+     * @param provider Provider (google, facebook, etc.)
+     * @param notificationsEnabled Statut des notifications (true/false/null)
+     *                             - Si utilisateur existant : garde son statut existant
+     *                             - Si nouvel utilisateur : utilise la valeur envoyée
      */
     @Transactional
-    public UserProfileDto socialLogin(String email, String displayName, String provider) {
-        User user = findOrCreateByEmail(email, displayName, provider);
+    public UserProfileDto socialLogin(String email, String displayName, String provider, Boolean notificationsEnabled) {
+        User user = findOrCreateByEmail(email, displayName, provider, notificationsEnabled);
         return mapper.toUserProfileDto(user);
     }
 
     /**
      * Trouve un utilisateur par email ou en crée un nouveau
+     * 
+     * @param email Email de l'utilisateur
+     * @param displayName Nom d'affichage
+     * @param provider Provider (google, facebook, etc.)
+     * @param notificationsEnabled Statut des notifications (true/false/null)
+     *                             - Si utilisateur existant : garde son statut existant (ignoré)
+     *                             - Si nouvel utilisateur : utilise la valeur envoyée
      */
     @Transactional
-    protected User findOrCreateByEmail(String email, String displayName, String provider) {
+    protected User findOrCreateByEmail(String email, String displayName, String provider, Boolean notificationsEnabled) {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
+                    // Nouvel utilisateur : créer avec notificationsEnabled envoyé
                     String[] names = displayName != null ? displayName.split(" ", 2) : new String[]{"User"};
                     User newUser = new User();
                     newUser.setEmail(email);
@@ -51,6 +66,8 @@ public class UserService {
                     newUser.setLastName(names.length > 1 ? names[1] : "");
                     newUser.setPassword("oauth_" + provider);
                     newUser.setLanguage("fr");
+                    // Utiliser notificationsEnabled envoyé, ou true par défaut si null
+                    newUser.setNotificationsEnabled(notificationsEnabled != null ? notificationsEnabled : true);
                     LocalDateTime now = LocalDateTime.now();
                     newUser.setCreationDate(now);
                     User savedUser = userRepository.save(newUser);
@@ -60,6 +77,7 @@ public class UserService {
                     
                     return savedUser;
                 });
+        // Si utilisateur existant : son notificationsEnabled existant est conservé (pas de modification)
     }
 
     /**
@@ -102,6 +120,34 @@ public class UserService {
         
         user.setFcmToken(fcmToken);
         userRepository.save(user);
+    }
+
+    /**
+     * Mettre à jour uniquement les préférences utilisateur
+     * (notificationsEnabled et language)
+     * 
+     * @param userId ID de l'utilisateur
+     * @param notificationsEnabled Nouveau statut des notifications (peut être null)
+     * @param language Nouvelle langue (peut être null)
+     * @return UserProfileDto mis à jour
+     * @throws RuntimeException si l'utilisateur n'existe pas
+     */
+    @Transactional
+    public UserProfileDto updatePreferences(Long userId, Boolean notificationsEnabled, String language) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        // Mettre à jour uniquement si les valeurs sont fournies
+        if (notificationsEnabled != null) {
+            user.setNotificationsEnabled(notificationsEnabled);
+        }
+        
+        if (language != null && !language.trim().isEmpty()) {
+            user.setLanguage(language);
+        }
+        
+        User savedUser = userRepository.save(user);
+        return mapper.toUserProfileDto(savedUser);
     }
 }
 
