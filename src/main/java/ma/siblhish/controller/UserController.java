@@ -107,5 +107,33 @@ public class UserController {
         }
     }
 
+    /**
+     * Supprimer le compte utilisateur (soft delete)
+     * Met le champ deleted à true
+     * 
+     * Endpoint: DELETE /api/v1/users/{userId}/account
+     * 
+     * @param userId ID de l'utilisateur
+     * @return Réponse de succès
+     */
+    @DeleteMapping("/{userId}/account")
+    public ResponseEntity<ApiResponse<Object>> deleteAccount(@PathVariable Long userId) {
+        try {
+            userService.deleteAccount(userId);
+            
+            return ResponseEntity.ok(ApiResponse.success(
+                null,
+                "Compte supprimé avec succès"
+            ));
+            
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Erreur lors de la suppression du compte: " + e.getMessage()));
+        }
+    }
+
 }
 

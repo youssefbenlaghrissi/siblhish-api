@@ -249,5 +249,30 @@ public class UserService {
         // Convertir en DTO
         return mapper.toUserProfileDto(user);
     }
+
+    /**
+     * Supprimer le compte utilisateur (soft delete)
+     * Met le champ deleted à true
+     * 
+     * @param userId ID de l'utilisateur
+     * @throws RuntimeException si l'utilisateur n'existe pas
+     */
+    @Transactional
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        // Vérifier si le compte n'est pas déjà supprimé
+        if (Boolean.TRUE.equals(user.getDeleted())) {
+            throw new RuntimeException("Le compte a déjà été supprimé");
+        }
+        
+        // Soft delete : mettre deleted à true
+        user.setDeleted(true);
+        userRepository.save(user);
+        
+        log.info("✅ Compte utilisateur supprimé (soft delete) - ID: {}, Email: {}", 
+            user.getId(), user.getEmail());
+    }
 }
 

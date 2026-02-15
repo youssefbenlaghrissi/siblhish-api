@@ -162,21 +162,24 @@ public class RecurringTransactionService {
                 
             case MONTHLY:
                 // Mensuel : générer si c'est le même jour du mois
+                // Note: dayOfMonth est maintenant toujours renseigné pour les nouvelles transactions
+                // Le fallback sur originalDate est conservé pour compatibilité avec les anciennes données
                 if (dayOfMonth != null) {
                     return today.getDayOfMonth() == dayOfMonth;
                 }
-                // Sinon, utiliser le jour de la date originale
+                // Fallback pour les anciennes données : utiliser le jour de la date originale
                 return today.getDayOfMonth() == originalDate.getDayOfMonth();
                 
             case YEARLY:
                 // Annuel : générer si c'est le même jour de l'année
+                // Note: dayOfYear est maintenant toujours renseigné pour les nouvelles transactions
+                // Le fallback sur originalDate est conservé pour compatibilité avec les anciennes données
                 if (dayOfYear != null) {
-                    LocalDate originalLocalDate = originalDate.toLocalDate();
                     LocalDate targetDate = LocalDate.of(today.getYear(), 1, 1)
                             .plusDays(dayOfYear - 1);
                     return today.equals(targetDate);
                 }
-                // Sinon, utiliser le mois et jour de la date originale
+                // Fallback pour les anciennes données : utiliser le mois et jour de la date originale
                 return today.getMonth() == originalDate.getMonth() 
                         && today.getDayOfMonth() == originalDate.getDayOfMonth();
                 

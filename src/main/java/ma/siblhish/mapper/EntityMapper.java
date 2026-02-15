@@ -264,11 +264,23 @@ public class EntityMapper {
             }
             
             if (row.length > 16) {
-                recurrenceDayOfMonth = row[16] != null ? ((Number) row[16]).intValue() : null;
+                if (row[16] != null) {
+                    recurrenceDayOfMonth = ((Number) row[16]).intValue();
+                } else if (date != null && recurrenceFrequency == ma.siblhish.enums.RecurrenceFrequency.MONTHLY) {
+                    // Valeur par défaut basée sur la date de création pour les anciennes données
+                    recurrenceDayOfMonth = date.getDayOfMonth();
+                }
             }
             
             if (row.length > 17) {
-                recurrenceDayOfYear = row[17] != null ? ((Number) row[17]).intValue() : null;
+                if (row[17] != null) {
+                    recurrenceDayOfYear = ((Number) row[17]).intValue();
+                } else if (date != null && recurrenceFrequency == ma.siblhish.enums.RecurrenceFrequency.YEARLY) {
+                    // Valeur par défaut basée sur la date de création pour les anciennes données
+                    java.time.LocalDate dateLocal = date.toLocalDate();
+                    java.time.LocalDate startOfYear = java.time.LocalDate.of(dateLocal.getYear(), 1, 1);
+                    recurrenceDayOfYear = (int) java.time.temporal.ChronoUnit.DAYS.between(startOfYear, dateLocal) + 1;
+                }
             }
         }
         
