@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -60,28 +61,36 @@ public class UserService {
      */
     @Transactional
     protected User findOrCreateByEmail(String email, String displayName, String provider, Boolean notificationsEnabled) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    // Nouvel utilisateur : créer avec notificationsEnabled envoyé
-                    String[] names = displayName != null ? displayName.split(" ", 2) : new String[]{"User"};
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    newUser.setFirstName(names.length > 0 ? names[0] : "User");
-                    newUser.setLastName(names.length > 1 ? names[1] : "");
-                    newUser.setPassword("oauth_" + provider);
-                    newUser.setLanguage("fr");
-                    // Utiliser notificationsEnabled envoyé, ou true par défaut si null
-                    newUser.setNotificationsEnabled(notificationsEnabled != null ? notificationsEnabled : true);
-                    LocalDateTime now = LocalDateTime.now();
-                    newUser.setCreationDate(now);
-                    User savedUser = userRepository.save(newUser);
-                    
-                    // Créer les favoris par défaut
-                    initializeDefaultFavorites(savedUser);
-                    
-                    return savedUser;
-                });
-        // Si utilisateur existant : son notificationsEnabled existant est conservé (pas de modification)
+        Optional<User> existingUserOpt = userRepository.findByEmail(email);
+        
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            // Vérifier si le compte est supprimé
+            if (Boolean.TRUE.equals(existingUser.getDeleted())) {
+                throw new IllegalArgumentException("Ce compte a été supprimé. Veuillez contacter le support pour le réactiver.");
+            }
+            // Si utilisateur existant et non supprimé : retourner l'utilisateur existant
+            return existingUser;
+        }
+        
+        // Nouvel utilisateur : créer avec notificationsEnabled envoyé
+        String[] names = displayName != null ? displayName.split(" ", 2) : new String[]{"User"};
+        User newUser = new User();
+        newUser.setEmail(email);
+        newUser.setFirstName(names.length > 0 ? names[0] : "User");
+        newUser.setLastName(names.length > 1 ? names[1] : "");
+        newUser.setPassword("oauth_" + provider);
+        newUser.setLanguage("fr");
+        // Utiliser notificationsEnabled envoyé, ou true par défaut si null
+        newUser.setNotificationsEnabled(notificationsEnabled != null ? notificationsEnabled : true);
+        LocalDateTime now = LocalDateTime.now();
+        newUser.setCreationDate(now);
+        User savedUser = userRepository.save(newUser);
+        
+        // Créer les favoris par défaut
+        initializeDefaultFavorites(savedUser);
+        
+        return savedUser;
     }
 
     /**
@@ -181,7 +190,14 @@ public class UserService {
             Boolean notificationsEnabled) {
         
         // Vérifier si l'email existe déjà
-        if (userRepository.findByEmail(email).isPresent()) {
+        Optional<User> existingUserOpt = userRepository.findByEmail(email);
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            // Vérifier si le compte est supprimé
+            if (Boolean.TRUE.equals(existingUser.getDeleted())) {
+                throw new IllegalArgumentException("Ce compte a été supprimé. Veuillez contacter le support pour le réactiver.");
+            }
+            // Si le compte existe et n'est pas supprimé
             throw new IllegalArgumentException("Un compte avec cet email existe déjà");
         }
 
@@ -232,6 +248,11 @@ public class UserService {
         // Trouver l'utilisateur par email
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect"));
+
+        // Vérifier si le compte est supprimé
+        if (Boolean.TRUE.equals(user.getDeleted())) {
+            throw new IllegalArgumentException("Ce compte a été supprimé. Veuillez contacter le support pour le réactiver.");
+        }
 
         // Vérifier si c'est un utilisateur OAuth (password commence par "oauth_")
         if (user.getPassword() != null && user.getPassword().startsWith("oauth_")) {
