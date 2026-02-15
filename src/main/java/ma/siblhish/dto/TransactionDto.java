@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
+import ma.siblhish.enums.RecurrenceFrequency;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 /**
  * DTO pour les transactions récentes (expenses + incomes)
@@ -29,6 +31,14 @@ public class TransactionDto {
 
     // Catégorie structurée (pour expense uniquement) - OPTIMISATION : objet imbriqué au lieu de champs séparés
     private CategoryDto category;
+
+    // Champs de récurrence
+    private Boolean isRecurring;
+    private RecurrenceFrequency recurrenceFrequency;
+    private LocalDateTime recurrenceEndDate;
+    private List<Integer> recurrenceDaysOfWeek;
+    private Integer recurrenceDayOfMonth;
+    private Integer recurrenceDayOfYear;
 
     /**
      * OPTIMISATION : Retourne le timestamp Unix en millisecondes
@@ -69,6 +79,41 @@ public class TransactionDto {
         this.description = description;
         this.date = date;
         this.category = category;
+    }
+
+    // Constructeur avec champs de récurrence
+    public TransactionDto(
+            Long id,
+            String type,
+            Double amount,
+            String method,
+            String source,
+            String location,
+            String description,
+            LocalDateTime date,
+            CategoryDto category,
+            Boolean isRecurring,
+            RecurrenceFrequency recurrenceFrequency,
+            LocalDateTime recurrenceEndDate,
+            List<Integer> recurrenceDaysOfWeek,
+            Integer recurrenceDayOfMonth,
+            Integer recurrenceDayOfYear
+    ) {
+        this.id = id;
+        this.type = type;
+        this.amount = amount;
+        this.method = method;
+        this.source = source;
+        this.location = location;
+        this.description = description;
+        this.date = date;
+        this.category = category;
+        this.isRecurring = isRecurring;
+        this.recurrenceFrequency = recurrenceFrequency;
+        this.recurrenceEndDate = recurrenceEndDate;
+        this.recurrenceDaysOfWeek = recurrenceDaysOfWeek;
+        this.recurrenceDayOfMonth = recurrenceDayOfMonth;
+        this.recurrenceDayOfYear = recurrenceDayOfYear;
     }
 
     // Constructeur de compatibilité (pour migration progressive)

@@ -224,6 +224,54 @@ public class EntityMapper {
             category = new CategoryDto(categoryId, categoryName, categoryIcon, categoryColor);
         }
         
+        // Champs de récurrence (avec gestion de compatibilité si les colonnes n'existent pas)
+        Boolean isRecurring = false;
+        ma.siblhish.enums.RecurrenceFrequency recurrenceFrequency = null;
+        LocalDateTime recurrenceEndDate = null;
+        List<Integer> recurrenceDaysOfWeek = null;
+        Integer recurrenceDayOfMonth = null;
+        Integer recurrenceDayOfYear = null;
+        
+        // Vérifier si les colonnes de récurrence existent (row.length > 12)
+        if (row.length > 12) {
+            isRecurring = row[12] != null ? (Boolean) row[12] : false;
+            
+            if (row.length > 13 && row[13] != null) {
+                try {
+                    recurrenceFrequency = ma.siblhish.enums.RecurrenceFrequency.valueOf((String) row[13]);
+                } catch (Exception e) {
+                    // Ignorer si la valeur n'est pas valide
+                }
+            }
+            
+            if (row.length > 14) {
+                recurrenceEndDate = row[14] != null ? (LocalDateTime) row[14] : null;
+            }
+            
+            // Parser recurrenceDaysOfWeek depuis la chaîne STRING_AGG
+            if (row.length > 15 && row[15] != null && row[15] instanceof String) {
+                String daysString = (String) row[15];
+                if (!daysString.isEmpty()) {
+                    try {
+                        recurrenceDaysOfWeek = java.util.Arrays.stream(daysString.split(","))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(java.util.stream.Collectors.toList());
+                    } catch (Exception e) {
+                        // Ignorer si le parsing échoue
+                    }
+                }
+            }
+            
+            if (row.length > 16) {
+                recurrenceDayOfMonth = row[16] != null ? ((Number) row[16]).intValue() : null;
+            }
+            
+            if (row.length > 17) {
+                recurrenceDayOfYear = row[17] != null ? ((Number) row[17]).intValue() : null;
+            }
+        }
+        
         return new TransactionDto(
                 id,
                 type,
@@ -233,7 +281,13 @@ public class EntityMapper {
                 location,
                 description,
                 date,
-                category
+                category,
+                isRecurring,
+                recurrenceFrequency,
+                recurrenceEndDate,
+                recurrenceDaysOfWeek,
+                recurrenceDayOfMonth,
+                recurrenceDayOfYear
         );
     }
 

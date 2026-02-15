@@ -102,7 +102,9 @@ public class HomeService {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ");
         sql.append("id, type, amount, method, source, location, description, date, ");
-        sql.append("category_id, category_name, category_icon, category_color ");
+        sql.append("category_id, category_name, category_icon, category_color, ");
+        sql.append("is_recurring, recurrence_frequency, recurrence_end_date, ");
+        sql.append("recurrence_days_of_week, recurrence_day_of_month, recurrence_day_of_year ");
         sql.append("FROM (");
         
         List<String> unionParts = new ArrayList<>();
@@ -114,7 +116,11 @@ public class HomeService {
             expenseQuery.append("e.id, 'expense' as type, ");
             expenseQuery.append("e.amount, e.payment_method as method, NULL as source, e.location, ");
             expenseQuery.append("e.description, e.creation_date as date, ");
-            expenseQuery.append("c.id as category_id, c.name as category_name, c.icon as category_icon, c.color as category_color ");
+            expenseQuery.append("c.id as category_id, c.name as category_name, c.icon as category_icon, c.color as category_color, ");
+            expenseQuery.append("e.is_recurring, e.recurrence_frequency, e.recurrence_end_date, ");
+            expenseQuery.append("(SELECT STRING_AGG(CAST(erd.day_of_week AS TEXT), ',') ");
+            expenseQuery.append(" FROM expense_recurrence_days erd WHERE erd.expense_id = e.id) as recurrence_days_of_week, ");
+            expenseQuery.append("e.recurrence_day_of_month, e.recurrence_day_of_year ");
             expenseQuery.append("FROM expenses e ");
             expenseQuery.append("LEFT JOIN categories c ON e.category_id = c.id ");
             expenseQuery.append("WHERE e.user_id = :userId AND e.deleted = false ");
@@ -154,7 +160,11 @@ public class HomeService {
             incomeQuery.append("NULL as category_id, ");
             incomeQuery.append("NULL as category_name, ");
             incomeQuery.append("NULL as category_icon, ");
-            incomeQuery.append("NULL as category_color ");
+            incomeQuery.append("NULL as category_color, ");
+            incomeQuery.append("i.is_recurring, i.recurrence_frequency, i.recurrence_end_date, ");
+            incomeQuery.append("(SELECT STRING_AGG(CAST(ird.day_of_week AS TEXT), ',') ");
+            incomeQuery.append(" FROM income_recurrence_days ird WHERE ird.income_id = i.id) as recurrence_days_of_week, ");
+            incomeQuery.append("i.recurrence_day_of_month, i.recurrence_day_of_year ");
             incomeQuery.append("FROM incomes i ");
             incomeQuery.append("WHERE i.user_id = :userId AND i.deleted = false ");
             
