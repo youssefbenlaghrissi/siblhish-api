@@ -43,13 +43,13 @@ public class BudgetService {
             if (yearMonth != null) {
                 LocalDate firstDayOfMonth = yearMonth.atDay(1);
                 LocalDate lastDayOfMonth = yearMonth.atEndOfMonth();
-                return budgetRepository.findBudgetsWithSpentByUserAndMonth(
+                return budgetRepository.findBudgetsByUserAndMonth(
                         userId, firstDayOfMonth, lastDayOfMonth);
             }
         }
 
         // Sinon, retourner tous les budgets de l'utilisateur (sans filtre de mois)
-        return budgetRepository.findBudgetsWithSpentByUser(userId);
+        return budgetRepository.findBudgetsByUser(userId);
     }
 
     private YearMonth parseMonth(String month) {

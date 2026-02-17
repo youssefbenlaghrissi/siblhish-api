@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
@@ -45,12 +46,7 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
         @Param("endDate") LocalDate endDate
     );
     
-    /**
-     * Trouve les budgets actifs pour un utilisateur dans une période donnée.
-     * Optimisé pour la vérification des budgets lors de la création d'une dépense.
-     * 
-     * @deprecated Utiliser findActiveBudgetsWithSpentForExpense à la place (optimisé avec calcul du spent)
-     */
+    //OK
     @Query("""
         SELECT b FROM Budget b 
         LEFT JOIN FETCH b.category 
@@ -61,7 +57,7 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
         AND b.endDate >= :expenseDate
         AND (b.category IS NULL OR b.category.id = :categoryId)
     """)
-    List<Budget> findActiveBudgetsForExpense(
+    Optional<Budget> findCurrentBudgetByCategory(
         @Param("userId") Long userId,
         @Param("expenseDate") LocalDate expenseDate,
         @Param("categoryId") Long categoryId
@@ -124,15 +120,17 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
      * Récupérer les budgets d'un utilisateur avec le montant dépensé (spent)
      * Utilise la NamedQuery définie sur l'entité Budget.
      */
+    //OK
     @Query(name = "Budget.findBudgetsWithSpentByUser")
-    List<BudgetDto> findBudgetsWithSpentByUser(@Param("userId") Long userId);
+    List<BudgetDto> findBudgetsByUser(@Param("userId") Long userId);
 
     /**
      * Récupérer les budgets d'un utilisateur avec le montant dépensé (spent)
      * Variante AVEC filtre de mois.
      */
+    //OK
     @Query(name = "Budget.findBudgetsWithSpentByUserAndMonth")
-    List<BudgetDto> findBudgetsWithSpentByUserAndMonth(
+    List<BudgetDto> findBudgetsByUserAndMonth(
             @Param("userId") Long userId,
             @Param("firstDayOfMonth") LocalDate firstDayOfMonth,
             @Param("lastDayOfMonth") LocalDate lastDayOfMonth

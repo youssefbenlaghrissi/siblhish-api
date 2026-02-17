@@ -27,9 +27,12 @@ public class BudgetSuggestionService {
     /**
      * Contraintes min/max spécifiques par catégorie (basées sur les coûts réels au Maroc)
      * Format: Map<CategoryName, {min, max}>
+     * OPTIMISÉ : Cache statique pour éviter la création répétée de la Map
      */
-    private static Map<String, CategoryConstraints> getCategoryConstraints() {
-        Map<String, CategoryConstraints> constraints = new HashMap<>();
+    private static final Map<String, CategoryConstraints> CATEGORY_CONSTRAINTS = createCategoryConstraints();
+    
+    private static Map<String, CategoryConstraints> createCategoryConstraints() {
+        Map<String, CategoryConstraints> constraints = new HashMap<>(4);
         
         // Eau : 50-200 MAD
         constraints.put("Eau", new CategoryConstraints(50.0, 200.0));
@@ -43,7 +46,7 @@ public class BudgetSuggestionService {
         // Abonnements : 50-300 MAD
         constraints.put("Abonnements", new CategoryConstraints(50.0, 300.0));
         
-        return constraints;
+        return Collections.unmodifiableMap(constraints);
     }
     
     /**
@@ -59,14 +62,18 @@ public class BudgetSuggestionService {
         }
     }
     
-    // Note: Les pourcentages sont maintenant calculés dynamiquement selon l'intervalle de revenu
-    // Plus besoin de cache statique
-    
     // Cache statique pour les multiplicateurs de situation
     private static final Map<String, Double> SITUATION_MULTIPLIERS = createSituationMultipliers();
     
     // Cache statique pour les multiplicateurs de localisation
     private static final Map<String, Double> LOCATION_MULTIPLIERS = createLocationMultipliers();
+    
+    // Cache statique pour les pourcentages par intervalle de revenu
+    private static final Map<String, Double> PERCENTAGES_VERY_LOW = createPercentagesForVeryLowIncome();
+    private static final Map<String, Double> PERCENTAGES_LOW = createPercentagesForLowIncome();
+    private static final Map<String, Double> PERCENTAGES_MEDIUM = initializeCategoryPercentages();
+    private static final Map<String, Double> PERCENTAGES_HIGH = createPercentagesForHighIncome();
+    private static final Map<String, Double> PERCENTAGES_VERY_HIGH = createPercentagesForVeryHighIncome();
     
     private static Map<String, Double> createSituationMultipliers() {
         Map<String, Double> map = new HashMap<>(4);
@@ -172,8 +179,8 @@ public class BudgetSuggestionService {
         double maxTotalBudget = monthlyIncome * MAX_BUDGET_PERCENTAGE;
         double maxCategoryBudget = monthlyIncome * MAX_BUDGET_PERCENTAGE_PER_CATEGORY;
         
-        // OPTIMISATION 5 : Calculer les contraintes une seule fois (hors boucle)
-        Map<String, CategoryConstraints> categoryConstraints = getCategoryConstraints();
+        // OPTIMISATION 5 : Utiliser le cache statique des contraintes (pas de création de Map)
+        // categoryConstraints est déjà en cache statique (CATEGORY_CONSTRAINTS)
         
         // OPTIMISATION 6 : Calculer tous les budgets en une seule passe
         int validSize = validCategories.size();
@@ -189,7 +196,7 @@ public class BudgetSuggestionService {
             budget *= normalizationFactor;
             
             // Appliquer les contraintes min/max spécifiques par catégorie
-            CategoryConstraints constraints = categoryConstraints.get(categoryName);
+            CategoryConstraints constraints = CATEGORY_CONSTRAINTS.get(categoryName);
             
             if (constraints != null) {
                 // Contraintes spécifiques pour cette catégorie
@@ -230,7 +237,7 @@ public class BudgetSuggestionService {
                 double scaledAmount = Math.round(suggestion.getAmount() * scaleFactor * 100.0) / 100.0;
                 
                 // Réappliquer les contraintes spécifiques après normalisation
-                CategoryConstraints constraints = categoryConstraints.get(categoryName);
+                CategoryConstraints constraints = CATEGORY_CONSTRAINTS.get(categoryName);
                 if (constraints != null) {
                     scaledAmount = Math.max(scaledAmount, constraints.min);
                     scaledAmount = Math.min(scaledAmount, constraints.max);
@@ -253,18 +260,19 @@ public class BudgetSuggestionService {
      * Obtenir les pourcentages par catégorie selon l'intervalle de revenu
      * Les pourcentages sont plus élevés pour les petits revenus (coûts fixes)
      * et plus faibles pour les grands revenus (économies d'échelle)
+     * OPTIMISÉ : Retourne directement les Maps en cache statique (pas de création)
      */
     private Map<String, Double> getCategoryPercentages(double monthlyIncome) {
         // Déterminer l'intervalle de revenu
         IncomeRange range = getIncomeRange(monthlyIncome);
         
-        // Retourner les pourcentages selon l'intervalle
+        // Retourner les pourcentages depuis le cache statique (O(1) lookup)
         return switch (range) {
-            case VERY_LOW -> getPercentagesForVeryLowIncome();
-            case LOW -> getPercentagesForLowIncome();
-            case MEDIUM -> getPercentagesForMediumIncome();
-            case HIGH -> getPercentagesForHighIncome();
-            case VERY_HIGH -> getPercentagesForVeryHighIncome();
+            case VERY_LOW -> PERCENTAGES_VERY_LOW;
+            case LOW -> PERCENTAGES_LOW;
+            case MEDIUM -> PERCENTAGES_MEDIUM;
+            case HIGH -> PERCENTAGES_HIGH;
+            case VERY_HIGH -> PERCENTAGES_VERY_HIGH;
         };
     }
     
@@ -289,8 +297,9 @@ public class BudgetSuggestionService {
     /**
      * Pourcentages pour revenus très faibles (< 3000 MAD)
      * Pourcentages plus élevés car les coûts fixes représentent une part importante
+     * OPTIMISÉ : Méthode statique pour initialisation du cache
      */
-    private Map<String, Double> getPercentagesForVeryLowIncome() {
+    private static Map<String, Double> createPercentagesForVeryLowIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
         // ALIMENTATION - Plus élevé pour petits revenus (coûts fixes)
@@ -354,13 +363,14 @@ public class BudgetSuggestionService {
         percentages.put("Beauté", 0.01);
         percentages.put("Autres", 0.02);
         
-        return percentages;
+        return Collections.unmodifiableMap(percentages);
     }
     
     /**
      * Pourcentages pour revenus faibles (3000-5000 MAD)
+     * OPTIMISÉ : Méthode statique pour initialisation du cache
      */
-    private Map<String, Double> getPercentagesForLowIncome() {
+    private static Map<String, Double> createPercentagesForLowIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
         percentages.put("Alimentation", 0.25);      // 25% - Augmenté pour refléter la réalité
@@ -414,20 +424,16 @@ public class BudgetSuggestionService {
         percentages.put("Beauté", 0.015);
         percentages.put("Autres", 0.025);
         
-        return percentages;
+        return Collections.unmodifiableMap(percentages);
     }
     
-    /**
-     * Pourcentages pour revenus moyens (5000-10000 MAD) - BASE
-     */
-    private Map<String, Double> getPercentagesForMediumIncome() {
-        return initializeCategoryPercentages(); // Utiliser les pourcentages de base
-    }
+    // Note: PERCENTAGES_MEDIUM est initialisé directement avec initializeCategoryPercentages()
     
     /**
      * Pourcentages pour revenus élevés (10000-20000 MAD)
+     * OPTIMISÉ : Méthode statique pour initialisation du cache
      */
-    private Map<String, Double> getPercentagesForHighIncome() {
+    private static Map<String, Double> createPercentagesForHighIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
         percentages.put("Alimentation", 0.15);      // 15% - Augmenté pour refléter la réalité
@@ -481,13 +487,14 @@ public class BudgetSuggestionService {
         percentages.put("Beauté", 0.025);
         percentages.put("Autres", 0.04);
         
-        return percentages;
+        return Collections.unmodifiableMap(percentages);
     }
     
     /**
      * Pourcentages pour revenus très élevés (>= 20000 MAD)
+     * OPTIMISÉ : Méthode statique pour initialisation du cache
      */
-    private Map<String, Double> getPercentagesForVeryHighIncome() {
+    private static Map<String, Double> createPercentagesForVeryHighIncome() {
         Map<String, Double> percentages = new HashMap<>();
         
         percentages.put("Alimentation", 0.12);       // 12% - Augmenté pour refléter la réalité
@@ -541,7 +548,7 @@ public class BudgetSuggestionService {
         percentages.put("Beauté", 0.03);
         percentages.put("Autres", 0.05);
         
-        return percentages;
+        return Collections.unmodifiableMap(percentages);
     }
     
     /**
@@ -615,7 +622,7 @@ public class BudgetSuggestionService {
         percentages.put("Beauté", 0.02);             // 2% - Soins beauté
         percentages.put("Autres", 0.03);             // 3% - Autres dépenses
         
-        return percentages;
+        return Collections.unmodifiableMap(percentages);
     }
 }
 

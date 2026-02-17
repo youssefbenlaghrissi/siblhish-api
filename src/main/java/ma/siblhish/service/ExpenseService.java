@@ -14,14 +14,17 @@ import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.UserRepository;
 import ma.siblhish.service.NotificationService;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -65,7 +68,7 @@ public class ExpenseService {
         Expense saved = expenseRepository.save(expense);
         
         // Vérifier les budgets et envoyer des notifications si nécessaire
-        checkAndNotifyBudgetStatus(user.getId(), category.getId(), saved.getCreationDate(), saved.getAmount());
+        checkAndNotifyBudgetStatus(user.getId(), category.getId(), saved.getCreationDate());
         
         return mapper.toExpenseDto(saved);
     }
@@ -116,31 +119,29 @@ public class ExpenseService {
     
     /**
      * Vérifie les budgets affectés par cette dépense et envoie des notifications si nécessaire
-     * OPTIMISÉ : Utilise des requêtes spécifiques au lieu de findAll()
      */
-    private void checkAndNotifyBudgetStatus(Long userId, Long categoryId, LocalDateTime expenseDate, Double expenseAmount) {
+    @Async
+    public void checkAndNotifyBudgetStatus(Long userId, Long categoryId, LocalDateTime expenseDate) {
         try {
-            LocalDate expenseLocalDate = expenseDate.toLocalDate();
-            
-            // OPTIMISATION : Requête spécifique au lieu de findAll()
-            List<Budget> budgets = budgetRepository.findActiveBudgetsForExpense(
-                    userId, expenseLocalDate, categoryId);
-            
-            for (Budget budget : budgets) {
-                // OPTIMISATION : Calcul direct en SQL au lieu de charger toutes les dépenses
-                Double spent = calculateSpentForBudgetOptimized(budget);
-                Double percentageUsed = budget.getAmount() > 0 ? (spent / budget.getAmount()) * 100 : 0.0;
+            Optional<Budget> currentBudget = budgetRepository.findCurrentBudgetByCategory(
+                    userId, expenseDate.toLocalDate(), categoryId);
+            if(currentBudget.isEmpty()) {
+                return;
+            }
+
+            Budget budget = currentBudget.get();
+            Double spent = calculateSpentForBudgetOptimized(budget);
+            double percentageUsed = budget.getAmount() > 0 ? (spent / budget.getAmount()) * 100 : 0.0;
                 
-                // Vérifier si le budget est dépassé
-                if (percentageUsed >= 100) {
-                    Double exceeded = spent - budget.getAmount();
-                    createBudgetExceededNotification(budget, spent, exceeded, percentageUsed);
-                } 
-                // Vérifier si le budget atteint 90% (warning)
-                else if (percentageUsed >= 90 && percentageUsed < 100) {
-                    Double remaining = budget.getAmount() - spent;
-                    createBudgetWarningNotification(budget, spent, remaining, percentageUsed);
-                }
+            // Vérifier si le budget est dépassé
+            if (percentageUsed >= 100) {
+                Double exceeded = spent - budget.getAmount();
+                createBudgetExceededNotification(budget, spent, exceeded, percentageUsed);
+            }
+            // Vérifier si le budget atteint 90% (warning)
+            else if (percentageUsed >= 90) {
+                Double remaining = budget.getAmount() - spent;
+                createBudgetWarningNotification(budget, spent, remaining, percentageUsed);
             }
         } catch (Exception e) {
             log.error("❌ Erreur lors de la vérification des budgets pour la dépense: {}", e.getMessage(), e);

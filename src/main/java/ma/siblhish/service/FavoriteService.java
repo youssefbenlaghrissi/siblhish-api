@@ -54,11 +54,11 @@ public class FavoriteService {
         // Extraire les types et targetEntities (garder l'ordre pour la requête VALUES)
         List<String> types = favoritesToAdd.stream()
                 .map(FavoriteDto::getType)
-                .collect(Collectors.toList());
+                .toList();
         
         List<Long> targetEntities = favoritesToAdd.stream()
                 .map(FavoriteDto::getTargetEntity)
-                .collect(Collectors.toList());
+                .toList();
 
         // Récupérer tous les favoris existants en UNE SEULE requête
         // On récupère un sur-ensemble puis on filtre en mémoire pour les tuples exacts
@@ -131,11 +131,11 @@ public class FavoriteService {
         // Extraire les types et targetEntities (garder l'ordre pour la requête VALUES)
         List<String> types = favoritesToDelete.stream()
                 .map(FavoriteDto::getType)
-                .collect(Collectors.toList());
+                .toList();
         
         List<Long> targetEntities = favoritesToDelete.stream()
                 .map(FavoriteDto::getTargetEntity)
-                .collect(Collectors.toList());
+                .toList();
 
         // Récupérer tous les favoris existants en UNE SEULE requête
         // On récupère un sur-ensemble puis on filtre en mémoire pour les tuples exacts

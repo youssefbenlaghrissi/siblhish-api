@@ -6,9 +6,7 @@ import ma.siblhish.entities.Category;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,6 +16,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
 
+    /*
     @Transactional
     public CategoryDto createCategory(CategoryRequestDto request) {
         Category category = new Category();
@@ -50,6 +49,7 @@ public class CategoryService {
         category.setDeleted(true);
         categoryRepository.save(category);
     }
+    */
 
     public List<CategoryDto> getAllCategories() {
         List<Category> categories = categoryRepository.findAllCategories();
