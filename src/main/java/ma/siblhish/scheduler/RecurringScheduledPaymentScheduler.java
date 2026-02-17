@@ -56,8 +56,7 @@ public class RecurringScheduledPaymentScheduler {
         
         try {
             LocalDateTime now = LocalDateTime.now();
-            
-            // OPTIMISATION : Requête spécifique au lieu de findAll()
+
             List<ScheduledPayment> recurringPayments = scheduledPaymentRepository.findRecurringPaymentsToProcess(now);
             
             int paymentsCreated = 0;

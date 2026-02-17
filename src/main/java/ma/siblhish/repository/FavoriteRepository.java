@@ -18,11 +18,6 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     List<Favorite> findByUserIdAndTypeOrderById(Long userId, String type);
     
     /**
-     * Trouver un favori spécifique par userId, type et targetEntity
-     */
-    Optional<Favorite> findByUserIdAndTypeAndTargetEntity(Long userId, String type, Long targetEntity);
-
-    /**
      * Récupérer tous les favoris existants pour un utilisateur et une liste de (type, targetEntity).
      * Optimisé pour éviter le problème N+1 lors de l'ajout/suppression en batch.
      * 

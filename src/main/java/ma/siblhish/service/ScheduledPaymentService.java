@@ -14,6 +14,7 @@ import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.ScheduledPaymentRepository;
 import ma.siblhish.repository.UserRepository;
 import ma.siblhish.service.NotificationService;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,8 +135,8 @@ public class ScheduledPaymentService {
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         
-        // Créer une notification de confirmation
-        createPaymentMarkedAsPaidNotification(saved);
+        // Créer une notification de confirmation de manière asynchrone (ne bloque pas la réponse)
+        createPaymentMarkedAsPaidNotificationAsync(saved);
         
         return mapper.toScheduledPaymentDto(saved);
     }
@@ -219,6 +220,14 @@ public class ScheduledPaymentService {
         scheduledPaymentRepository.save(payment);
     }
     
+    /**
+     * Crée une notification lorsqu'un paiement planifié est marqué comme payé (asynchrone)
+     */
+    @Async
+    public void createPaymentMarkedAsPaidNotificationAsync(ScheduledPayment payment) {
+        createPaymentMarkedAsPaidNotification(payment);
+    }
+
     /**
      * Crée une notification lorsqu'un paiement planifié est marqué comme payé
      */

@@ -57,23 +57,21 @@ public class RecurringBudgetScheduler {
                 Long userId = templateBudget.getUser().getId();
                 Category category = templateBudget.getCategory();
 
-                // Vérifier si un budget pour ce mois existe déjà
-                boolean exists;
-                if (category != null) {
-                    List<Budget> existingBudgets = budgetRepository.findByUserIdAndCategoryIdAndStartDateAndEndDateOrderByIdDesc(
-                                userId, category.getId(), firstDayOfMonth, lastDayOfMonth
-                        );
-                    exists = !existingBudgets.isEmpty();
-                } else {
-                    // Pour les budgets globaux (category null)
-                    List<Budget> existingBudgets = budgetRepository.findByUserIdAndCategoryIsNullAndStartDateAndEndDateOrderByIdDesc(
-                                userId, firstDayOfMonth, lastDayOfMonth
-                        );
-                    exists = !existingBudgets.isEmpty();
+                // Ignorer les budgets sans catégorie
+                if (category == null) {
+                    logger.warn("⚠️ Budget récurrent (ID: {}) ignoré car sans catégorie. Seuls les budgets par catégorie sont supportés.", 
+                        templateBudget.getId());
+                    continue;
                 }
 
+                // Vérifier si un budget pour ce mois existe déjà
+                List<Budget> existingBudgets = budgetRepository.findByUserIdAndCategoryIdAndStartDateAndEndDateOrderByIdDesc(
+                            userId, category.getId(), firstDayOfMonth, lastDayOfMonth
+                    );
+                boolean exists = !existingBudgets.isEmpty();
+
                 if (!exists) {
-                    // Créer un nouveau budget pour ce mois avec toute la logique métier
+                    // Créer un nouveau budget pour ce mois
                     Budget newBudget = new Budget();
                     newBudget.setUser(templateBudget.getUser());
                     newBudget.setAmount(templateBudget.getAmount());
@@ -83,7 +81,7 @@ public class RecurringBudgetScheduler {
                     newBudget.setCategory(category);
                     newBudget.setCreationDate(LocalDateTime.now());
 
-                    Budget savedBudget = budgetRepository.save(newBudget);
+                    budgetRepository.save(newBudget);
                     
                     // Créer une notification pour l'utilisateur
                     createRecurringBudgetNotification(
@@ -91,8 +89,8 @@ public class RecurringBudgetScheduler {
                         "Budget récurrent créé",
                         String.format("Un budget récurrent de %.2f MAD a été créé automatiquement pour le mois de %s.", 
                             templateBudget.getAmount(), 
-                            currentMonth.toString()),
-                        category != null ? category.getName() : "Budget global"
+                            currentMonth),
+                        category.getName()
                     );
                 }
             }
@@ -111,11 +109,11 @@ public class RecurringBudgetScheduler {
             notificationService.createNotification(
                 userId,
                 title,
-                description + (categoryName != null ? " (" + categoryName + ")" : ""),
+                description + " (" + categoryName + ")",
                 TypeNotification.RECURRING_BUDGET,
                 "BUDGET"
             );
-            logger.debug("📬 Notification créée pour l'utilisateur {} - Budget récurrent", userId);
+            logger.debug("📬 Notification créée pour l'utilisateur {} - Budget récurrent ({})", userId, categoryName);
         } catch (Exception e) {
             logger.error("❌ Erreur lors de la création de la notification pour l'utilisateur {}: {}", 
                     userId, e.getMessage());

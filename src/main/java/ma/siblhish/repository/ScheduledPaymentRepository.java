@@ -28,17 +28,6 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
     List<ScheduledPayment> findByUserId(@Param("userId") Long userId);
 
     /**
-     * Récupère les paiements non payés avec toutes les relations chargées en une seule requête
-     * Optimisation N+1 : utilise JOIN FETCH pour charger category et recurrenceDaysOfWeek
-     */
-    @Query("SELECT DISTINCT sp FROM ScheduledPayment sp " +
-           "LEFT JOIN FETCH sp.category " +
-           "LEFT JOIN FETCH sp.recurrenceDaysOfWeek " +
-           "WHERE sp.user.id = :userId AND sp.isPaid = false " +
-           "ORDER BY sp.id DESC")
-    List<ScheduledPayment> findUnpaidByUserId(@Param("userId") Long userId);
-
-    /**
      * Trouve les paiements planifiés non payés qui nécessitent une notification.
      * Optimisé pour le scheduler de rappels.
      */
