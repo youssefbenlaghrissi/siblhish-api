@@ -33,6 +33,31 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
         @Param("endDate") LocalDate endDate
     );
 
+    /**
+     * Trouve les budgets existants pour plusieurs utilisateurs et catégories en une seule requête.
+     * Optimisé pour le batch processing dans RecurringBudgetScheduler.
+     * 
+     * @param userIds Liste des IDs utilisateurs
+     * @param categoryIds Liste des IDs catégories
+     * @param startDate Date de début
+     * @param endDate Date de fin
+     * @return Liste des budgets existants
+     */
+    @Query("""
+        SELECT b FROM Budget b 
+        WHERE b.user.id IN :userIds 
+          AND b.category.id IN :categoryIds
+          AND b.startDate = :startDate 
+          AND b.endDate = :endDate 
+          AND b.deleted = false
+    """)
+    List<Budget> findExistingBudgetsForMonth(
+        @Param("userIds") List<Long> userIds,
+        @Param("categoryIds") List<Long> categoryIds,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+
     //OK
     @Query("""
         SELECT b FROM Budget b 
