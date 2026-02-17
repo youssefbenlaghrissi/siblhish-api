@@ -64,27 +64,13 @@ public class BudgetController {
     }
 
     /**
-     * Vérifier le statut du budget
-     */
-    @GetMapping("/{budgetId}/status")
-    public ResponseEntity<ApiResponse<BudgetStatusResponseDto>> getBudgetStatus(@PathVariable Long budgetId) {
-        BudgetStatusResponseDto status = budgetService.getBudgetStatus(budgetId);
-        return ResponseEntity.ok(ApiResponse.success(status));
-    }
-
-    /**
      * Suggérer des budgets basés sur le revenu, la situation et les catégories
      */
     @PostMapping("/suggest")
     public ResponseEntity<ApiResponse<BudgetSuggestionResponse>> suggestBudgets(
             @Valid @RequestBody BudgetSuggestionRequest request) {
-        try {
-            BudgetSuggestionResponse response = budgetSuggestionService.suggestBudgets(request);
-            return ResponseEntity.ok(ApiResponse.success(response));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Erreur lors du calcul des budgets suggérés: " + e.getMessage()));
-        }
+        BudgetSuggestionResponse response = budgetSuggestionService.suggestBudgets(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -94,16 +80,8 @@ public class BudgetController {
     @PostMapping("/batch")
     public ResponseEntity<ApiResponse<List<BudgetDto>>> createBudgets(
             @Valid @RequestBody CreateBudgetsRequestDto request) {
-        try {
-            List<BudgetDto> createdBudgets = budgetService.createBudgets(request.getBudgets());
-            return ResponseEntity.status(201).body(ApiResponse.success(createdBudgets));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Erreur de validation: " + e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Erreur lors de la création des budgets: " + e.getMessage()));
-        }
+        List<BudgetDto> createdBudgets = budgetService.createBudgets(request.getBudgets());
+        return ResponseEntity.status(201).body(ApiResponse.success(createdBudgets));
     }
 
     /**
@@ -113,20 +91,8 @@ public class BudgetController {
     @DeleteMapping("/batch")
     public ResponseEntity<ApiResponse<Void>> deleteBudgets(
             @RequestBody List<Long> budgetIds) {
-        try {
-            if (budgetIds == null || budgetIds.isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("La liste des budgets à supprimer ne peut pas être vide"));
-            }
-            budgetService.deleteBudgets(budgetIds);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Erreur de validation: " + e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Erreur lors de la suppression des budgets: " + e.getMessage()));
-        }
+        budgetService.deleteBudgets(budgetIds);
+        return ResponseEntity.noContent().build();
     }
 
 }

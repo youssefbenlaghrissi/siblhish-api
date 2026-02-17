@@ -329,13 +329,17 @@ public class StatisticsService {
      * @return DTO unifié contenant toutes les statistiques
      */
     public StatisticsDto getAllStatistics(Long userId, LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("La date de début doit être antérieure ou égale à la date de fin");
+        }
+
         StatisticsDto all = new StatisticsDto();
-        
+
         // Charger toutes les données en utilisant les méthodes existantes
         all.setMonthlySummary(getPeriodSummary(userId, startDate, endDate));
         all.setCategoryExpenses(getExpensesByCategory(userId, startDate, endDate));
         all.setBudgetStatistics(getAllBudgetStatisticsUnified(userId, startDate, endDate));
-        
+
         return all;
     }
 }

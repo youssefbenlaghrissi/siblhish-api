@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Favorite;
 import ma.siblhish.entities.User;
+import ma.siblhish.exception.AuthenticationException;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.FavoriteRepository;
 import ma.siblhish.repository.UserRepository;
@@ -121,16 +122,20 @@ public class UserService {
 
     /**
      * Mettre à jour le token FCM d'un utilisateur
-     * 
+     *
      * @param userId ID de l'utilisateur
      * @param fcmToken Token FCM à enregistrer
-     * @throws RuntimeException si l'utilisateur n'existe pas
+     * @throws IllegalArgumentException si le token est vide ou si l'utilisateur n'existe pas
      */
     @Transactional
     public void updateFcmToken(Long userId, String fcmToken) {
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            throw new IllegalArgumentException("Le token FCM est requis");
+        }
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
         user.setFcmToken(fcmToken);
         userRepository.save(user);
     }
@@ -143,12 +148,12 @@ public class UserService {
      * @param notificationsEnabled Nouveau statut des notifications (peut être null)
      * @param language Nouvelle langue (peut être null)
      * @return UserProfileDto mis à jour
-     * @throws RuntimeException si l'utilisateur n'existe pas
+     * @throws IllegalArgumentException si l'utilisateur n'existe pas ou si la langue est invalide
      */
     @Transactional
     public UserProfileDto updatePreferences(Long userId, Boolean notificationsEnabled, String language) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         
         // Mettre à jour uniquement si les valeurs sont fournies
         if (notificationsEnabled != null) {
@@ -159,7 +164,7 @@ public class UserService {
             // Valider que la langue est supportée (fr, en, ar)
             String lang = language.trim().toLowerCase();
             if (!lang.equals("fr") && !lang.equals("en") && !lang.equals("ar")) {
-                throw new RuntimeException("Langue non supportée. Les langues supportées sont: fr, en, ar");
+                throw new IllegalArgumentException("Langue non supportée. Les langues supportées sont: fr, en, ar");
             }
             user.setLanguage(lang);
         }
@@ -238,34 +243,35 @@ public class UserService {
 
     /**
      * Authentifier un utilisateur avec email et mot de passe
-     * 
+     *
      * @param email Email
      * @param password Mot de passe (non hashé)
      * @return UserProfileDto
-     * @throws IllegalArgumentException si l'email ou le mot de passe est incorrect
+     * @throws AuthenticationException si l'email ou le mot de passe est incorrect,
+     *                                 si le compte est supprimé ou si c'est un compte social
      */
     public UserProfileDto login(String email, String password) {
         // Trouver l'utilisateur par email
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect"));
+                .orElseThrow(() -> new AuthenticationException("Email ou mot de passe incorrect"));
 
         // Vérifier si le compte est supprimé
         if (Boolean.TRUE.equals(user.getDeleted())) {
-            throw new IllegalArgumentException("Ce compte a été supprimé. Veuillez contacter le support pour le réactiver.");
+            throw new AuthenticationException("Ce compte a été supprimé. Veuillez contacter le support pour le réactiver.");
         }
 
         // Vérifier si c'est un utilisateur OAuth (password commence par "oauth_")
         if (user.getPassword() != null && user.getPassword().startsWith("oauth_")) {
-            throw new IllegalArgumentException("Ce compte a été créé avec une connexion sociale. Veuillez utiliser la connexion Google.");
+            throw new AuthenticationException("Ce compte a été créé avec une connexion sociale. Veuillez utiliser la connexion Google.");
         }
 
         // Vérifier le mot de passe avec BCrypt
         if (user.getPassword() == null || !passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("Email ou mot de passe incorrect");
+            throw new AuthenticationException("Email ou mot de passe incorrect");
         }
 
-        log.info("✅ Utilisateur authentifié avec succès - ID: {}, Email: {}", 
-            user.getId(), user.getEmail());
+        log.info("✅ Utilisateur authentifié avec succès - ID: {}, Email: {}",
+                user.getId(), user.getEmail());
 
         // Convertir en DTO
         return mapper.toUserProfileDto(user);
@@ -276,16 +282,16 @@ public class UserService {
      * Met le champ deleted à true
      * 
      * @param userId ID de l'utilisateur
-     * @throws RuntimeException si l'utilisateur n'existe pas
+     * @throws IllegalArgumentException si l'utilisateur n'existe pas ou si le compte est déjà supprimé
      */
     @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
         
         // Vérifier si le compte n'est pas déjà supprimé
         if (Boolean.TRUE.equals(user.getDeleted())) {
-            throw new RuntimeException("Le compte a déjà été supprimé");
+            throw new IllegalArgumentException("Le compte a déjà été supprimé");
         }
         
         // Soft delete : mettre deleted à true

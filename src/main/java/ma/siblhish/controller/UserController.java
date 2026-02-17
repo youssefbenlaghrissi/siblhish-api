@@ -40,30 +40,12 @@ public class UserController {
     public ResponseEntity<ApiResponse<Object>> registerFcmToken(
             @PathVariable Long userId,
             @Valid @RequestBody FcmTokenRequest request) {
-        
-        try {
-            // Valider le token
-            if (request.getFcmToken() == null || request.getFcmToken().trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Le token FCM est requis"));
-            }
+        userService.updateFcmToken(userId, request.getFcmToken());
 
-            // Mettre à jour le token FCM dans la base de données
-            userService.updateFcmToken(userId, request.getFcmToken());
-
-            // Réponse de succès
-            return ResponseEntity.ok(ApiResponse.success(
-                    null,
-                    "Token FCM enregistré avec succès"
-            ));
-            
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Erreur lors de l'enregistrement du token: " + e.getMessage()));
-        }
+        return ResponseEntity.ok(ApiResponse.success(
+                null,
+                "Token FCM enregistré avec succès"
+        ));
     }
 
     /**
@@ -85,26 +67,16 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserProfileDto>> updatePreferences(
             @PathVariable Long userId,
             @Valid @RequestBody UserPreferencesRequest request) {
-        
-        try {
-            UserProfileDto updatedProfile = userService.updatePreferences(
-                userId, 
-                request.getNotificationsEnabled(), 
+        UserProfileDto updatedProfile = userService.updatePreferences(
+                userId,
+                request.getNotificationsEnabled(),
                 request.getLanguage()
-            );
-            
-            return ResponseEntity.ok(ApiResponse.success(
-                updatedProfile, 
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(
+                updatedProfile,
                 "Préférences mises à jour avec succès"
-            ));
-            
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Erreur lors de la mise à jour des préférences: " + e.getMessage()));
-        }
+        ));
     }
 
     /**
@@ -118,21 +90,12 @@ public class UserController {
      */
     @DeleteMapping("/{userId}/account")
     public ResponseEntity<ApiResponse<Object>> deleteAccount(@PathVariable Long userId) {
-        try {
-            userService.deleteAccount(userId);
-            
-            return ResponseEntity.ok(ApiResponse.success(
+        userService.deleteAccount(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(
                 null,
                 "Compte supprimé avec succès"
-            ));
-            
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Erreur lors de la suppression du compte: " + e.getMessage()));
-        }
+        ));
     }
 
 }

@@ -237,36 +237,6 @@ public class BudgetService {
         logger.info("Suppression de {} budgets réussie en une seule transaction", budgetsToDelete.size());
     }
 
-    public BudgetStatusResponseDto getBudgetStatus(Long budgetId) {
-        Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
-        
-        Double spent = calculateSpent(budget);
-        Double remaining = budget.getAmount() - spent;
-        Double percentageUsed = budget.getAmount() > 0 ? (spent / budget.getAmount()) * 100 : 0.0;
-        
-        String status = "OK";
-        String message = "Budget is within limits";
-        
-        if (percentageUsed >= 100) {
-            status = "EXCEEDED";
-            StringBuilder msgBuilder = new StringBuilder("Budget exceeded by ");
-            msgBuilder.append(String.format("%.2f", Math.abs(remaining)));
-            msgBuilder.append(" MAD");
-            message = msgBuilder.toString();
-        } else if (percentageUsed >= 90) {
-            status = "WARNING";
-            StringBuilder msgBuilder = new StringBuilder("You have used ");
-            msgBuilder.append(String.format("%.1f", percentageUsed));
-            msgBuilder.append("% of your budget");
-            message = msgBuilder.toString();
-        }
-        
-        return new BudgetStatusResponseDto(
-                budgetId, budget.getAmount(), spent, remaining, percentageUsed, status, message
-        );
-    }
-
     private Double calculateSpent(Budget budget) {
         LocalDate startDate = getPeriodStartDate(budget);
         LocalDate endDate = getPeriodEndDate(budget);

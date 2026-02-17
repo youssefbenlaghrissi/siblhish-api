@@ -34,10 +34,6 @@ public class StatisticsController {
             @PathVariable Long userId,
             @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        if (startDate.isAfter(endDate)) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("La date de début doit être antérieure ou égale à la date de fin"));
-        }
         StatisticsDto data = statisticsService.getAllStatistics(userId, startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
