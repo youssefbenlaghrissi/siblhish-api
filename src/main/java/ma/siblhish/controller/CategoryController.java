@@ -1,6 +1,5 @@
 package ma.siblhish.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.service.CategoryService;
@@ -18,36 +17,6 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
-
-    /**
-     * Créer une catégorie
-     */
-    @PostMapping
-    public ResponseEntity<ApiResponse<CategoryDto>> createCategory(
-            @Valid @RequestBody CategoryRequestDto request) {
-        CategoryDto category = categoryService.createCategory(request);
-        return ResponseEntity.status(201).body(ApiResponse.success(category));
-    }
-
-    /**
-     * Mettre à jour une catégorie
-     */
-    @PutMapping("/{categoryId}")
-    public ResponseEntity<ApiResponse<CategoryDto>> updateCategory(
-            @PathVariable Long categoryId,
-            @Valid @RequestBody CategoryRequestDto request) {
-        CategoryDto category = categoryService.updateCategory(categoryId, request);
-        return ResponseEntity.ok(ApiResponse.success(category));
-    }
-
-    /**
-     * Supprimer une catégorie
-     */
-    @DeleteMapping("/{categoryId}")
-    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long categoryId) {
-        categoryService.deleteCategory(categoryId);
-        return ResponseEntity.noContent().build();
-    }
 
     /**
      * Liste de toutes les catégories (pour paramétrage)
