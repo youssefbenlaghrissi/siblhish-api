@@ -11,7 +11,6 @@ import ma.siblhish.entities.User;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.BudgetRepository;
 import ma.siblhish.repository.CategoryRepository;
-import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +21,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,67 +34,22 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final ExpenseRepository expenseRepository;
     private final EntityMapper mapper;
 
     public List<BudgetDto> getBudgets(Long userId, String month) {
-        String sql = buildBudgetQuery(month);
-        Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("userId", userId);
-        
+        // Si un mois est fourni et valide, appliquer le filtre mois
         if (month != null && !month.isEmpty()) {
             YearMonth yearMonth = parseMonth(month);
             if (yearMonth != null) {
                 LocalDate firstDayOfMonth = yearMonth.atDay(1);
                 LocalDate lastDayOfMonth = yearMonth.atEndOfMonth();
-                query.setParameter("firstDayOfMonth", firstDayOfMonth);
-                query.setParameter("lastDayOfMonth", lastDayOfMonth);
+                return budgetRepository.findBudgetsWithSpentByUserAndMonth(
+                        userId, firstDayOfMonth, lastDayOfMonth);
             }
         }
-        
-        @SuppressWarnings("unchecked")
-        List<Object[]> results = query.getResultList();
-        
-        return results.stream()
-                .map(this::mapRowToBudgetDto)
-                .collect(Collectors.toList());
-    }
 
-    private String buildBudgetQuery(String month) {
-        StringBuilder query = new StringBuilder("""
-            SELECT 
-                b.id,
-                b.user_id,
-                b.amount,
-                b.start_date,
-                b.end_date,
-                b.is_recurring,
-                b.category_id,
-                c.name as category_name,
-                c.icon as category_icon,
-                c.color as category_color,
-                b.creation_date,
-                (
-                    SELECT SUM(e.amount)
-                    FROM expenses e
-                    WHERE e.user_id = b.user_id
-                      AND e.deleted = false
-                      AND e.creation_date BETWEEN b.start_date AND b.end_date
-                      AND (b.category_id IS NULL OR e.category_id = b.category_id)
-                ) as spent
-            FROM budgets b
-            LEFT JOIN categories c ON b.category_id = c.id
-            WHERE b.user_id = :userId
-              AND b.deleted = false
-        """);
-        
-        if (month != null && !month.isEmpty() && parseMonth(month) != null) {
-            query.append(" AND b.start_date <= :lastDayOfMonth AND b.end_date >= :firstDayOfMonth");
-        }
-        
-        query.append(" ORDER BY b.amount DESC");
-        
-        return query.toString();
+        // Sinon, retourner tous les budgets de l'utilisateur (sans filtre de mois)
+        return budgetRepository.findBudgetsWithSpentByUser(userId);
     }
 
     private YearMonth parseMonth(String month) {
@@ -106,54 +59,6 @@ public class BudgetService {
             logger.warn("Format de mois invalide: '{}'. Format attendu: YYYY-MM (ex: 2025-12)", month);
             return null;
         }
-    }
-
-    private BudgetDto mapRowToBudgetDto(Object[] row) {
-        Budget budget = new Budget();
-        budget.setId(((Number) row[0]).longValue());
-        budget.setAmount(((Number) row[2]).doubleValue());
-        budget.setStartDate(convertToLocalDate(row[3]));
-        budget.setEndDate(convertToLocalDate(row[4]));
-        budget.setIsRecurring(row[5] != null ? (Boolean) row[5] : false);
-        
-        if (row[6] != null) {
-            Category category = new Category();
-            category.setId(((Number) row[6]).longValue());
-            category.setName((String) row[7]);
-            category.setIcon((String) row[8]);
-            category.setColor((String) row[9]);
-            budget.setCategory(category);
-        }
-        
-        budget.setCreationDate(convertToLocalDateTime(row[10]));
-        
-        User user = new User();
-        user.setId(((Number) row[1]).longValue());
-        budget.setUser(user);
-        
-        Double spent = mapper.convertToDouble(row[11]);
-        return mapper.toBudgetDto(budget, spent);
-    }
-    
-    private LocalDate convertToLocalDate(Object value) {
-        if (value == null) return null;
-        if (value instanceof LocalDate) return (LocalDate) value;
-        if (value instanceof java.sql.Date) return ((java.sql.Date) value).toLocalDate();
-        return null;
-    }
-    
-    private LocalDateTime convertToLocalDateTime(Object value) {
-        if (value == null) return null;
-        if (value instanceof LocalDateTime) return (LocalDateTime) value;
-        if (value instanceof java.sql.Timestamp) return ((java.sql.Timestamp) value).toLocalDateTime();
-        return null;
-    }
-
-    public BudgetDto getBudgetById(Long budgetId) {
-        Budget budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
-        Double spent = calculateSpent(budget);
-        return mapper.toBudgetDto(budget, spent);
     }
 
     @Transactional
@@ -167,8 +72,7 @@ public class BudgetService {
         budget.setEndDate(request.getEndDate());
         budget.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         budget.setUser(user);
-        LocalDateTime now = LocalDateTime.now();
-        budget.setCreationDate(now);
+        budget.setCreationDate(LocalDateTime.now());
 
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -303,12 +207,11 @@ public class BudgetService {
 
         List<BudgetDto> createdBudgets = new java.util.ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
+        // Valider que l'utilisateur existe
+        User user = userRepository.findById(requests.getFirst().getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + requests.getFirst().getUserId()));
 
         for (BudgetRequestDto request : requests) {
-            // Valider que l'utilisateur existe
-            User user = userRepository.findById(request.getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
-
             Budget budget = new Budget();
             budget.setAmount(request.getAmount());
             budget.setStartDate(request.getStartDate());

@@ -9,7 +9,6 @@ import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.IncomeRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,8 +25,6 @@ public class HomeService {
     
     private final IncomeRepository incomeRepository;
     private final ExpenseRepository expenseRepository;
-    private final ExpenseService expenseService;
-    private final IncomeService incomeService;
     private final EntityMapper mapper;
 
     public BalanceDto getBalance(Long userId) {

@@ -9,9 +9,8 @@ import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.NotificationRepository;
 import ma.siblhish.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,15 +28,11 @@ public class NotificationService {
     private final EntityMapper mapper;
     private final FcmNotificationService fcmNotificationService;
 
-    public PageResponseDto<NotificationDto> getNotifications(Long userId, Boolean isRead, 
-                                                             TypeNotification type, Integer page, Integer size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Notification> notifications = notificationRepository.findNotificationsWithFilters(
-                userId, isRead, type, pageable);
-        
-        PageResponseDto<NotificationDto> response = mapper.toPageResponseDto(
-                notifications.map(mapper::toNotificationDto));
-        return response;
+    public List<NotificationDto> getNotifications(Long userId) {
+        List<Notification> notifications = notificationRepository.findAllByUserIdAndNotDeleted(userId);
+        return notifications.stream()
+                .map(mapper::toNotificationDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional

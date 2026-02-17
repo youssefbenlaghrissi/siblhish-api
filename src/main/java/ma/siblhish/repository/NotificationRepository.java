@@ -10,20 +10,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    @Query("SELECT n FROM Notification n WHERE n.user.id = :userId " +
-           "AND n.deleted = false " +
-           "AND (:isRead IS NULL OR n.isRead = :isRead) " +
-           "AND (:type IS NULL OR n.type = :type) " +
-           "ORDER BY n.id DESC")
-    Page<Notification> findNotificationsWithFilters(
-            @Param("userId") Long userId,
-            @Param("isRead") Boolean isRead,
-            @Param("type") TypeNotification type,
-            Pageable pageable);
-    
+    @Query("SELECT n FROM Notification n WHERE n.user.id = :userId AND n.deleted = false ORDER BY n.id DESC")
+    List<Notification> findAllByUserIdAndNotDeleted(@Param("userId") Long userId);
+
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.isRead = false AND n.deleted = false")
     Long countUnreadByUserId(@Param("userId") Long userId);
     

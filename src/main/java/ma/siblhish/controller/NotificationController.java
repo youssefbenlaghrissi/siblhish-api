@@ -7,6 +7,8 @@ import ma.siblhish.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * Controller pour la gestion des notifications
  */
@@ -18,17 +20,12 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     /**
-     * Liste des notifications
+     * Liste des notifications (toutes les notifications non supprimées, sans pagination)
      */
     @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<PageResponseDto<NotificationDto>>> getNotifications(
-            @PathVariable Long userId,
-            @RequestParam(required = false) Boolean isRead,
-            @RequestParam(required = false) TypeNotification type,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "20") Integer size) {
-        PageResponseDto<NotificationDto> notifications = notificationService.getNotifications(
-                userId, isRead, type, page, size);
+    public ResponseEntity<ApiResponse<List<NotificationDto>>> getNotifications(
+            @PathVariable Long userId) {
+        List<NotificationDto> notifications = notificationService.getNotifications(userId);
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
 

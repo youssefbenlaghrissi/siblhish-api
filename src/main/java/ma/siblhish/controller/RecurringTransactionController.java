@@ -2,7 +2,7 @@ package ma.siblhish.controller;
 
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.ApiResponse;
-import ma.siblhish.service.RecurringTransactionService;
+import ma.siblhish.scheduler.RecurringTransactionScheduler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class RecurringTransactionController {
 
-    private final RecurringTransactionService recurringTransactionService;
+    private final RecurringTransactionScheduler recurringTransactionScheduler;
 
     /**
      * Déclencher manuellement le batch de génération des transactions récurrentes
@@ -27,7 +27,7 @@ public class RecurringTransactionController {
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<String>> generateRecurringTransactions() {
         try {
-            recurringTransactionService.generateRecurringTransactionsForDate(LocalDateTime.now());
+            recurringTransactionScheduler.generateRecurringTransactionsForDate(LocalDateTime.now());
             return ResponseEntity.ok(ApiResponse.success("Batch exécuté. Vérifiez les logs pour voir combien de transactions ont été générées."));
         } catch (Exception e) {
             return ResponseEntity.badRequest()

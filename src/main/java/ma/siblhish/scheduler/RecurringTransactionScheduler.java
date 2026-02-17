@@ -1,4 +1,4 @@
-package ma.siblhish.service;
+package ma.siblhish.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class RecurringTransactionService {
+public class RecurringTransactionScheduler {
 
     private final ExpenseRepository expenseRepository;
     private final IncomeRepository incomeRepository;

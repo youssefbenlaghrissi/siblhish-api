@@ -22,6 +22,74 @@ import java.time.LocalDate;
  */
 @Entity
 @Table(name = "budgets")
+@NamedQueries({
+        @NamedQuery(
+                name = "Budget.findBudgetsWithSpentByUser",
+                query = """
+                    SELECT new ma.siblhish.dto.BudgetDto(
+                        b.id,
+                        b.user.id,
+                        b.amount,
+                        b.startDate,
+                        b.endDate,
+                        new ma.siblhish.dto.CategoryDto(c.id, c.name, c.icon, c.color),
+                        COALESCE(SUM(e.amount), 0),
+                        (b.amount - COALESCE(SUM(e.amount), 0)),
+                        CASE 
+                            WHEN b.amount > 0 THEN (COALESCE(SUM(e.amount), 0) * 100.0 / b.amount)
+                            ELSE 0
+                        END,
+                        b.isRecurring
+                    )
+                    FROM Budget b
+                    LEFT JOIN b.category c
+                    LEFT JOIN Expense e ON e.user = b.user
+                        AND e.deleted = false
+                        AND e.creationDate BETWEEN b.startDate AND b.endDate
+                        AND (b.category IS NULL OR e.category = b.category)
+                    WHERE b.user.id = :userId
+                      AND b.deleted = false
+                    GROUP BY 
+                        b.id, b.user.id, b.amount, b.startDate, b.endDate, b.isRecurring,
+                        c.id, c.name, c.icon, c.color
+                    ORDER BY b.amount DESC
+                """
+        ),
+        @NamedQuery(
+                name = "Budget.findBudgetsWithSpentByUserAndMonth",
+                query = """
+                    SELECT new ma.siblhish.dto.BudgetDto(
+                        b.id,
+                        b.user.id,
+                        b.amount,
+                        b.startDate,
+                        b.endDate,
+                        new ma.siblhish.dto.CategoryDto(c.id, c.name, c.icon, c.color),
+                        COALESCE(SUM(e.amount), 0),
+                        (b.amount - COALESCE(SUM(e.amount), 0)),
+                        CASE 
+                            WHEN b.amount > 0 THEN (COALESCE(SUM(e.amount), 0) * 100.0 / b.amount)
+                            ELSE 0
+                        END,
+                        b.isRecurring
+                    )
+                    FROM Budget b
+                    LEFT JOIN b.category c
+                    LEFT JOIN Expense e ON e.user = b.user
+                        AND e.deleted = false
+                        AND e.creationDate BETWEEN b.startDate AND b.endDate
+                        AND (b.category IS NULL OR e.category = b.category)
+                    WHERE b.user.id = :userId
+                      AND b.deleted = false
+                      AND b.startDate <= :lastDayOfMonth
+                      AND b.endDate >= :firstDayOfMonth
+                    GROUP BY 
+                        b.id, b.user.id, b.amount, b.startDate, b.endDate, b.isRecurring,
+                        c.id, c.name, c.icon, c.color
+                    ORDER BY b.amount DESC
+                """
+        )
+})
 @Getter
 @Setter
 @AllArgsConstructor

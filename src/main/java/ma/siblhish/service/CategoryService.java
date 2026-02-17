@@ -24,8 +24,7 @@ public class CategoryService {
         category.setName(request.getName());
         category.setIcon(request.getIcon());
         category.setColor(request.getColor());
-        LocalDateTime now = LocalDateTime.now();
-        category.setCreationDate(now);
+        category.setCreationDate(LocalDateTime.now());
         
         Category saved = categoryRepository.save(category);
         return mapper.toCategoryDto(saved);

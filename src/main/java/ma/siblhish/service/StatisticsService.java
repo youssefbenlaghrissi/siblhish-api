@@ -9,6 +9,7 @@ import ma.siblhish.mapper.EntityMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +24,18 @@ public class StatisticsService {
 
     /**
      * Obtenir les dépenses par catégorie dans une plage de dates
+     * Optimisé : utilise creation_date directement (sans DATE()) pour utiliser les index
+     * et calcule le total directement en SQL avec SUM() OVER ()
+     *
      * @param userId ID de l'utilisateur
      * @param startDate Date de début
      * @param endDate Date de fin
      */
     public CategoryExpensesDto getExpensesByCategory(Long userId, LocalDate startDate, LocalDate endDate) {
+        // Convertir LocalDate en LocalDateTime pour utiliser les index sur creation_date
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
         String sql = """
             SELECT 
                 c.id as category_id,
@@ -35,13 +43,14 @@ public class StatisticsService {
                 c.icon as category_icon,
                 c.color as category_color,
                 SUM(e.amount) as total_amount,
-                COUNT(e.id) as transaction_count
+                COUNT(e.id) as transaction_count,
+                SUM(SUM(e.amount)) OVER () as grand_total
             FROM categories c
             LEFT JOIN expenses e ON c.id = e.category_id 
                 AND e.user_id = :userId 
                 AND e.deleted = false
-                AND DATE(e.creation_date) >= :startDate 
-                AND DATE(e.creation_date) <= :endDate
+                AND e.creation_date >= :startDateTime 
+                AND e.creation_date <= :endDateTime
             GROUP BY c.id, c.name, c.icon, c.color
             HAVING SUM(e.amount) > 0
             ORDER BY total_amount DESC
@@ -49,16 +58,15 @@ public class StatisticsService {
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
-        query.setParameter("startDate", startDate);
-        query.setParameter("endDate", endDate);
+        query.setParameter("startDateTime", startDateTime);
+        query.setParameter("endDateTime", endDateTime);
 
         @SuppressWarnings("unchecked")
         List<Object[]> results = query.getResultList();
 
-        // Calculer le total pour les pourcentages
-        double totalAmount = results.stream()
-                .mapToDouble(row -> mapper.convertToDouble(row[4]))
-                .sum();
+        // Récupérer le total depuis la première ligne (grand_total)
+        double totalAmount = results.isEmpty() ? 0.0 :
+                mapper.convertToDouble(results.get(0)[6]);
 
         List<CategoryExpenseDto> categories = new ArrayList<>();
         for (Object[] row : results) {
@@ -89,10 +97,14 @@ public class StatisticsService {
      * @param endDate Date de fin
      */
     public List<PeriodSummaryDto> getPeriodSummary(Long userId, LocalDate startDate, LocalDate endDate) {
+        // Convertir LocalDate en LocalDateTime pour utiliser les index sur creation_date
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
         // Déterminer la granularité selon la plage de dates
         long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
         String periodFormat;
-        
+
         if (daysBetween <= 1) {
             // daily : 1 jour → agrégation par jour (même si c'est 1 seul jour)
             periodFormat = "TO_CHAR(creation_date, 'YYYY-MM-DD')";
@@ -122,8 +134,8 @@ public class StatisticsService {
                 FROM incomes
                 WHERE user_id = :userId 
                     AND deleted = false
-                    AND DATE(creation_date) >= :startDate 
-                    AND DATE(creation_date) <= :endDate
+                    AND creation_date >= :startDateTime 
+                    AND creation_date <= :endDateTime
                 UNION ALL
                 SELECT 
             """);
@@ -134,8 +146,8 @@ public class StatisticsService {
                 FROM expenses
                 WHERE user_id = :userId 
                     AND deleted = false
-                    AND DATE(creation_date) >= :startDate 
-                    AND DATE(creation_date) <= :endDate
+                    AND creation_date >= :startDateTime 
+                    AND creation_date <= :endDateTime
             ) combined
             GROUP BY period
             ORDER BY period
@@ -144,8 +156,8 @@ public class StatisticsService {
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
-        query.setParameter("startDate", startDate);
-        query.setParameter("endDate", endDate);
+        query.setParameter("startDateTime", startDateTime);
+        query.setParameter("endDateTime", endDateTime);
 
         @SuppressWarnings("unchecked")
         List<Object[]> results = query.getResultList();
@@ -166,8 +178,13 @@ public class StatisticsService {
     /**
      * Requête unifiée pour récupérer toutes les données budgets par catégorie
      * Utilisée par getAllBudgetStatisticsUnified() pour éviter les requêtes SQL dupliquées
+     * Optimisé : utilise creation_date directement (sans DATE()) et optimise GREATEST/LEAST
      */
     private List<Object[]> getBudgetStatisticsData(Long userId, LocalDate startDate, LocalDate endDate) {
+        // Convertir LocalDate en LocalDateTime pour utiliser les index
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
         String sql = """
             SELECT 
                 b.category_id,
@@ -180,13 +197,13 @@ public class StatisticsService {
             LEFT JOIN categories c ON b.category_id = c.id
             LEFT JOIN expenses e ON e.user_id = :userId
               AND e.deleted = false
-              AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
-              AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
+              AND e.creation_date >= GREATEST(b.start_date::timestamp, :startDateTime)
+              AND e.creation_date < LEAST(b.end_date::timestamp, :endDateTime) + INTERVAL '1 day'
               AND e.category_id = b.category_id
             WHERE b.user_id = :userId
               AND b.deleted = false
-              AND DATE(b.start_date) <= :endDate
-              AND DATE(b.end_date) >= :startDate
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
             GROUP BY b.category_id, c.name, c.icon, c.color
             HAVING SUM(b.amount) > 0
             ORDER BY budget_amount DESC
@@ -194,6 +211,8 @@ public class StatisticsService {
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
+        query.setParameter("startDateTime", startDateTime);
+        query.setParameter("endDateTime", endDateTime);
         query.setParameter("startDate", startDate);
         query.setParameter("endDate", endDate);
 
@@ -213,58 +232,65 @@ public class StatisticsService {
      */
     public BudgetStatisticsDto getAllBudgetStatisticsUnified(Long userId, LocalDate startDate, LocalDate endDate) {
         BudgetStatisticsDto unified = new BudgetStatisticsDto();
-        
+
         // Récupérer les données par catégorie (utilisé pour BudgetVsActual et Distribution)
         List<Object[]> categoryResults = getBudgetStatisticsData(userId, startDate, endDate);
-        
-        // Mapper vers BudgetVsActualDto
+
+        // Optimisé : un seul parcours pour créer BudgetVsActual et Distribution
         List<BudgetVsActualDto> budgetVsActual = new ArrayList<>();
+        List<BudgetDistributionDto> distribution = new ArrayList<>();
         double totalBudgetAmount = 0.0;
         double totalSpentAmount = 0.0;
-        
+
+        // Parcourir une seule fois et créer les deux DTOs
         for (Object[] row : categoryResults) {
-            BudgetVsActualDto dto = new BudgetVsActualDto();
             Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
-            dto.setCategoryId(categoryId);
-            dto.setCategoryName((String) row[1]);
-            dto.setIcon((String) row[2]);
-            dto.setColor((String) row[3]);
-            
+            String categoryName = (String) row[1];
+            String icon = (String) row[2];
+            String color = (String) row[3];
             Double budgetAmount = mapper.convertToDouble(row[4]);
             Double actualAmount = mapper.convertToDouble(row[5]);
-            
-            dto.setBudgetAmount(budgetAmount);
-            dto.setActualAmount(actualAmount);
-            dto.setDifference(budgetAmount - actualAmount);
-            dto.setPercentageUsed(budgetAmount > 0 ? (actualAmount / budgetAmount) * 100 : 0.0);
-            
-            budgetVsActual.add(dto);
+
+            // Créer BudgetVsActualDto
+            BudgetVsActualDto vsActualDto = new BudgetVsActualDto();
+            vsActualDto.setCategoryId(categoryId);
+            vsActualDto.setCategoryName(categoryName);
+            vsActualDto.setIcon(icon);
+            vsActualDto.setColor(color);
+            vsActualDto.setBudgetAmount(budgetAmount);
+            vsActualDto.setActualAmount(actualAmount);
+            vsActualDto.setDifference(budgetAmount - actualAmount);
+            vsActualDto.setPercentageUsed(budgetAmount > 0 ? (actualAmount / budgetAmount) * 100 : 0.0);
+            budgetVsActual.add(vsActualDto);
+
+            // Créer BudgetDistributionDto
+            BudgetDistributionDto distributionDto = new BudgetDistributionDto();
+            distributionDto.setCategoryId(categoryId);
+            distributionDto.setCategoryName(categoryName);
+            distributionDto.setIcon(icon);
+            distributionDto.setColor(color);
+            distributionDto.setBudgetAmount(budgetAmount);
+            // Le pourcentage sera calculé après avoir le totalBudgetAmount
+            distribution.add(distributionDto);
+
+            // Accumuler les totaux
             totalBudgetAmount += budgetAmount;
             totalSpentAmount += actualAmount;
         }
-        
-        unified.setBudgetVsActual(budgetVsActual);
-        
-        // Mapper vers BudgetDistributionDto
-        List<BudgetDistributionDto> distribution = new ArrayList<>();
-        for (Object[] row : categoryResults) {
-            BudgetDistributionDto dto = new BudgetDistributionDto();
-            Long categoryId = row[0] != null ? ((Number) row[0]).longValue() : null;
-            dto.setCategoryId(categoryId);
-            dto.setCategoryName((String) row[1]);
-            dto.setIcon((String) row[2]);
-            dto.setColor((String) row[3]);
-            
-            Double budgetAmount = mapper.convertToDouble(row[4]);
-            dto.setBudgetAmount(budgetAmount);
-            dto.setPercentage(totalBudgetAmount > 0 ? (budgetAmount / totalBudgetAmount) * 100 : 0.0);
-            
-            distribution.add(dto);
+
+        // Calculer les pourcentages pour Distribution maintenant qu'on a totalBudgetAmount
+        for (BudgetDistributionDto dto : distribution) {
+            dto.setPercentage(totalBudgetAmount > 0 ? (dto.getBudgetAmount() / totalBudgetAmount) * 100 : 0.0);
         }
-        
+
+        unified.setBudgetVsActual(budgetVsActual);
         unified.setDistribution(distribution);
-        
+
         // Récupérer les données par budget individuel pour calculer efficiency
+        // Optimisé : utilise creation_date directement (sans DATE()) et optimise GREATEST/LEAST
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
         String budgetSql = """
             SELECT 
                 b.id,
@@ -273,25 +299,27 @@ public class StatisticsService {
             FROM budgets b
             LEFT JOIN expenses e ON e.user_id = :userId
               AND e.deleted = false
-              AND DATE(e.creation_date) >= GREATEST(DATE(b.start_date), :startDate)
-              AND DATE(e.creation_date) <= LEAST(DATE(b.end_date), :endDate)
+              AND e.creation_date >= GREATEST(b.start_date::timestamp, :startDateTime)
+              AND e.creation_date < LEAST(b.end_date::timestamp, :endDateTime) + INTERVAL '1 day'
               AND e.category_id = b.category_id
             WHERE b.user_id = :userId
               AND b.deleted = false
-              AND DATE(b.start_date) <= :endDate
-              AND DATE(b.end_date) >= :startDate
+              AND b.start_date <= :endDate
+              AND b.end_date >= :startDate
             GROUP BY b.id, b.amount
             ORDER BY b.id DESC
         """;
 
         Query budgetQuery = entityManager.createNativeQuery(budgetSql);
         budgetQuery.setParameter("userId", userId);
+        budgetQuery.setParameter("startDateTime", startDateTime);
+        budgetQuery.setParameter("endDateTime", endDateTime);
         budgetQuery.setParameter("startDate", startDate);
         budgetQuery.setParameter("endDate", endDate);
 
         @SuppressWarnings("unchecked")
         List<Object[]> budgetResults = budgetQuery.getResultList();
-        
+
         // Calculer budgets on track et exceeded
         int budgetsOnTrack = 0;
         int budgetsExceeded = 0;
@@ -304,7 +332,7 @@ public class StatisticsService {
                 budgetsExceeded++;
             }
         }
-        
+
         // Créer BudgetEfficiencyDto
         BudgetEfficiencyDto efficiency = new BudgetEfficiencyDto();
         efficiency.setTotalBudgets(budgetResults.size());
@@ -314,9 +342,9 @@ public class StatisticsService {
         efficiency.setAveragePercentageUsed(totalBudgetAmount > 0 ? (totalSpentAmount / totalBudgetAmount) * 100 : 0.0);
         efficiency.setBudgetsOnTrack(budgetsOnTrack);
         efficiency.setBudgetsExceeded(budgetsExceeded);
-        
+
         unified.setEfficiency(efficiency);
-        
+
         return unified;
     }
 
