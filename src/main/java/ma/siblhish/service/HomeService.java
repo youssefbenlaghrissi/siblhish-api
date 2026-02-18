@@ -6,8 +6,10 @@ import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.mapper.EntityMapper;
+import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.IncomeRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -27,6 +29,7 @@ public class HomeService {
     private final ExpenseRepository expenseRepository;
     private final EntityMapper mapper;
 
+    @Cacheable(value = CacheConfig.BALANCE, key = "#userId")
     public BalanceDto getBalance(Long userId) {
         Double totalIncome = incomeRepository.getTotalIncomeByUserId(userId);
         Double totalExpenses = expenseRepository.getTotalExpensesByUserId(userId);
@@ -55,6 +58,8 @@ public class HomeService {
      * @param minAmount Optionnel : montant minimum pour filtrer les transactions
      * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
      */
+    @Cacheable(value = CacheConfig.RECENT_TRANSACTIONS,
+            key = "#userId + '-' + #limit + '-' + T(java.util.Objects).requireNonNullElse(#type,'') + '-' + T(java.util.Objects).requireNonNullElse(#dateRange,'') + '-' + T(java.util.Objects).requireNonNullElse(#startDate,'') + '-' + T(java.util.Objects).requireNonNullElse(#endDate,'') + '-' + T(java.util.Objects).requireNonNullElse(#minAmount,0) + '-' + T(java.util.Objects).requireNonNullElse(#maxAmount,0) + '-' + (T(java.util.Objects).requireNonNullElse(#dateRange,'').isEmpty() || 'custom'.equalsIgnoreCase(T(java.util.Objects).requireNonNullElse(#dateRange,'')) ? T(java.util.Objects).requireNonNullElse(#endDate,'') : T(java.time.LocalDate).now())")
     public List<TransactionDto> getRecentTransactions(
             Long userId, 
             Integer limit, 

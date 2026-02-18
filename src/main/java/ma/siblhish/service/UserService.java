@@ -7,8 +7,11 @@ import ma.siblhish.entities.Favorite;
 import ma.siblhish.entities.User;
 import ma.siblhish.exception.AuthenticationException;
 import ma.siblhish.mapper.EntityMapper;
+import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.FavoriteRepository;
 import ma.siblhish.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +31,7 @@ public class UserService {
     private final FavoriteRepository favoriteRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Cacheable(value = CacheConfig.USERS, key = "#userId")
     public UserProfileDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -128,6 +132,7 @@ public class UserService {
      * @throws IllegalArgumentException si le token est vide ou si l'utilisateur n'existe pas
      */
     @Transactional
+    @CacheEvict(value = CacheConfig.USERS, key = "#userId")
     public void updateFcmToken(Long userId, String fcmToken) {
         if (fcmToken == null || fcmToken.trim().isEmpty()) {
             throw new IllegalArgumentException("Le token FCM est requis");
@@ -151,6 +156,7 @@ public class UserService {
      * @throws IllegalArgumentException si l'utilisateur n'existe pas ou si la langue est invalide
      */
     @Transactional
+    @CacheEvict(value = CacheConfig.USERS, key = "#userId")
     public UserProfileDto updatePreferences(Long userId, Boolean notificationsEnabled, String language) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));

@@ -7,8 +7,12 @@ import ma.siblhish.entities.Goal;
 import ma.siblhish.entities.User;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
+import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.GoalRepository;
 import ma.siblhish.repository.UserRepository;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,13 +27,16 @@ public class GoalService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
+    private final CacheManager cacheManager;
 
+    @Cacheable(value = CacheConfig.GOALS, key = "#userId")
     public List<GoalDto> getGoalsByUserId(Long userId) {
         List<Goal> goals = goalRepository.findByUserIdOrderByIdDesc(userId);
         return mapper.toGoalDtoList(goals);
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfig.GOALS, key = "#request.userId")
     public GoalDto createGoal(GoalRequestDto request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
@@ -56,6 +63,7 @@ public class GoalService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfig.GOALS, key = "#result.userId")
     public GoalDto updateGoal(Long goalId, GoalRequestDto request) {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
@@ -107,6 +115,7 @@ public class GoalService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfig.GOALS, key = "#result.userId")
     public GoalDto addAmountToGoal(Long goalId, AddAmountDto request) {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new RuntimeException("Goal not found with id: " + goalId));
@@ -149,8 +158,10 @@ public class GoalService {
             throw new IllegalArgumentException("L'objectif a déjà été supprimé.");
         }
         
+        Long userId = goal.getUser().getId();
         goal.setDeleted(true);
         goalRepository.save(goal);
+        if (cacheManager.getCache(CacheConfig.GOALS) != null) cacheManager.getCache(CacheConfig.GOALS).evict(userId);
     }
 
 }

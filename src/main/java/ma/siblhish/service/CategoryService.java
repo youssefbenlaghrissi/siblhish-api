@@ -1,10 +1,12 @@
 package ma.siblhish.service;
 
 import lombok.RequiredArgsConstructor;
+import ma.siblhish.config.CacheConfig;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Category;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +19,8 @@ public class CategoryService {
     private final EntityMapper mapper;
 
     /*
+    Lorsque ces méthodes seront réactivées, ajouter @CacheEvict(CacheConfig.CATEGORIES, allEntries = true)
+    sur createCategory, updateCategory et deleteCategory pour invalider le cache.
     @Transactional
     public CategoryDto createCategory(CategoryRequestDto request) {
         Category category = new Category();
@@ -51,6 +55,7 @@ public class CategoryService {
     }
     */
 
+    @Cacheable(CacheConfig.CATEGORIES)
     public List<CategoryDto> getAllCategories() {
         List<Category> categories = categoryRepository.findAllCategories();
         return mapper.toCategoryDtoList(categories);

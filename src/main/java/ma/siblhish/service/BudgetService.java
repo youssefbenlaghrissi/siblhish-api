@@ -12,8 +12,11 @@ import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.BudgetRepository;
 import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.UserRepository;
+import ma.siblhish.config.CacheConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,7 @@ public class BudgetService {
     private final CategoryRepository categoryRepository;
     private final EntityMapper mapper;
 
+    @Cacheable(value = CacheConfig.BUDGETS, key = "#userId + '-' + T(java.util.Objects).requireNonNullElse(#month, 'all')")
     public List<BudgetDto> getBudgets(Long userId, String month) {
         // Si un mois est fourni et valide, appliquer le filtre mois
         if (month != null && !month.isEmpty()) {
@@ -62,6 +66,7 @@ public class BudgetService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfig.BUDGETS, allEntries = true)
     public BudgetDto createBudget(BudgetRequestDto request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
@@ -85,6 +90,7 @@ public class BudgetService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfig.BUDGETS, allEntries = true)
     public BudgetDto updateBudget(Long budgetId, BudgetRequestDto request) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
@@ -110,6 +116,7 @@ public class BudgetService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConfig.BUDGETS, allEntries = true)
     public void deleteBudget(Long budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
