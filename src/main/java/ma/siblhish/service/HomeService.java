@@ -58,8 +58,10 @@ public class HomeService {
      * @param minAmount Optionnel : montant minimum pour filtrer les transactions
      * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
      */
+    /** Cache : clé simplifiée userId + limit + date du jour. Cache uniquement quand aucun filtre (sinon pas de cache). */
     @Cacheable(value = CacheConfig.RECENT_TRANSACTIONS,
-            key = "#userId + '-' + #limit + '-' + T(java.util.Objects).requireNonNullElse(#type,'') + '-' + T(java.util.Objects).requireNonNullElse(#dateRange,'') + '-' + T(java.util.Objects).requireNonNullElse(#startDate,'') + '-' + T(java.util.Objects).requireNonNullElse(#endDate,'') + '-' + T(java.util.Objects).requireNonNullElse(#minAmount,0) + '-' + T(java.util.Objects).requireNonNullElse(#maxAmount,0) + '-' + (T(java.util.Objects).requireNonNullElse(#dateRange,'').isEmpty() || 'custom'.equalsIgnoreCase(T(java.util.Objects).requireNonNullElse(#dateRange,'')) ? T(java.util.Objects).requireNonNullElse(#endDate,'') : T(java.time.LocalDate).now())")
+            key = "#userId + '-' + #limit + '-' + T(java.time.LocalDate).now()",
+            condition = "#type == null && (#dateRange == null || #dateRange.isEmpty()) && #startDate == null && #endDate == null && #minAmount == null && #maxAmount == null")
     public List<TransactionDto> getRecentTransactions(
             Long userId, 
             Integer limit, 
