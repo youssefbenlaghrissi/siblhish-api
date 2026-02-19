@@ -7,12 +7,8 @@ import ma.siblhish.entities.Notification;
 import ma.siblhish.entities.User;
 import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.mapper.EntityMapper;
-import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.NotificationRepository;
 import ma.siblhish.repository.UserRepository;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.scheduling.annotation.Async;
@@ -32,9 +28,7 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final EntityMapper mapper;
     private final FcmNotificationService fcmNotificationService;
-    private final CacheManager cacheManager;
 
-    @Cacheable(value = CacheConfig.NOTIFICATIONS, key = "#userId")
     public List<NotificationDto> getNotifications(Long userId) {
         List<Notification> notifications = notificationRepository.findAllByUserIdAndNotDeleted(userId);
         return notifications.stream()
@@ -50,27 +44,22 @@ public class NotificationService {
         Long userId = notification.getUser().getId();
         notification.setIsRead(true);
         Notification saved = notificationRepository.save(notification);
-        evictNotificationCaches(userId);
         return mapper.toNotificationDto(saved);
     }
 
     @Transactional
     public void markAllAsRead(Long userId) {
         notificationRepository.markAllAsReadByUserId(userId);
-        evictNotificationCaches(userId);
     }
 
     @Transactional
     public void deleteNotification(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found with id: " + notificationId));
-        Long userId = notification.getUser().getId();
         notification.setDeleted(true);
         notificationRepository.save(notification);
-        evictNotificationCaches(userId);
     }
 
-    @Cacheable(value = CacheConfig.NOTIFICATIONS, key = "'unread-' + #userId")
     public UnreadCountDto getUnreadCount(Long userId) {
         Long count = notificationRepository.countUnreadByUserId(userId);
         return new UnreadCountDto(count != null ? count.intValue() : 0);
@@ -92,16 +81,8 @@ public class NotificationService {
         notification.setCreationDate(now);
         
         Notification savedNotification = notificationRepository.save(notification);
-        evictNotificationCaches(userId);
         // Envoyer une notification push à l'utilisateur de manière asynchrone
         sendNotificationAsync(user, title, description, type, transactionType, savedNotification.getId());
-    }
-
-    private void evictNotificationCaches(Long userId) {
-        if (cacheManager.getCache(CacheConfig.NOTIFICATIONS) != null) {
-            cacheManager.getCache(CacheConfig.NOTIFICATIONS).evict(userId);
-            cacheManager.getCache(CacheConfig.NOTIFICATIONS).evict("unread-" + userId);
-        }
     }
 
     /**

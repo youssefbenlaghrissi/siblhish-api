@@ -4,10 +4,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
-import ma.siblhish.config.CacheConfig;
 import ma.siblhish.dto.*;
 import ma.siblhish.mapper.EntityMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -358,9 +356,6 @@ public class StatisticsService {
      * @param endDate Date de fin
      * @return DTO unifié contenant toutes les statistiques
      */
-    @Cacheable(value = CacheConfig.STATISTICS,
-            key = "'all-' + #userId + '-' + #startDate + '-' + #endDate",
-            condition = "#endDate != null && #startDate != null && T(java.time.temporal.ChronoUnit).DAYS.between(#startDate, #endDate) <= 366")
     public StatisticsDto getAllStatistics(Long userId, LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("La date de début doit être antérieure ou égale à la date de fin");

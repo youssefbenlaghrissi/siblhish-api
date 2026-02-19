@@ -11,13 +11,9 @@ import ma.siblhish.entities.User;
 import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.CategoryRepository;
-import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.ScheduledPaymentRepository;
 import ma.siblhish.repository.UserRepository;
 import ma.siblhish.service.NotificationService;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,16 +33,13 @@ public class ScheduledPaymentService {
     private final EntityMapper mapper;
     private final ExpenseService expenseService;
     private final NotificationService notificationService;
-    private final CacheManager cacheManager;
 
-    @Cacheable(value = CacheConfig.SCHEDULED_PAYMENTS, key = "#userId")
     public List<ScheduledPaymentDto> getScheduledPaymentsByUser(Long userId) {
         List<ScheduledPayment> payments = scheduledPaymentRepository.findByUserId(userId);
         return payments.stream().map(mapper::toScheduledPaymentDto).toList();
     }
 
     @Transactional
-    @CacheEvict(value = CacheConfig.SCHEDULED_PAYMENTS, key = "#request.userId")
     public ScheduledPaymentDto createScheduledPayment(ScheduledPaymentRequestDto request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
@@ -81,7 +74,6 @@ public class ScheduledPaymentService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConfig.SCHEDULED_PAYMENTS, key = "#result.userId")
     public ScheduledPaymentDto updateScheduledPayment(Long paymentId, ScheduledPaymentRequestDto request) {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
@@ -118,7 +110,6 @@ public class ScheduledPaymentService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConfig.SCHEDULED_PAYMENTS, key = "#result.userId")
     public ScheduledPaymentDto markAsPaid(Long paymentId, String paymentDateStr) {
         ScheduledPayment payment = scheduledPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Scheduled payment not found with id: " + paymentId));
@@ -225,12 +216,8 @@ public class ScheduledPaymentService {
             throw new RuntimeException("Un paiement planifié déjà payé ne peut pas être supprimé");
         }
         
-        Long userId = payment.getUser().getId();
         payment.setDeleted(true);
         scheduledPaymentRepository.save(payment);
-        if (cacheManager.getCache(CacheConfig.SCHEDULED_PAYMENTS) != null) {
-            cacheManager.getCache(CacheConfig.SCHEDULED_PAYMENTS).evict(userId);
-        }
     }
     
     /**

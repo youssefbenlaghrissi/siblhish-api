@@ -4,13 +4,9 @@ import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.entities.Income;
 import ma.siblhish.entities.User;
-import ma.siblhish.config.CacheConfig;
 import ma.siblhish.mapper.EntityMapper;
 import ma.siblhish.repository.IncomeRepository;
 import ma.siblhish.repository.UserRepository;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +20,8 @@ public class IncomeService {
     private final IncomeRepository incomeRepository;
     private final UserRepository userRepository;
     private final EntityMapper mapper;
-    private final CacheManager cacheManager;
 
     @Transactional
-    @CacheEvict(cacheNames = {CacheConfig.INCOMES, CacheConfig.BALANCE}, key = "#request.userId")
     public IncomeDto createIncome(IncomeRequestDto request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
@@ -52,7 +46,6 @@ public class IncomeService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {CacheConfig.INCOMES, CacheConfig.BALANCE}, key = "#result.userId")
     public IncomeDto updateIncome(Long incomeId, IncomeRequestDto request) {
         Income income = incomeRepository.findById(incomeId)
                 .orElseThrow(() -> new RuntimeException("Income not found with id: " + incomeId));
@@ -80,14 +73,10 @@ public class IncomeService {
     public void deleteIncome(Long incomeId) {
         Income income = incomeRepository.findById(incomeId)
                 .orElseThrow(() -> new RuntimeException("Income not found with id: " + incomeId));
-        Long userId = income.getUser().getId();
         income.setDeleted(true);
         incomeRepository.save(income);
-        if (cacheManager.getCache(CacheConfig.INCOMES) != null) cacheManager.getCache(CacheConfig.INCOMES).evict(userId);
-        if (cacheManager.getCache(CacheConfig.BALANCE) != null) cacheManager.getCache(CacheConfig.BALANCE).evict(userId);
     }
 
-    @Cacheable(value = CacheConfig.INCOMES, key = "#userId")
     public List<IncomeDto> getIncomesByUser(Long userId) {
         List<Income> incomes = incomeRepository.findByUserIdOrderByIdDesc(userId);
         return mapper.toIncomeDtoList(incomes);

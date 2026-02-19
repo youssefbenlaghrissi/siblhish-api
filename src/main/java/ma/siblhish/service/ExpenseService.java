@@ -9,15 +9,11 @@ import ma.siblhish.entities.Expense;
 import ma.siblhish.entities.User;
 import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.mapper.EntityMapper;
-import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.BudgetRepository;
 import ma.siblhish.repository.CategoryRepository;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.UserRepository;
 import ma.siblhish.service.NotificationService;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,10 +37,8 @@ public class ExpenseService {
     private final BudgetRepository budgetRepository;
     private final NotificationService notificationService;
     private final EntityMapper mapper;
-    private final CacheManager cacheManager;
 
     @Transactional
-    @CacheEvict(cacheNames = {CacheConfig.EXPENSES, CacheConfig.BALANCE}, key = "#request.userId")
     public ExpenseDto createExpense(ExpenseRequestDto request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
@@ -80,7 +74,6 @@ public class ExpenseService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {CacheConfig.EXPENSES, CacheConfig.BALANCE}, key = "#result.userId")
     public ExpenseDto updateExpense(Long expenseId, ExpenseRequestDto request) {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found with id: " + expenseId));
@@ -115,27 +108,15 @@ public class ExpenseService {
     public void deleteExpense(Long expenseId) {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found with id: " + expenseId));
-        Long userId = expense.getUser().getId();
         expense.setDeleted(true);
         expenseRepository.save(expense);
-        evictUserCaches(userId);
     }
 
-    @Cacheable(value = CacheConfig.EXPENSES, key = "#userId")
     public List<ExpenseDto> getExpensesByUser(Long userId) {
         List<Expense> expenses = expenseRepository.findByUserIdOrderByIdDesc(userId);
         return mapper.toExpenseDtoList(expenses);
     }
 
-    private void evictUserCaches(Long userId) {
-        if (cacheManager.getCache(CacheConfig.EXPENSES) != null) {
-            cacheManager.getCache(CacheConfig.EXPENSES).evict(userId);
-        }
-        if (cacheManager.getCache(CacheConfig.BALANCE) != null) {
-            cacheManager.getCache(CacheConfig.BALANCE).evict(userId);
-        }
-    }
-    
     /**
      * Vérifie les budgets affectés par cette dépense et envoie des notifications si nécessaire
      */

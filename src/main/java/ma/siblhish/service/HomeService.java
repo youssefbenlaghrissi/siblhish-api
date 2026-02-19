@@ -6,10 +6,8 @@ import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import ma.siblhish.dto.*;
 import ma.siblhish.mapper.EntityMapper;
-import ma.siblhish.config.CacheConfig;
 import ma.siblhish.repository.ExpenseRepository;
 import ma.siblhish.repository.IncomeRepository;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -29,7 +27,6 @@ public class HomeService {
     private final ExpenseRepository expenseRepository;
     private final EntityMapper mapper;
 
-    @Cacheable(value = CacheConfig.BALANCE, key = "#userId")
     public BalanceDto getBalance(Long userId) {
         Double totalIncome = incomeRepository.getTotalIncomeByUserId(userId);
         Double totalExpenses = expenseRepository.getTotalExpensesByUserId(userId);
@@ -58,10 +55,6 @@ public class HomeService {
      * @param minAmount Optionnel : montant minimum pour filtrer les transactions
      * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
      */
-    /** Cache : clé simplifiée userId + limit + date du jour. Cache uniquement quand aucun filtre (sinon pas de cache). */
-    @Cacheable(value = CacheConfig.RECENT_TRANSACTIONS,
-            key = "#userId + '-' + #limit + '-' + T(java.time.LocalDate).now()",
-            condition = "#type == null && (#dateRange == null || #dateRange.isEmpty()) && #startDate == null && #endDate == null && #minAmount == null && #maxAmount == null")
     public List<TransactionDto> getRecentTransactions(
             Long userId, 
             Integer limit, 
