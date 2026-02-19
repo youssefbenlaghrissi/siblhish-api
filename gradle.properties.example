@@ -1,0 +1,6 @@
+# Copier ce fichier en gradle.properties et adapter le chemin si vous devez
+# forcer Gradle à utiliser JDK 21 (pour éviter "Unsupported class file major version 69").
+# Exemple Windows :
+# org.gradle.java.home=C:\\Program Files\\Java\\jdk-21
+# Exemple Linux/macOS :
+# org.gradle.java.home=/usr/lib/jvm/java-21-openjdk

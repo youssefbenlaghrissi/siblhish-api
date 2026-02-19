@@ -307,8 +307,9 @@ public class BudgetSuggestionService {
         percentages.put("Restaurant", 0.02);         // 2% - Réduit
         percentages.put("Café", 0.01);              // 1% - Réduit
         
-        // TRANSPORT
-        percentages.put("Transport", 0.08);          // 8% - Plus élevé
+        // TRANSPORT & VOITURE (même part du revenu que Transport)
+        percentages.put("Transport", 0.10);          // 10% - Plus élevé
+        percentages.put("Voiture", 0.10);            // 10% - Idem Transport
         percentages.put("Carburant", 0.10);         // 10% - Plus élevé
         percentages.put("Parking", 0.01);
         percentages.put("Vignette", 0.005);
@@ -328,6 +329,7 @@ public class BudgetSuggestionService {
         // SANTÉ
         percentages.put("Santé", 0.05);              // 5% - Plus élevé
         percentages.put("Médical", 0.03);           // 3% - Plus élevé
+        percentages.put("Pharmacie", 0.03);         // 3% - Très faible
         percentages.put("Salle de sport", 0.01);
         percentages.put("Sport", 0.01);
         
@@ -342,6 +344,8 @@ public class BudgetSuggestionService {
         percentages.put("Voyage", 0.01);
         percentages.put("Sorties", 0.01);
         percentages.put("Streaming", 0.01);
+        percentages.put("Cinéma", 0.015);            // 1.5% - Très faible
+        percentages.put("Livres", 0.01);            // 1% - Très faible
         
         // SHOPPING - Réduit
         percentages.put("Shopping", 0.01);
@@ -361,6 +365,8 @@ public class BudgetSuggestionService {
         percentages.put("Factures", 0.02);
         percentages.put("Animaux", 0.01);
         percentages.put("Beauté", 0.01);
+        percentages.put("Pour femme", 0.08);         // 8% - Très faible
+        percentages.put("Pour madame", 0.08);       // 8% - Alias
         percentages.put("Autres", 0.02);
         
         return Collections.unmodifiableMap(percentages);
@@ -377,7 +383,8 @@ public class BudgetSuggestionService {
         percentages.put("Restaurant", 0.03);
         percentages.put("Café", 0.015);
         
-        percentages.put("Transport", 0.06);
+        percentages.put("Transport", 0.075);        // 7.5%
+        percentages.put("Voiture", 0.075);          // 7.5% - Idem Transport
         percentages.put("Carburant", 0.08);
         percentages.put("Parking", 0.01);
         percentages.put("Vignette", 0.005);
@@ -395,6 +402,7 @@ public class BudgetSuggestionService {
         
         percentages.put("Santé", 0.04);
         percentages.put("Médical", 0.025);
+        percentages.put("Pharmacie", 0.025);        // 2.5% - Faible
         percentages.put("Salle de sport", 0.012);
         percentages.put("Sport", 0.012);
         
@@ -407,6 +415,8 @@ public class BudgetSuggestionService {
         percentages.put("Voyage", 0.02);
         percentages.put("Sorties", 0.015);
         percentages.put("Streaming", 0.015);
+        percentages.put("Cinéma", 0.015);           // 1.5% - Faible
+        percentages.put("Livres", 0.01);            // 1% - Faible
         
         percentages.put("Shopping", 0.02);
         percentages.put("Vêtements", 0.02);
@@ -422,6 +432,8 @@ public class BudgetSuggestionService {
         percentages.put("Factures", 0.02);
         percentages.put("Animaux", 0.015);
         percentages.put("Beauté", 0.015);
+        percentages.put("Pour femme", 0.08);         // 8% - Faible
+        percentages.put("Pour madame", 0.08);       // 8% - Alias
         percentages.put("Autres", 0.025);
         
         return Collections.unmodifiableMap(percentages);
@@ -440,7 +452,8 @@ public class BudgetSuggestionService {
         percentages.put("Restaurant", 0.05);        // 5% - Augmenté
         percentages.put("Café", 0.025);
         
-        percentages.put("Transport", 0.025);
+        percentages.put("Transport", 0.03);         // 3%
+        percentages.put("Voiture", 0.03);            // 3% - Idem Transport
         percentages.put("Carburant", 0.035);
         percentages.put("Parking", 0.01);
         percentages.put("Vignette", 0.005);
@@ -458,6 +471,7 @@ public class BudgetSuggestionService {
         
         percentages.put("Santé", 0.025);
         percentages.put("Médical", 0.018);
+        percentages.put("Pharmacie", 0.018);        // 1.8% - Élevé
         percentages.put("Salle de sport", 0.018);
         percentages.put("Sport", 0.018);
         
@@ -470,6 +484,8 @@ public class BudgetSuggestionService {
         percentages.put("Voyage", 0.05);
         percentages.put("Sorties", 0.025);
         percentages.put("Streaming", 0.025);
+        percentages.put("Cinéma", 0.012);           // 1.2% - Élevé
+        percentages.put("Livres", 0.008);          // 0.8% - Élevé
         
         percentages.put("Shopping", 0.04);
         percentages.put("Vêtements", 0.03);
@@ -485,6 +501,8 @@ public class BudgetSuggestionService {
         percentages.put("Factures", 0.02);
         percentages.put("Animaux", 0.025);
         percentages.put("Beauté", 0.025);
+        percentages.put("Pour femme", 0.04);         // 4% - Élevé
+        percentages.put("Pour madame", 0.04);       // 4% - Alias
         percentages.put("Autres", 0.04);
         
         return Collections.unmodifiableMap(percentages);
@@ -501,7 +519,8 @@ public class BudgetSuggestionService {
         percentages.put("Restaurant", 0.06);         // 6% - Augmenté
         percentages.put("Café", 0.03);
         
-        percentages.put("Transport", 0.02);
+        percentages.put("Transport", 0.03);        // 3%
+        percentages.put("Voiture", 0.03);            // 3% - Idem Transport
         percentages.put("Carburant", 0.03);
         percentages.put("Parking", 0.01);
         percentages.put("Vignette", 0.005);
@@ -519,6 +538,7 @@ public class BudgetSuggestionService {
         
         percentages.put("Santé", 0.02);
         percentages.put("Médical", 0.015);
+        percentages.put("Pharmacie", 0.012);        // 1.2% - Très élevé
         percentages.put("Salle de sport", 0.02);
         percentages.put("Sport", 0.02);
         
@@ -531,6 +551,8 @@ public class BudgetSuggestionService {
         percentages.put("Voyage", 0.08);            // 8% - Augmenté
         percentages.put("Sorties", 0.03);
         percentages.put("Streaming", 0.03);
+        percentages.put("Cinéma", 0.01);            // 1% - Très élevé
+        percentages.put("Livres", 0.006);           // 0.6% - Très élevé
         
         percentages.put("Shopping", 0.05);
         percentages.put("Vêtements", 0.04);
@@ -546,6 +568,8 @@ public class BudgetSuggestionService {
         percentages.put("Factures", 0.02);
         percentages.put("Animaux", 0.03);
         percentages.put("Beauté", 0.03);
+        percentages.put("Pour femme", 0.03);         // 3% - Très élevé
+        percentages.put("Pour madame", 0.03);       // 3% - Alias
         percentages.put("Autres", 0.05);
         
         return Collections.unmodifiableMap(percentages);
@@ -566,7 +590,9 @@ public class BudgetSuggestionService {
         percentages.put("Café", 0.02);              // 2% - Cafés
         
         // ========== TRANSPORT & VOITURE (12% du revenu) ==========
-        percentages.put("Transport", 0.03);          // 3% - Transport général
+        // Transport % par tranche: Très faible 10%, Faible 7.5%, Moyen 4%, Élevé 3%, Très élevé 3%
+        percentages.put("Transport", 0.04);          // 4% - Transport général (revenus moyens 5000-10000 MAD)
+        percentages.put("Voiture", 0.04);           // 4% - Idem Transport
         percentages.put("Carburant", 0.04);         // 4% - Essence/Diesel
         percentages.put("Parking", 0.01);           // 1% - Parking
         percentages.put("Vignette", 0.005);          // 0.5% - Vignette (annuel divisé par 12)
@@ -587,6 +613,7 @@ public class BudgetSuggestionService {
         // ========== SANTÉ & SPORT (8% du revenu) ==========
         percentages.put("Santé", 0.03);              // 3% - Santé générale
         percentages.put("Médical", 0.02);            // 2% - Soins médicaux
+        percentages.put("Pharmacie", 0.02);          // 2% - Moyen
         percentages.put("Salle de sport", 0.015);   // 1.5% - Abonnement salle
         percentages.put("Sport", 0.015);             // 1.5% - Équipement sport
         
@@ -601,6 +628,8 @@ public class BudgetSuggestionService {
         percentages.put("Voyage", 0.04);             // 4% - Voyages
         percentages.put("Sorties", 0.02);            // 2% - Sorties
         percentages.put("Streaming", 0.02);           // 2% - Abonnements streaming
+        percentages.put("Cinéma", 0.012);           // 1.2% - Moyen
+        percentages.put("Livres", 0.008);            // 0.8% - Moyen
         
         // ========== SHOPPING (8% du revenu) ==========
         percentages.put("Shopping", 0.03);            // 3% - Shopping général
@@ -620,6 +649,8 @@ public class BudgetSuggestionService {
         percentages.put("Factures", 0.02);           // 2% - Factures diverses
         percentages.put("Animaux", 0.02);            // 2% - Animaux de compagnie
         percentages.put("Beauté", 0.02);             // 2% - Soins beauté
+        percentages.put("Pour femme", 0.05);         // 5% - Moyen
+        percentages.put("Pour madame", 0.05);       // 5% - Alias
         percentages.put("Autres", 0.03);             // 3% - Autres dépenses
         
         return Collections.unmodifiableMap(percentages);

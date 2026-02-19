@@ -183,7 +183,7 @@ public class ScheduledPaymentReminderScheduler {
                 title = "Rappel de paiement planifié";
             }
             
-            String description = buildReminderDescription(payment, reminderType, daysUntilDue);
+            String description = buildReminderDescription(payment, daysUntilDue);
             
             notificationService.createNotification(
                 payment.getUser().getId(),
@@ -206,17 +206,21 @@ public class ScheduledPaymentReminderScheduler {
     /**
      * Construit la description de la notification de rappel
      */
-    private String buildReminderDescription(ScheduledPayment payment, String reminderType, long daysUntilDue) {
+    private String buildReminderDescription(ScheduledPayment payment, long daysUntilDue) {
         StringBuilder desc = new StringBuilder();
         
         if (daysUntilDue < 0) {
-            desc.append("⚠️ Votre paiement planifié \"");
+            desc.append("Votre paiement planifié \"");
         } else if (daysUntilDue == 0) {
-            desc.append("⚠️ Votre paiement planifié \"");
+            desc.append("Votre paiement planifié \"");
         } else {
-            desc.append("📅 Rappel : Votre paiement planifié \"");
+            desc.append("Rappel : Votre paiement planifié \"");
         }
-        
+
+        if (payment.getCategory() != null) {
+            desc.append(" de la Catégorie : ").append(payment.getCategory().getName());
+        }
+
         desc.append(payment.getName());
         desc.append("\" d'un montant de ");
         desc.append(String.format("%.2f", payment.getAmount()));
@@ -243,13 +247,7 @@ public class ScheduledPaymentReminderScheduler {
         if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
             desc.append(" - Bénéficiaire : ").append(payment.getBeneficiary());
         }
-        
-        if (payment.getCategory() != null) {
-            desc.append(" - Catégorie : ").append(payment.getCategory().getName());
-        }
-        
-        desc.append(" [ID: ").append(payment.getId()).append("]");
-        
+
         return desc.toString();
     }
 }

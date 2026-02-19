@@ -1,7 +1,9 @@
 plugins {
     id 'java'
+    id 'scala'
     id 'org.springframework.boot' version '4.0.0'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'io.gatling.gradle' version '3.14.9.8'
 }
 
 group = 'ma.siblhish'
@@ -11,6 +13,10 @@ description = 'siblhish-api'
 java {
     sourceCompatibility = '21'
     targetCompatibility = '21'
+}
+
+scala {
+    scalaVersion = '2.13.12'
 }
 
 configurations {
@@ -47,4 +53,12 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// Tests de charge : l’API doit tourner (ex. ./gradlew bootRun)
+// ./gradlew gatlingRun
+gatling {
+    systemProperties = [
+        'gatling.core.baseUrl': project.findProperty('loadTest.baseUrl') ?: "http://localhost:${project.findProperty('loadTest.port') ?: '8082'}/api/v1"
+    ]
 }

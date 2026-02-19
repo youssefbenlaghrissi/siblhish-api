@@ -246,9 +246,9 @@ public class ScheduledPaymentService {
      */
     private void createPaymentMarkedAsPaidNotification(ScheduledPayment payment) {
         try {
-            String title = "Paiement confirmé";
+            String title = "✅ Paiement confirmé";
             StringBuilder description = new StringBuilder();
-            description.append("✅ Votre paiement planifié \"");
+            description.append("Votre paiement planifié \"");
             description.append(payment.getName());
             description.append("\" d'un montant de ");
             description.append(String.format("%.2f", payment.getAmount()));
