@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -36,7 +37,9 @@ public class IncomeService {
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         income.setRecurrenceFrequency(request.getRecurrenceFrequency());
         income.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        income.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        income.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(request.getRecurrenceDaysOfWeek())
+                : null);
         income.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         income.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         income.setUser(user);
@@ -61,7 +64,9 @@ public class IncomeService {
         income.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         income.setRecurrenceFrequency(request.getRecurrenceFrequency());
         income.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        income.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        income.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(request.getRecurrenceDaysOfWeek())
+                : null);
         income.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         income.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         

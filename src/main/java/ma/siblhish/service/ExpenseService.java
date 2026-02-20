@@ -92,7 +92,9 @@ public class ExpenseService {
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         expense.setRecurrenceFrequency(request.getRecurrenceFrequency());
         expense.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(request.getRecurrenceDaysOfWeek())
+                : null);
         expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         expense.setCategory(category);

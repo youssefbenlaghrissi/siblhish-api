@@ -57,7 +57,9 @@ public class ScheduledPaymentService {
         payment.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
         payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(request.getRecurrenceDaysOfWeek())
+                : null);
         payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         payment.setNotificationOption(request.getNotificationOption());
@@ -95,7 +97,9 @@ public class ScheduledPaymentService {
         payment.setIsRecurring(request.getIsRecurring());
         payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
         payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
+        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(request.getRecurrenceDaysOfWeek())
+                : null);
         payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         payment.setNotificationOption(request.getNotificationOption());
@@ -154,8 +158,10 @@ public class ScheduledPaymentService {
             expenseRequest.setIsRecurring(true);
             expenseRequest.setRecurrenceFrequency(payment.getRecurrenceFrequency());
             expenseRequest.setRecurrenceEndDate(payment.getRecurrenceEndDate());
-            // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-            expenseRequest.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
+            // Nouvelle liste pour éviter le partage de référence (erreur Hibernate)
+            expenseRequest.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek() != null
+                    ? new ArrayList<>(payment.getRecurrenceDaysOfWeek())
+                    : null);
             expenseRequest.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
             expenseRequest.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         } else {
@@ -175,7 +181,10 @@ public class ScheduledPaymentService {
         nextPayment.setIsRecurring(true);
         nextPayment.setRecurrenceFrequency(payment.getRecurrenceFrequency());
         nextPayment.setRecurrenceEndDate(payment.getRecurrenceEndDate());
-        nextPayment.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
+        // Nouvelle liste pour éviter "Found shared references to a collection" (Hibernate)
+        nextPayment.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(payment.getRecurrenceDaysOfWeek())
+                : null);
         nextPayment.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
         nextPayment.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         nextPayment.setNotificationOption(payment.getNotificationOption());

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,9 @@ public class EntityMapper {
         dto.setIsRecurring(expense.getIsRecurring());
         dto.setRecurrenceFrequency(expense.getRecurrenceFrequency());
         dto.setRecurrenceEndDate(expense.getRecurrenceEndDate());
-        dto.setRecurrenceDaysOfWeek(expense.getRecurrenceDaysOfWeek());
+        dto.setRecurrenceDaysOfWeek(expense.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(expense.getRecurrenceDaysOfWeek())
+                : null);
         dto.setRecurrenceDayOfMonth(expense.getRecurrenceDayOfMonth());
         dto.setRecurrenceDayOfYear(expense.getRecurrenceDayOfYear());
         dto.setUserId(expense.getUser().getId());
@@ -65,7 +68,9 @@ public class EntityMapper {
         dto.setIsRecurring(income.getIsRecurring());
         dto.setRecurrenceFrequency(income.getRecurrenceFrequency());
         dto.setRecurrenceEndDate(income.getRecurrenceEndDate());
-        dto.setRecurrenceDaysOfWeek(income.getRecurrenceDaysOfWeek());
+        dto.setRecurrenceDaysOfWeek(income.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(income.getRecurrenceDaysOfWeek())
+                : null);
         dto.setRecurrenceDayOfMonth(income.getRecurrenceDayOfMonth());
         dto.setRecurrenceDayOfYear(income.getRecurrenceDayOfYear());
         dto.setUserId(income.getUser().getId());
@@ -158,7 +163,9 @@ public class EntityMapper {
         dto.setIsRecurring(payment.getIsRecurring());
         dto.setRecurrenceFrequency(payment.getRecurrenceFrequency());
         dto.setRecurrenceEndDate(payment.getRecurrenceEndDate());
-        dto.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
+        dto.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek() != null
+                ? new ArrayList<>(payment.getRecurrenceDaysOfWeek())
+                : null);
         dto.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
         dto.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         dto.setNotificationOption(payment.getNotificationOption());
