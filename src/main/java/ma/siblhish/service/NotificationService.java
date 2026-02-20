@@ -93,9 +93,9 @@ public class NotificationService {
     public void sendNotificationAsync(User user, String title, String description, TypeNotification type, 
                                      String transactionType, Long notificationId) {
         try {
-            log.info("📬 Création de notification pour l'utilisateur {} - Titre: {}, Description: {}", 
+            log.debug("📬 Création de notification pour l'utilisateur {} - Titre: {}, Description: {}", 
                 user.getId(), title, description);
-            log.info("📬 Token FCM de l'utilisateur: {}", 
+            log.debug("📬 Token FCM de l'utilisateur: {}", 
                 user.getFcmToken() != null && !user.getFcmToken().trim().isEmpty() 
                     ? user.getFcmToken().substring(0, Math.min(20, user.getFcmToken().length())) + "..." 
                     : "NULL ou VIDE");
