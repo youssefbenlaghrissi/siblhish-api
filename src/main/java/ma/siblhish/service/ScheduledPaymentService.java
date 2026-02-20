@@ -57,10 +57,7 @@ public class ScheduledPaymentService {
         payment.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
         payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-        if (request.getRecurrenceDaysOfWeek() != null) {
-            payment.setRecurrenceDaysOfWeek(new ArrayList<>(request.getRecurrenceDaysOfWeek()));
-        }
+        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
         payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         payment.setNotificationOption(request.getNotificationOption());
@@ -98,10 +95,7 @@ public class ScheduledPaymentService {
         if (request.getIsRecurring() != null) payment.setIsRecurring(request.getIsRecurring());
         if (request.getRecurrenceFrequency() != null) payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
         if (request.getRecurrenceEndDate() != null) payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-        if (request.getRecurrenceDaysOfWeek() != null) {
-            payment.setRecurrenceDaysOfWeek(new ArrayList<>(request.getRecurrenceDaysOfWeek()));
-        }
+        payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
         if (request.getRecurrenceDayOfMonth() != null) payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         if (request.getRecurrenceDayOfYear() != null) payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         if (request.getNotificationOption() != null) payment.setNotificationOption(request.getNotificationOption());
@@ -161,9 +155,7 @@ public class ScheduledPaymentService {
             expenseRequest.setRecurrenceFrequency(payment.getRecurrenceFrequency());
             expenseRequest.setRecurrenceEndDate(payment.getRecurrenceEndDate());
             // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-            if (payment.getRecurrenceDaysOfWeek() != null) {
-                expenseRequest.setRecurrenceDaysOfWeek(new ArrayList<>(payment.getRecurrenceDaysOfWeek()));
-            }
+            expenseRequest.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
             expenseRequest.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
             expenseRequest.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         } else {
@@ -183,10 +175,7 @@ public class ScheduledPaymentService {
         nextPayment.setIsRecurring(true);
         nextPayment.setRecurrenceFrequency(payment.getRecurrenceFrequency());
         nextPayment.setRecurrenceEndDate(payment.getRecurrenceEndDate());
-        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-        if (payment.getRecurrenceDaysOfWeek() != null) {
-            nextPayment.setRecurrenceDaysOfWeek(new ArrayList<>(payment.getRecurrenceDaysOfWeek()));
-        }
+        nextPayment.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek());
         nextPayment.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
         nextPayment.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
         nextPayment.setNotificationOption(payment.getNotificationOption());
