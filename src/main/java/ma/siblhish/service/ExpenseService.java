@@ -95,6 +95,8 @@ public class ExpenseService {
         // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
         if (request.getRecurrenceDaysOfWeek() != null) {
             expense.setRecurrenceDaysOfWeek(new ArrayList<>(request.getRecurrenceDaysOfWeek()));
+        }else{
+            expense.setRecurrenceDaysOfWeek(null);
         }
         expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
