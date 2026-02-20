@@ -43,8 +43,8 @@ src/main/resources/application-local.properties
 src/main/resources/application-prod.properties
 *.log
 
-# Firebase credentials - DO NOT COMMIT
-**/firebase/**/*.json
+# Firebase : ne jamais commiter (utiliser uniquement FIREBASE_SERVICE_ACCOUNT_JSON en env)
+**/firebase/**/*
 **/firebase-adminsdk-*.json
 firebase-adminsdk-*.json
 
