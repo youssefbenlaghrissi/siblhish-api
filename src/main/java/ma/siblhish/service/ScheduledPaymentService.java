@@ -87,18 +87,18 @@ public class ScheduledPaymentService {
             payment.setCategory(category);
         }
 
-        if (request.getName() != null) payment.setName(request.getName());
-        if (request.getAmount() != null) payment.setAmount(request.getAmount());
-        if (request.getPaymentMethod() != null) payment.setPaymentMethod(request.getPaymentMethod());
-        if (request.getBeneficiary() != null) payment.setBeneficiary(request.getBeneficiary());
-        if (request.getDueDate() != null) payment.setDueDate(request.getDueDate());
-        if (request.getIsRecurring() != null) payment.setIsRecurring(request.getIsRecurring());
-        if (request.getRecurrenceFrequency() != null) payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
-        if (request.getRecurrenceEndDate() != null) payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
+        payment.setName(request.getName());
+        payment.setAmount(request.getAmount());
+        payment.setPaymentMethod(request.getPaymentMethod());
+        payment.setBeneficiary(request.getBeneficiary());
+        payment.setDueDate(request.getDueDate());
+        payment.setIsRecurring(request.getIsRecurring());
+        payment.setRecurrenceFrequency(request.getRecurrenceFrequency());
+        payment.setRecurrenceEndDate(request.getRecurrenceEndDate());
         payment.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
-        if (request.getRecurrenceDayOfMonth() != null) payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
-        if (request.getRecurrenceDayOfYear() != null) payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
-        if (request.getNotificationOption() != null) payment.setNotificationOption(request.getNotificationOption());
+        payment.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
+        payment.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
+        payment.setNotificationOption(request.getNotificationOption());
 
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         return mapper.toScheduledPaymentDto(saved);
