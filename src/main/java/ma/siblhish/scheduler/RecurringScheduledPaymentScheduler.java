@@ -12,8 +12,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -63,11 +65,8 @@ public class RecurringScheduledPaymentScheduler {
             
             for (ScheduledPayment payment : recurringPayments) {
                 try {
-                    // Calculer la date du prochain paiement
-                    LocalDateTime nextDueDate = calculateNextDueDate(
-                            payment.getDueDate(),
-                            payment.getRecurrenceFrequency()
-                    );
+                    // Calculer la date du prochain paiement (fréquence + dayOfMonth, dayOfYear, daysOfWeek)
+                    LocalDateTime nextDueDate = calculateNextDueDate(payment);
                     
                     // Vérifier la date limite
                     if (payment.getRecurrenceEndDate() != null 
@@ -76,12 +75,7 @@ public class RecurringScheduledPaymentScheduler {
                         continue;
                     }
                     
-                    // Vérifier si le prochain paiement existe déjà
-                    if (nextPaymentExists(payment, nextDueDate)) {
-                        logger.debug("⏭️  Prochain paiement existe déjà pour le paiement récurrent {}", payment.getId());
-                        continue;
-                    }
-                    
+
                     // Créer le prochain paiement
                     ScheduledPayment nextPayment = createNextPayment(payment, nextDueDate);
                     scheduledPaymentRepository.save(nextPayment);
@@ -117,35 +111,52 @@ public class RecurringScheduledPaymentScheduler {
     }
     
     /**
-     * Calcule la date du prochain paiement selon la fréquence
+     * Calcule la date d'échéance du prochain paiement en tenant compte de la fréquence,
+     * recurrenceDayOfMonth, recurrenceDayOfYear et recurrenceDaysOfWeek (comme dépense/revenu).
      */
-    private LocalDateTime calculateNextDueDate(LocalDateTime currentDueDate, RecurrenceFrequency frequency) {
+    private LocalDateTime calculateNextDueDate(ScheduledPayment payment) {
+        LocalDateTime dueDate = payment.getDueDate();
+        RecurrenceFrequency frequency = payment.getRecurrenceFrequency();
+
         return switch (frequency) {
-            case DAILY -> currentDueDate.plusDays(1);
-            case WEEKLY -> currentDueDate.plusWeeks(1);
-            case MONTHLY -> currentDueDate.plusMonths(1);
-            case YEARLY -> currentDueDate.plusYears(1);
+            case DAILY -> dueDate.plusDays(1);
+
+            case WEEKLY -> {
+                List<Integer> daysOfWeek = payment.getRecurrenceDaysOfWeek();
+                int currentDayOfWeek = dueDate.getDayOfWeek().getValue();
+                List<Integer> sorted = new ArrayList<>(daysOfWeek);
+                Collections.sort(sorted);
+                Integer nextDay = sorted.stream().filter(d -> d > currentDayOfWeek).findFirst().orElse(null);
+                int daysToAdd = nextDay != null
+                        ? nextDay - currentDayOfWeek
+                        : (7 - currentDayOfWeek) + sorted.getFirst();
+                yield dueDate.plusDays(daysToAdd);
+            }
+
+            case MONTHLY -> {
+                Integer dayOfMonth = payment.getRecurrenceDayOfMonth();
+                LocalDate nextMonth = dueDate.toLocalDate().plusMonths(1);
+                if (dayOfMonth != null) {
+                    int day = Math.min(dayOfMonth, nextMonth.lengthOfMonth());
+                    yield nextMonth.withDayOfMonth(day).atTime(dueDate.toLocalTime());
+                }
+                yield dueDate.plusMonths(1);
+            }
+
+            case YEARLY -> {
+                Integer dayOfYear = payment.getRecurrenceDayOfYear();
+                int nextYear = dueDate.getYear() + 1;
+                if (dayOfYear != null) {
+                    int yearLength = LocalDate.of(nextYear, 12, 31).lengthOfYear();
+                    int d = Math.min(dayOfYear, yearLength);
+                    LocalDate target = LocalDate.of(nextYear, 1, 1).plusDays(d - 1);
+                    yield target.atTime(dueDate.toLocalTime());
+                }
+                yield dueDate.plusYears(1);
+            }
         };
     }
-    
-    /**
-     * Vérifie si le prochain paiement existe déjà
-     * OPTIMISÉ : Utilise une requête COUNT() au lieu de charger tous les paiements
-     */
-    private boolean nextPaymentExists(ScheduledPayment template, LocalDateTime nextDueDate) {
-        Long categoryId = template.getCategory() != null ? template.getCategory().getId() : null;
-        
-        // OPTIMISATION : Requête COUNT() au lieu de findAll()
-        return scheduledPaymentRepository.existsSimilarPayment(
-                template.getUser().getId(),
-                template.getName(),
-                template.getAmount(),
-                template.getPaymentMethod(),
-                nextDueDate,
-                categoryId
-        );
-    }
-    
+
     /**
      * Crée le prochain paiement planifié basé sur le paiement payé
      */

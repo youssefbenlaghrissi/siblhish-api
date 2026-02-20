@@ -127,11 +127,6 @@ public class ScheduledPaymentService {
         payment.setIsPaid(true);
         payment.setPaidDate(paymentDate);
 
-        // Si récurrent, créer le prochain paiement
-        if (Boolean.TRUE.equals(payment.getIsRecurring()) && payment.getRecurrenceFrequency() != null) {
-            createNextRecurringPayment(payment);
-        }
-
         ScheduledPayment saved = scheduledPaymentRepository.save(payment);
         
         // Créer une notification de confirmation de manière asynchrone (ne bloque pas la réponse)
@@ -170,39 +165,6 @@ public class ScheduledPaymentService {
 
         // Créer la dépense via ExpenseService
         expenseService.createExpense(expenseRequest);
-    }
-
-    private void createNextRecurringPayment(ScheduledPayment payment) {
-        ScheduledPayment nextPayment = new ScheduledPayment();
-        nextPayment.setName(payment.getName());
-        nextPayment.setAmount(payment.getAmount());
-        nextPayment.setPaymentMethod(payment.getPaymentMethod());
-        nextPayment.setBeneficiary(payment.getBeneficiary());
-        nextPayment.setIsRecurring(true);
-        nextPayment.setRecurrenceFrequency(payment.getRecurrenceFrequency());
-        nextPayment.setRecurrenceEndDate(payment.getRecurrenceEndDate());
-        // Nouvelle liste pour éviter "Found shared references to a collection" (Hibernate)
-        nextPayment.setRecurrenceDaysOfWeek(payment.getRecurrenceDaysOfWeek() != null
-                ? new ArrayList<>(payment.getRecurrenceDaysOfWeek())
-                : null);
-        nextPayment.setRecurrenceDayOfMonth(payment.getRecurrenceDayOfMonth());
-        nextPayment.setRecurrenceDayOfYear(payment.getRecurrenceDayOfYear());
-        nextPayment.setNotificationOption(payment.getNotificationOption());
-        nextPayment.setIsPaid(false);
-        nextPayment.setUser(payment.getUser());
-        nextPayment.setCategory(payment.getCategory());
-        LocalDateTime now = LocalDateTime.now();
-        nextPayment.setCreationDate(now);
-
-        LocalDateTime nextDueDate = switch (payment.getRecurrenceFrequency()) {
-            case DAILY -> payment.getDueDate().plusDays(1);
-            case WEEKLY -> payment.getDueDate().plusWeeks(1);
-            case MONTHLY -> payment.getDueDate().plusMonths(1);
-            case YEARLY -> payment.getDueDate().plusYears(1);
-        };
-        nextPayment.setDueDate(nextDueDate);
-
-        scheduledPaymentRepository.save(nextPayment);
     }
 
     @Transactional
