@@ -178,9 +178,9 @@ public class ScheduledPaymentReminderScheduler {
                 notificationType = TypeNotification.PAYMENT_DUE_TODAY;
                 title = "📅 Paiement dû aujourd'hui";
             } else {
-                // Rappel avant échéance
+                // Rappel avant échéance (icône différente de « Paiement dû aujourd'hui »)
                 notificationType = TypeNotification.PAYMENT_REMINDER;
-                title = "Rappel de paiement planifié";
+                title = "🔔 Rappel de paiement planifié";
             }
             
             String description = buildReminderDescription(payment, daysUntilDue);
@@ -205,6 +205,7 @@ public class ScheduledPaymentReminderScheduler {
     
     /**
      * Construit la description de la notification de rappel
+     * Icône 📉 = paiement (sortie d'argent), cohérent avec les notifs dépense/revenu
      */
     private String buildReminderDescription(ScheduledPayment payment, long daysUntilDue) {
         StringBuilder desc = new StringBuilder();
@@ -217,14 +218,19 @@ public class ScheduledPaymentReminderScheduler {
             desc.append("Rappel : Votre paiement planifié \"");
         }
 
+        desc.append(payment.getName()).append("\"");
         if (payment.getCategory() != null) {
-            desc.append(" de la Catégorie : ").append(payment.getCategory().getName());
+            String catName = payment.getCategory().getName();
+            String catIcon = payment.getCategory().getIcon();
+            desc.append(" catégorie : ");
+            if (catIcon != null && !catIcon.isBlank()) {
+                desc.append(catIcon).append(" ");
+            }
+            desc.append(catName).append("");
         }
-
-        desc.append(payment.getName());
-        desc.append("\" d'un montant de ");
+        desc.append(", d'un montant de ");
         desc.append(String.format("%.2f", payment.getAmount()));
-        desc.append(" MAD ");
+        desc.append(" MAD, ");
         
         if (daysUntilDue < 0) {
             long daysOverdue = Math.abs(daysUntilDue);
@@ -245,7 +251,7 @@ public class ScheduledPaymentReminderScheduler {
         desc.append(" (échéance : ").append(payment.getDueDate().toLocalDate().toString()).append(")");
         
         if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
-            desc.append(" - Bénéficiaire : ").append(payment.getBeneficiary());
+            desc.append(" pour le bénéficiaire ").append(payment.getBeneficiary());
         }
 
         return desc.toString();
