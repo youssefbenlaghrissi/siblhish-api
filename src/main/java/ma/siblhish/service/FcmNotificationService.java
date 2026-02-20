@@ -40,7 +40,11 @@ public class FcmNotificationService {
     @PostConstruct
     public void initialize() {
         log.info("🔧 Initialisation Firebase (FIREBASE_SERVICE_ACCOUNT_JSON)...");
-        boolean hasJson = serviceAccountJson != null && !serviceAccountJson.isBlank();
+        // Spring peut ne pas lier la var (selon l'env) → fallback direct sur getenv
+        String json = (serviceAccountJson != null && !serviceAccountJson.isBlank())
+                ? serviceAccountJson
+                : System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON");
+        boolean hasJson = json != null && !json.isBlank();
         log.info("🔧 Variable FIREBASE_SERVICE_ACCOUNT_JSON: {}", hasJson ? "définie" : "non définie");
 
         if (!hasJson) {
@@ -51,7 +55,7 @@ public class FcmNotificationService {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 GoogleCredentials credentials = GoogleCredentials.fromStream(
-                        new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8)));
+                        new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(credentials)
                         .build();
