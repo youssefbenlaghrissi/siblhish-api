@@ -216,7 +216,7 @@ public class ExpenseService {
      */
     private void createBudgetWarningNotification(Budget budget, Double spent, Double remaining, Double percentageUsed) {
         try {
-            String title = "⚠️ Attention : Budget presque atteint";
+            String title = "⚠️ Budget presque atteint";
             StringBuilder description = new StringBuilder();
             description.append("Vous avez utilisé ");
             description.append(String.format("%.1f", percentageUsed));
