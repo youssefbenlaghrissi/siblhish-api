@@ -31,7 +31,8 @@ import java.util.Map;
 @Service
 public class FcmNotificationService {
 
-    @Value("${firebase.service-account-json:}")
+    // FIREBASE_SERVICE_ACCOUNT_JSON (env) → firebase.service.account.json en Spring
+    @Value("${firebase.service.account.json:}")
     private String serviceAccountJson;
 
     private FirebaseMessaging firebaseMessaging;
