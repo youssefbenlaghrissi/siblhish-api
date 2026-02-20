@@ -92,12 +92,7 @@ public class ExpenseService {
         expense.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
         expense.setRecurrenceFrequency(request.getRecurrenceFrequency());
         expense.setRecurrenceEndDate(request.getRecurrenceEndDate());
-        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-        if (request.getRecurrenceDaysOfWeek() != null) {
-            expense.setRecurrenceDaysOfWeek(new ArrayList<>(request.getRecurrenceDaysOfWeek()));
-        }else{
-            expense.setRecurrenceDaysOfWeek(null);
-        }
+        expense.setRecurrenceDaysOfWeek(request.getRecurrenceDaysOfWeek());
         expense.setRecurrenceDayOfMonth(request.getRecurrenceDayOfMonth());
         expense.setRecurrenceDayOfYear(request.getRecurrenceDayOfYear());
         expense.setCategory(category);

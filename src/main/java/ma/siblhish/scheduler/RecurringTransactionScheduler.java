@@ -26,58 +26,42 @@ public class RecurringTransactionScheduler {
     private final IncomeRepository incomeRepository;
     private final NotificationService notificationService;
 
-    /**
-     * Traitement par lot qui s'exécute chaque jour à 2h du matin
-     * Génère automatiquement les transactions récurrentes
-     */
-    @Scheduled(cron = "0 38 3 * * ?") // Tous les jours à 2h du matin
+    @Scheduled(cron = "0 38 3 * * ?")
     @Transactional
     public void generateRecurringTransactions() {
-        generateRecurringTransactionsForDate(LocalDateTime.now());
+        generateRecurringTransactionsForDate();
     }
 
-    /**
-     * Méthode publique pour générer les transactions récurrentes pour une date spécifique
-     * Utile pour les tests ou déclenchement manuel
-     */
     @Transactional
-    public void generateRecurringTransactionsForDate(LocalDateTime targetDate) {
+    public void generateRecurringTransactionsForDate() {
+        LocalDateTime targetDate = LocalDateTime.now();
         log.info("🔄 Début du traitement par lot pour les transactions récurrentes - Date: {}", targetDate);
-        
-        LocalDateTime today = targetDate;
-        LocalDate todayDate = targetDate.toLocalDate();
-        
+
         // Traiter les dépenses récurrentes
         List<Expense> recurringExpenses = expenseRepository.findByIsRecurringTrueOrderByIdDesc();
         int expensesGenerated = 0;
         
         for (Expense template : recurringExpenses) {
             try {
-                if (shouldGenerateTransaction(template.getRecurrenceFrequency(), 
-                        template.getRecurrenceEndDate(), 
+                if (shouldGenerateTransaction(template.getRecurrenceFrequency(),
+                        template.getRecurrenceEndDate(),
                         template.getRecurrenceDaysOfWeek(),
                         template.getRecurrenceDayOfMonth(),
                         template.getRecurrenceDayOfYear(),
                         template.getCreationDate(),
-                        todayDate)) {
-                    
-                    if (!transactionExists(template.getUser().getId(), template.getAmount(), 
-                            template.getMethod(), today, true)) {
-                        Expense created = createRecurringExpense(template, today);
-                        // Créer une notification pour l'utilisateur
-                        StringBuilder descBuilder = new StringBuilder("Une dépense récurrente de ");
-                        descBuilder.append(String.format("%.2f", template.getAmount()));
-                        descBuilder.append(" MAD a été créée automatiquement.");
+                        targetDate.toLocalDate())) {
+                    Expense created = createRecurringExpense(template, targetDate);
+                    String descBuilder = "Une dépense récurrente de " + String.format("%.2f", template.getAmount()) +
+                            " MAD a été créée automatiquement.";
                         createRecurringTransactionNotification(
                             template.getUser().getId(),
-                            "Dépense récurrente créée",
-                            descBuilder.toString(),
+                            "📉 Dépense récurrente créée",
+                                descBuilder,
                             created.getCategory() != null ? created.getCategory().getName() : "Dépense",
                             "EXPENSE"
                         );
                         expensesGenerated++;
                     }
-                }
             } catch (Exception e) {
                 log.error("❌ Erreur lors de la génération de la dépense récurrente ID: {}", 
                         template.getId(), e);
@@ -96,25 +80,22 @@ public class RecurringTransactionScheduler {
                         template.getRecurrenceDayOfMonth(),
                         template.getRecurrenceDayOfYear(),
                         template.getCreationDate(),
-                        todayDate)) {
-                    
-                    if (!transactionExists(template.getUser().getId(), template.getAmount(), 
-                            template.getMethod(), today, false)) {
-                        Income created = createRecurringIncome(template, today);
+                        targetDate.toLocalDate())) {
+
+                        Income created = createRecurringIncome(template, targetDate);
                         // Créer une notification pour l'utilisateur
                         StringBuilder descBuilder = new StringBuilder("Un revenu récurrent de ");
-                        descBuilder.append(String.format("%.2f", template.getAmount()));
+                        descBuilder.append(String.format("%.2f", created.getAmount()));
                         descBuilder.append(" MAD a été créé automatiquement.");
                         createRecurringTransactionNotification(
-                            template.getUser().getId(),
-                            "Revenu récurrent créé",
+                                created.getUser().getId(),
+                            "📈 Revenu récurrent créé",
                             descBuilder.toString(),
-                            template.getSource() != null ? template.getSource() : "Revenu",
+                                created.getSource() != null ? created.getSource() : "Revenu",
                             "INCOME"
                         );
                         incomesGenerated++;
                     }
-                }
             } catch (Exception e) {
                 log.error("❌ Erreur lors de la génération du revenu récurrent ID: {}", 
                         template.getId(), e);
@@ -133,7 +114,7 @@ public class RecurringTransactionScheduler {
                                              List<Integer> daysOfWeek,
                                              Integer dayOfMonth,
                                              Integer dayOfYear,
-                                             LocalDateTime originalDate,
+                                             LocalDateTime dateCreation,
                                              LocalDate today) {
         
         // Vérifier la date limite
@@ -154,7 +135,7 @@ public class RecurringTransactionScheduler {
                 // Hebdomadaire : générer si aujourd'hui est dans les jours sélectionnés
                 if (daysOfWeek == null || daysOfWeek.isEmpty()) {
                     // Si aucun jour spécifié, utiliser le jour de la date originale
-                    int originalDayOfWeek = originalDate.getDayOfWeek().getValue();
+                    int originalDayOfWeek = dateCreation.getDayOfWeek().getValue();
                     return today.getDayOfWeek().getValue() == originalDayOfWeek;
                 }
                 int todayDayOfWeek = today.getDayOfWeek().getValue();
@@ -162,63 +143,23 @@ public class RecurringTransactionScheduler {
                 
             case MONTHLY:
                 // Mensuel : générer si c'est le même jour du mois
-                // Note: dayOfMonth est maintenant toujours renseigné pour les nouvelles transactions
-                // Le fallback sur originalDate est conservé pour compatibilité avec les anciennes données
                 if (dayOfMonth != null) {
                     return today.getDayOfMonth() == dayOfMonth;
                 }
-                // Fallback pour les anciennes données : utiliser le jour de la date originale
-                return today.getDayOfMonth() == originalDate.getDayOfMonth();
-                
+                return false;
             case YEARLY:
                 // Annuel : générer si c'est le même jour de l'année
-                // Note: dayOfYear est maintenant toujours renseigné pour les nouvelles transactions
-                // Le fallback sur originalDate est conservé pour compatibilité avec les anciennes données
                 if (dayOfYear != null) {
                     LocalDate targetDate = LocalDate.of(today.getYear(), 1, 1)
                             .plusDays(dayOfYear - 1);
                     return today.equals(targetDate);
                 }
                 // Fallback pour les anciennes données : utiliser le mois et jour de la date originale
-                return today.getMonth() == originalDate.getMonth() 
-                        && today.getDayOfMonth() == originalDate.getDayOfMonth();
+                return today.getMonth() == dateCreation.getMonth()
+                        && today.getDayOfMonth() == dateCreation.getDayOfMonth();
                 
             default:
                 return false;
-        }
-    }
-
-    /**
-     * Vérifie si une transaction similaire existe déjà pour cette date
-     */
-    private boolean transactionExists(Long userId, Double amount, 
-                                     ma.siblhish.enums.PaymentMethod method,
-                                     LocalDateTime date, boolean isExpense) {
-        LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = date.toLocalDate().atTime(23, 59, 59);
-        
-        if (isExpense) {
-            // Vérifier s'il existe une dépense avec les mêmes caractéristiques pour cette date
-            List<Expense> existing = expenseRepository.findAll().stream()
-                    .filter(e -> e.getUser().getId().equals(userId))
-                    .filter(e -> e.getCreationDate().isAfter(startOfDay.minusSeconds(1)) 
-                            && e.getCreationDate().isBefore(endOfDay.plusSeconds(1)))
-                    .filter(e -> e.getAmount().equals(amount))
-                    .filter(e -> e.getMethod().equals(method))
-                    .filter(e -> !e.getIsRecurring()) // Ne pas compter les templates récurrents
-                    .toList();
-            return !existing.isEmpty();
-        } else {
-            // Vérifier s'il existe un revenu avec les mêmes caractéristiques pour cette date
-            List<Income> existing = incomeRepository.findAll().stream()
-                    .filter(i -> i.getUser().getId().equals(userId))
-                    .filter(i -> i.getCreationDate().isAfter(startOfDay.minusSeconds(1)) 
-                            && i.getCreationDate().isBefore(endOfDay.plusSeconds(1)))
-                    .filter(i -> i.getAmount().equals(amount))
-                    .filter(i -> i.getMethod().equals(method))
-                    .filter(i -> !i.getIsRecurring()) // Ne pas compter les templates récurrents
-                    .toList();
-            return !existing.isEmpty();
         }
     }
 
@@ -232,7 +173,7 @@ public class RecurringTransactionScheduler {
         newExpense.setCreationDate(date);
         newExpense.setDescription(template.getDescription());
         newExpense.setLocation(template.getLocation());
-        newExpense.setIsRecurring(false); // La transaction générée n'est pas récurrente
+        newExpense.setIsRecurring(false);
         newExpense.setRecurrenceFrequency(null);
         newExpense.setUser(template.getUser());
         newExpense.setCategory(template.getCategory());

@@ -27,7 +27,7 @@ public class RecurringTransactionController {
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<String>> generateRecurringTransactions() {
         try {
-            recurringTransactionScheduler.generateRecurringTransactionsForDate(LocalDateTime.now());
+            recurringTransactionScheduler.generateRecurringTransactionsForDate();
             return ResponseEntity.ok(ApiResponse.success("Batch exécuté. Vérifiez les logs pour voir combien de transactions ont été générées."));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
