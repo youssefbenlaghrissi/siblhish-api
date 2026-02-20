@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -244,6 +245,8 @@ public class ScheduledPaymentService {
             if (payment.getPaidDate() != null) {
                 description.append(" le ");
                 description.append(payment.getPaidDate().toLocalDate().toString());
+                description.append(" à ");
+                description.append(payment.getPaidDate().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
             }
             
             if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
