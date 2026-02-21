@@ -305,7 +305,7 @@ public class BudgetSuggestionService {
         // ALIMENTATION - Plus élevé pour petits revenus (coûts fixes)
         percentages.put("Alimentation", 0.30);      // 30% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.02);         // 2% - Réduit
-        percentages.put("Café", 0.01);              // 1% - Réduit
+        percentages.put("Café", 0.05);              // 5% (inversé avec Électricité)
         
         // TRANSPORT & VOITURE (même part du revenu que Transport)
         percentages.put("Transport", 0.10);          // 10% - Plus élevé
@@ -321,7 +321,7 @@ public class BudgetSuggestionService {
         
         // LOGEMENT - Plus élevé (coûts fixes)
         percentages.put("Loyer", 0.35);              // 35% - Plus élevé
-        percentages.put("Électricité", 0.05);       // 5% - Plus élevé
+        percentages.put("Électricité", 0.01);       // 1% (inversé avec Café)
         percentages.put("Eau", 0.03);                // 3% - Plus élevé
         percentages.put("Internet", 0.03);          // 3% - Plus élevé
         percentages.put("Gaz", 0.03);               // 3% - Plus élevé
@@ -381,7 +381,7 @@ public class BudgetSuggestionService {
         
         percentages.put("Alimentation", 0.25);      // 25% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.03);
-        percentages.put("Café", 0.015);
+        percentages.put("Café", 0.04);
         
         percentages.put("Transport", 0.075);        // 7.5%
         percentages.put("Voiture", 0.075);          // 7.5% - Idem Transport
@@ -395,7 +395,7 @@ public class BudgetSuggestionService {
         percentages.put("Lavage voiture", 0.007);
         
         percentages.put("Loyer", 0.30);              // 30%
-        percentages.put("Électricité", 0.04);
+        percentages.put("Électricité", 0.015);
         percentages.put("Eau", 0.025);
         percentages.put("Internet", 0.025);
         percentages.put("Gaz", 0.025);
@@ -450,7 +450,7 @@ public class BudgetSuggestionService {
         
         percentages.put("Alimentation", 0.15);      // 15% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.05);        // 5% - Augmenté
-        percentages.put("Café", 0.025);
+        percentages.put("Café", 0.025);             // 2.5% (identique, pas d'échange)
         
         percentages.put("Transport", 0.03);         // 3%
         percentages.put("Voiture", 0.03);            // 3% - Idem Transport
@@ -517,7 +517,7 @@ public class BudgetSuggestionService {
         
         percentages.put("Alimentation", 0.12);       // 12% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.06);         // 6% - Augmenté
-        percentages.put("Café", 0.03);
+        percentages.put("Café", 0.02);
         
         percentages.put("Transport", 0.03);        // 3%
         percentages.put("Voiture", 0.03);            // 3% - Idem Transport
@@ -531,7 +531,7 @@ public class BudgetSuggestionService {
         percentages.put("Lavage voiture", 0.007);
         
         percentages.put("Loyer", 0.15);              // 15% - Encore plus réduit
-        percentages.put("Électricité", 0.02);
+        percentages.put("Électricité", 0.03);
         percentages.put("Eau", 0.012);
         percentages.put("Internet", 0.01);
         percentages.put("Gaz", 0.01);
@@ -587,7 +587,7 @@ public class BudgetSuggestionService {
         // ========== ALIMENTATION (18% du revenu) ==========
         percentages.put("Alimentation", 0.18);      // 18% - Augmenté pour refléter la réalité
         percentages.put("Restaurant", 0.04);         // 4% - Restaurants
-        percentages.put("Café", 0.02);              // 2% - Cafés
+        percentages.put("Café", 0.03);              // 3% (inversé avec Électricité)
         
         // ========== TRANSPORT & VOITURE (12% du revenu) ==========
         // Transport % par tranche: Très faible 10%, Faible 7.5%, Moyen 4%, Élevé 3%, Très élevé 3%
@@ -604,7 +604,7 @@ public class BudgetSuggestionService {
         
         // ========== LOGEMENT (28% du revenu) ==========
         percentages.put("Loyer", 0.20);              // 20% - Loyer principal
-        percentages.put("Électricité", 0.03);       // 3% - Électricité
+        percentages.put("Électricité", 0.02);       // 2% (inversé avec Café)
         percentages.put("Eau", 0.02);                // 2% - Eau
         percentages.put("Internet", 0.015);          // 1.5% - Internet
         percentages.put("Gaz", 0.015);               // 1.5% - Gaz
