@@ -45,7 +45,8 @@ import java.time.LocalDate;
                     LEFT JOIN b.category c
                     LEFT JOIN Expense e ON e.user = b.user
                         AND e.deleted = false
-                        AND e.creationDate BETWEEN b.startDate AND b.endDate
+                        AND CAST(e.creationDate AS date) >= b.startDate
+                        AND CAST(e.creationDate AS date) <= b.endDate
                         AND (b.category IS NULL OR e.category = b.category)
                     WHERE b.user.id = :userId
                       AND b.deleted = false
@@ -77,7 +78,8 @@ import java.time.LocalDate;
                     LEFT JOIN b.category c
                     LEFT JOIN Expense e ON e.user = b.user
                         AND e.deleted = false
-                        AND e.creationDate BETWEEN b.startDate AND b.endDate
+                        AND CAST(e.creationDate AS date) >= b.startDate
+                        AND CAST(e.creationDate AS date) <= b.endDate
                         AND (b.category IS NULL OR e.category = b.category)
                     WHERE b.user.id = :userId
                       AND b.deleted = false

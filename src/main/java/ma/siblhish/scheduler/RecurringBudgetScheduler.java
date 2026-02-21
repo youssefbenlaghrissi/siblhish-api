@@ -5,7 +5,6 @@ import ma.siblhish.entities.Budget;
 import ma.siblhish.entities.Category;
 import ma.siblhish.enums.TypeNotification;
 import ma.siblhish.repository.BudgetRepository;
-import ma.siblhish.service.BudgetService;
 import ma.siblhish.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +17,6 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Scheduler pour créer automatiquement les budgets récurrents chaque mois.
@@ -53,56 +50,15 @@ public class RecurringBudgetScheduler {
             LocalDate firstDayOfMonth = currentMonth.atDay(1);
             LocalDate lastDayOfMonth = currentMonth.atEndOfMonth();
 
-            // Récupérer tous les budgets récurrents (templates)
             List<Budget> recurringBudgets = budgetRepository.findByIsRecurringTrueOrderByIdDesc();
 
-            // Filtrer les budgets avec catégorie et collecter les données pour batch fetch
-            List<Budget> validTemplates = new ArrayList<>();
-            List<Long> userIds = new ArrayList<>();
-            List<Long> categoryIds = new ArrayList<>();
-            
-            for (Budget templateBudget : recurringBudgets) {
-                Category category = templateBudget.getCategory();
-                
-                // Ignorer les budgets sans catégorie
-                if (category == null) {
-                    logger.warn("⚠️ Budget récurrent (ID: {}) ignoré car sans catégorie. Seuls les budgets par catégorie sont supportés.", 
-                        templateBudget.getId());
-                    continue;
-                }
-                
-                validTemplates.add(templateBudget);
-                userIds.add(templateBudget.getUser().getId());
-                categoryIds.add(category.getId());
-            }
-
-            // OPTIMISATION : Batch fetch pour vérifier l'existence de tous les budgets en une seule requête
-            Set<String> existingKeys = Set.of();
-            if (!userIds.isEmpty() && !categoryIds.isEmpty()) {
-                List<Budget> existingBudgets = budgetRepository.findExistingBudgetsForMonth(
-                    userIds, categoryIds, firstDayOfMonth, lastDayOfMonth
-                );
-                existingKeys = existingBudgets.stream()
-                    .map(b -> b.getUser().getId() + ":" + b.getCategory().getId())
-                    .collect(Collectors.toSet());
-            }
-
-            // OPTIMISATION : Collecter tous les budgets à créer pour batch insert
             List<Budget> budgetsToCreate = new ArrayList<>();
             List<NotificationRequest> notificationsToCreate = new ArrayList<>();
             LocalDateTime now = LocalDateTime.now();
 
-            for (Budget templateBudget : validTemplates) {
+            for (Budget templateBudget : recurringBudgets) {
                 Long userId = templateBudget.getUser().getId();
                 Category category = templateBudget.getCategory();
-                String key = userId + ":" + category.getId();
-
-                // Vérifier si un budget pour ce mois existe déjà (en mémoire)
-                if (existingKeys.contains(key)) {
-                    logger.debug("⏭️ Budget récurrent existe déjà pour utilisateur {} et catégorie {}", 
-                        userId, category.getId());
-                    continue;
-                }
 
                 // Créer un nouveau budget pour ce mois
                 Budget newBudget = new Budget();
@@ -116,7 +72,6 @@ public class RecurringBudgetScheduler {
 
                 budgetsToCreate.add(newBudget);
                 
-                // Préparer la notification
                 notificationsToCreate.add(new NotificationRequest(
                     userId,
                     "Budget récurrent créé",
@@ -126,12 +81,10 @@ public class RecurringBudgetScheduler {
                 ));
             }
 
-            // OPTIMISATION : Batch insert de tous les budgets en une seule requête
             if (!budgetsToCreate.isEmpty()) {
                 budgetRepository.saveAll(budgetsToCreate);
                 logger.info("✅ {} budgets récurrents créés en batch", budgetsToCreate.size());
                 
-                // Créer les notifications (déjà asynchrone dans NotificationService)
                 for (NotificationRequest notificationRequest : notificationsToCreate) {
                     createRecurringBudgetNotification(
                         notificationRequest.userId(),
@@ -176,7 +129,6 @@ public class RecurringBudgetScheduler {
         } catch (Exception e) {
             logger.error("❌ Erreur lors de la création de la notification pour l'utilisateur {}: {}", 
                     userId, e.getMessage());
-            // Ne pas bloquer la création du budget si la notification échoue
         }
     }
 
