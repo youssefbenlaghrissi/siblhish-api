@@ -189,7 +189,8 @@ public class RecurringScheduledPaymentScheduler {
      */
     private String buildRecurringCreatedDescription(ScheduledPayment payment, LocalDateTime nextDueDate) {
         StringBuilder desc = new StringBuilder();
-        desc.append("Votre paiement planifié \"").append(payment.getName()).append("\"");
+        String paymentName = payment.getName() != null ? payment.getName() : "Paiement planifié";
+        desc.append("Votre paiement planifié \"").append(paymentName).append("\"");
         if (payment.getCategory() != null) {
             String catName = payment.getCategory().getName();
             String catIcon = payment.getCategory().getIcon();

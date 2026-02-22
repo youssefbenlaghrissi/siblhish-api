@@ -209,26 +209,26 @@ public class ScheduledPaymentReminderScheduler {
      */
     private String buildReminderDescription(ScheduledPayment payment, long daysUntilDue) {
         StringBuilder desc = new StringBuilder();
-        
+        String paymentName = payment.getName() != null ? payment.getName() : "Paiement planifié";
+
         if (daysUntilDue < 0) {
-            desc.append("Votre paiement planifié \"");
+            desc.append("Votre paiement planifié \"").append(paymentName).append("\"");
         } else if (daysUntilDue == 0) {
-            desc.append("Votre paiement planifié \"");
+            desc.append("Votre paiement planifié \"").append(paymentName).append("\"");
         } else {
-            desc.append("Rappel : Votre paiement planifié \"");
+            desc.append("Rappel : Votre paiement planifié \"").append(paymentName).append("\"");
         }
 
-        desc.append(payment.getName()).append("\"");
         if (payment.getCategory() != null) {
             String catName = payment.getCategory().getName();
             String catIcon = payment.getCategory().getIcon();
             desc.append(" catégorie ");
-            desc.append(catName).append("");
+            desc.append(catName);
             if (catIcon != null && !catIcon.isBlank()) {
-                desc.append(catIcon).append(" ");
+                desc.append(" ").append(catIcon).append(" ");
             }
         }
-        desc.append("d'un montant de ");
+        desc.append(", d'un montant de ");
         desc.append(String.format("%.2f", payment.getAmount()));
         desc.append(" MAD, ");
         
