@@ -185,11 +185,10 @@ public class StatisticsService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Optimisé : un budget par catégorie via (category_id, max_id) puis join sur PK
-        // Index recommandé : budgets(user_id, deleted, start_date, end_date, category_id, id)
+        // Un budget par catégorie (id max) : pick = (category_id, max_id), puis join b, c, e
         String sql = """
             SELECT 
-                b.category_id,
+                c.id as category_id,
                 c.name as category_name,
                 c.icon as category_icon,
                 c.color as category_color,
@@ -198,21 +197,18 @@ public class StatisticsService {
             FROM (
                 SELECT category_id, user_id, MAX(id) as max_id
                 FROM budgets
-                WHERE user_id = :userId
-                  AND deleted = false
-                  AND start_date <= :endDate
-                  AND end_date >= :startDate
+                WHERE user_id = :userId AND deleted = false
+                  AND start_date <= :endDate AND end_date >= :startDate
                 GROUP BY category_id, user_id
             ) pick
-            INNER JOIN budgets b ON b.category_id = pick.category_id AND b.user_id = pick.user_id AND b.id = pick.max_id
-            LEFT JOIN categories c ON b.category_id = c.id
-            LEFT JOIN expenses e ON e.user_id = b.user_id
-              AND e.deleted = false
+            INNER JOIN budgets b ON b.id = pick.max_id
+            INNER JOIN categories c ON c.id = b.category_id
+            LEFT JOIN expenses e ON e.user_id = b.user_id AND e.deleted = false
+              AND e.category_id = b.category_id
               AND e.creation_date >= GREATEST(b.start_date::timestamp, :startDateTime)
               AND e.creation_date < LEAST(b.end_date::timestamp, :endDateTime) + INTERVAL '1 day'
-              AND e.category_id = b.category_id
             WHERE b.amount > 0
-            GROUP BY b.category_id, c.name, c.icon, c.color, b.amount
+            GROUP BY c.id, c.name, c.icon, c.color, b.amount
             ORDER BY b.amount DESC
         """;
 
