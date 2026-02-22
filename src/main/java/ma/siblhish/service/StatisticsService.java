@@ -185,31 +185,32 @@ public class StatisticsService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Un budget par catégorie (id max) : pick = (category_id, max_id), puis join b, c, e
+        // Somme de tous les budgets par catégorie sur la période (plusieurs budgets = un total, ex. Loyer 1610+50)
+        // Dépenses pré-agrégées par catégorie pour éviter de dupliquer les lignes budget
+        // Chevauchement inclusif : tout budget qui a au moins un jour dans [startDate, endDate].
+        // Un budget qui commence le endDate (ex. 15/02) est inclus quand endDate=15/02.
         String sql = """
             SELECT 
                 c.id as category_id,
                 c.name as category_name,
                 c.icon as category_icon,
                 c.color as category_color,
-                b.amount as budget_amount,
-                COALESCE(SUM(e.amount), 0) as actual_amount
-            FROM (
-                SELECT category_id, user_id, MAX(id) as max_id
-                FROM budgets
-                WHERE user_id = :userId AND deleted = false
-                  AND start_date <= :endDate AND end_date >= :startDate
-                GROUP BY category_id, user_id
-            ) pick
-            INNER JOIN budgets b ON b.id = pick.max_id
+                SUM(b.amount) as budget_amount,
+                COALESCE(exp_agg.total, 0) as actual_amount
+            FROM budgets b
             INNER JOIN categories c ON c.id = b.category_id
-            LEFT JOIN expenses e ON e.user_id = b.user_id AND e.deleted = false
-              AND e.category_id = b.category_id
-              AND e.creation_date >= GREATEST(b.start_date::timestamp, :startDateTime)
-              AND e.creation_date < LEAST(b.end_date::timestamp, :endDateTime) + INTERVAL '1 day'
-            WHERE b.amount > 0
-            GROUP BY c.id, c.name, c.icon, c.color, b.amount
-            ORDER BY b.amount DESC
+            LEFT JOIN (
+                SELECT user_id, category_id, SUM(amount) as total
+                FROM expenses
+                WHERE user_id = :userId AND deleted = false
+                  AND creation_date >= :startDateTime AND creation_date <= :endDateTime
+                GROUP BY user_id, category_id
+            ) exp_agg ON exp_agg.user_id = b.user_id AND exp_agg.category_id = b.category_id
+            WHERE b.user_id = :userId AND b.deleted = false
+              AND b.start_date <= :endDate AND b.end_date >= :startDate
+              AND b.amount > 0
+            GROUP BY c.id, c.name, c.icon, c.color, exp_agg.total
+            ORDER BY budget_amount DESC
         """;
 
         Query query = entityManager.createNativeQuery(sql);
