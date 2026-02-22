@@ -54,6 +54,7 @@ public class HomeService {
      *                Requis si dateRange='custom'
      * @param minAmount Optionnel : montant minimum pour filtrer les transactions
      * @param maxAmount Optionnel : montant maximum pour filtrer les transactions
+     * @param categoryId Optionnel : ID de la catégorie pour filtrer (s'applique aux dépenses uniquement)
      */
     public List<TransactionDto> getRecentTransactions(
             Long userId, 
@@ -63,7 +64,8 @@ public class HomeService {
             LocalDate startDate, 
             LocalDate endDate, 
             Double minAmount, 
-            Double maxAmount) {
+            Double maxAmount,
+            Long categoryId) {
         LocalDate calculatedStartDate = startDate;
         LocalDate calculatedEndDate = endDate;
         
@@ -134,6 +136,9 @@ public class HomeService {
             }
             if (endDateTime != null) {
                 expenseConditions.add("e.creation_date <= :endDate");
+            }
+            if (categoryId != null) {
+                expenseConditions.add("e.category_id = :categoryId");
             }
             
             if (!expenseConditions.isEmpty()) {
@@ -214,6 +219,9 @@ public class HomeService {
         }
         if (endDateTime != null) {
             query.setParameter("endDate", endDateTime);
+        }
+        if (categoryId != null) {
+            query.setParameter("categoryId", categoryId);
         }
         query.setParameter("limit", limit);
         

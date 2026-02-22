@@ -45,6 +45,7 @@ public class HomeController {
      * @param endDate Optionnel : date de fin pour filtrer par période (format: yyyy-MM-dd)
      *                Sera interprétée comme la fin de la journée (23:59:59)
      *                Requis si dateRange='custom'
+     * @param categoryId Optionnel : ID de la catégorie pour filtrer (s'applique aux dépenses uniquement)
      */
     @GetMapping("/transactions/{userId}")
     public ResponseEntity<ApiResponse<List<TransactionDto>>> getRecentTransactions(
@@ -55,9 +56,10 @@ public class HomeController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Double minAmount,
-            @RequestParam(required = false) Double maxAmount) {
+            @RequestParam(required = false) Double maxAmount,
+            @RequestParam(required = false) Long categoryId) {
         List<TransactionDto> transactions = homeService.getRecentTransactions(
-                userId, limit, type, dateRange, startDate, endDate, minAmount, maxAmount);
+                userId, limit, type, dateRange, startDate, endDate, minAmount, maxAmount, categoryId);
         return ResponseEntity.ok(ApiResponse.success(transactions));
     }
 
