@@ -42,7 +42,7 @@ public class RecurringScheduledPaymentScheduler {
      * Créer les prochains paiements planifiés récurrents.
      * Exécuté tous les jours à 04:00
      */
-    @Scheduled(cron = "0 0 4 * * ?") // Tous les jours à 04:00
+    @Scheduled(cron = "0 0 1 * * ?") // Tous les jours à 04:00
     @Transactional
     public void createNextRecurringPayments() {
         createNextRecurringPaymentsInternal();
@@ -81,15 +81,13 @@ public class RecurringScheduledPaymentScheduler {
                     scheduledPaymentRepository.save(nextPayment);
                     paymentsCreated++;
                     
-                    // Créer une notification pour l'utilisateur
+                    // Créer une notification pour l'utilisateur (même format de description que ScheduledPaymentReminderScheduler)
+                    String description = buildRecurringCreatedDescription(payment, nextDueDate);
                     createRecurringScheduledPaymentNotification(
                         payment.getUser().getId(),
-                        "Paiement planifié récurrent créé",
-                        String.format("Un paiement planifié récurrent de %.2f MAD (%s) a été créé automatiquement avec une date d'échéance le %s.", 
-                            payment.getAmount(), 
-                            payment.getName(),
-                            nextDueDate.toLocalDate().toString()),
-                        payment.getCategory() != null ? payment.getCategory().getName() : "Paiement planifié"
+                        "📅 Paiement planifié récurrent créé",
+                        description,
+                        null
                     );
                     
                     logger.debug("✅ Prochain paiement créé : {} - Due: {} (Paiement précédent: {} - Payé: {})", 
@@ -187,6 +185,32 @@ public class RecurringScheduledPaymentScheduler {
     }
 
     /**
+     * Construit la description pour "paiement récurrent créé" (même structure que ScheduledPaymentReminderScheduler).
+     */
+    private String buildRecurringCreatedDescription(ScheduledPayment payment, LocalDateTime nextDueDate) {
+        StringBuilder desc = new StringBuilder("📅 ");
+        desc.append("Votre paiement planifié \"").append(payment.getName()).append("\"");
+        if (payment.getCategory() != null) {
+            String catName = payment.getCategory().getName();
+            String catIcon = payment.getCategory().getIcon();
+            desc.append(" catégorie ");
+            desc.append(catName);
+            if (catIcon != null && !catIcon.isBlank()) {
+                desc.append(" ").append(catIcon).append(" ");
+            }
+        }
+        desc.append(", d'un montant de ");
+        desc.append(String.format("%.2f", payment.getAmount()));
+        desc.append(" MAD, ");
+        desc.append("a été créé automatiquement avec une date d'échéance le ");
+        desc.append(nextDueDate.toLocalDate().toString());
+        if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
+            desc.append(" pour le bénéficiaire ").append(payment.getBeneficiary());
+        }
+        return desc.toString();
+    }
+
+    /**
      * Crée une notification pour un paiement planifié récurrent créé automatiquement
      */
     private void createRecurringScheduledPaymentNotification(Long userId, String title, 
@@ -195,7 +219,7 @@ public class RecurringScheduledPaymentScheduler {
             notificationService.createNotification(
                 userId,
                 title,
-                description + (categoryName != null ? " (" + categoryName + ")" : ""),
+                description != null ? description : "",
                 TypeNotification.RECURRING_SCHEDULED_PAYMENT,
                 "SCHEDULED_PAYMENT"
             );
