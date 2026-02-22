@@ -196,9 +196,18 @@ public class ScheduledPaymentService {
         try {
             String title = "✅ Paiement confirmé";
             StringBuilder description = new StringBuilder();
-            description.append("Votre paiement planifié \"");
+            description.append("Votre paiement planifié ");
             description.append(payment.getName());
-            description.append("\" d'un montant de ");
+            if (payment.getCategory() != null) {
+                String catName = payment.getCategory().getName();
+                String catIcon = payment.getCategory().getIcon();
+                description.append(" catégorie ");
+                description.append(catName).append("");
+                if (catIcon != null && !catIcon.isBlank()) {
+                    description.append(catIcon).append(" ");
+                }
+            }
+            description.append("d'un montant de ");
             description.append(String.format("%.2f", payment.getAmount()));
             description.append(" MAD a été marqué comme payé");
             
@@ -211,10 +220,6 @@ public class ScheduledPaymentService {
             
             if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
                 description.append(" - Bénéficiaire : ").append(payment.getBeneficiary());
-            }
-            
-            if (payment.getCategory() != null) {
-                description.append(" - Catégorie : ").append(payment.getCategory().getName());
             }
             
             notificationService.createNotification(
