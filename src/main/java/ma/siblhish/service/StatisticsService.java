@@ -337,18 +337,6 @@ public class StatisticsService {
             }
         }
 
-        // Créer BudgetEfficiencyDto
-        BudgetEfficiencyDto efficiency = new BudgetEfficiencyDto();
-        efficiency.setTotalBudgets(budgetResults.size());
-        efficiency.setTotalBudgetAmount(totalBudgetAmount);
-        efficiency.setTotalSpentAmount(totalSpentAmount);
-        efficiency.setTotalRemainingAmount(totalBudgetAmount - totalSpentAmount);
-        efficiency.setAveragePercentageUsed(totalBudgetAmount > 0 ? (totalSpentAmount / totalBudgetAmount) * 100 : 0.0);
-        efficiency.setBudgetsOnTrack(budgetsOnTrack);
-        efficiency.setBudgetsExceeded(budgetsExceeded);
-
-        unified.setEfficiency(efficiency);
-
         return unified;
     }
 

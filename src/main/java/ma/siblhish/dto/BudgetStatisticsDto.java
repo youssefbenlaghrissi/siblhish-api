@@ -23,12 +23,7 @@ public class BudgetStatisticsDto {
      * Utilisé aussi pour Top Catégories Budgétisées (même source de données)
      */
     private List<BudgetVsActualDto> budgetVsActual;
-    
-    /**
-     * Données pour le graphique Efficacité Budgétaire
-     */
-    private BudgetEfficiencyDto efficiency;
-    
+
     /**
      * Données pour le graphique Répartition des Budgets (pie chart)
      */
