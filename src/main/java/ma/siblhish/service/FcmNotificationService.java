@@ -6,7 +6,6 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import lombok.extern.slf4j.Slf4j;
 import ma.siblhish.entities.User;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +16,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -89,16 +89,18 @@ public class FcmNotificationService {
         }
 
         try {
-            Message.Builder messageBuilder = Message.builder()
+            // Envoi en "data-only" : pas de bloc "notification", uniquement "data".
+            // Ainsi l'app Flutter affiche la notification avec BigTextStyle et l'utilisateur
+            // peut étendre la notification pour voir tout le détail (sinon texte tronqué).
+            Map<String, String> dataMap = data != null ? new HashMap<>(data) : new HashMap<>();
+            dataMap.put("title", title != null ? title : "");
+            dataMap.put("body", body != null ? body : "");
+
+            Message message = Message.builder()
                     .setToken(user.getFcmToken())
-                    .setNotification(Notification.builder()
-                            .setTitle(title)
-                            .setBody(body)
-                            .build());
-            if (data != null && !data.isEmpty()) {
-                messageBuilder.putAllData(data);
-            }
-            String messageId = firebaseMessaging.send(messageBuilder.build());
+                    .putAllData(dataMap)
+                    .build();
+            String messageId = firebaseMessaging.send(message);
             log.info("✅ Notification envoyée à l'utilisateur {}: {} (messageId: {})", user.getId(), title, messageId);
             return true;
         } catch (FirebaseMessagingException e) {
