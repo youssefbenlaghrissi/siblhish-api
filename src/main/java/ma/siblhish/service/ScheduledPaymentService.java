@@ -221,7 +221,7 @@ public class ScheduledPaymentService {
             if (payment.getBeneficiary() != null && !payment.getBeneficiary().trim().isEmpty()) {
                 description.append(" - Bénéficiaire : ").append(payment.getBeneficiary());
             }
-            
+
             notificationService.createNotification(
                 payment.getUser().getId(),
                 title,

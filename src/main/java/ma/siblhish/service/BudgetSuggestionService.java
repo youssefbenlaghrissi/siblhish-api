@@ -252,53 +252,10 @@ public class BudgetSuggestionService {
             // Arrondir le total une seule fois
             totalBudget = Math.round(totalBudget * 100.0) / 100.0;
         }
-        
-        // Si Épargne est sélectionnée : prélever une part des autres catégories et l'ajouter à Épargne
-        totalBudget = reallocateToEpargneIfPresent(suggestions, monthlyIncome, totalBudget);
-        
+
         return new BudgetCalculationResult(suggestions, totalBudget);
     }
-    
-    /**
-     * Si la catégorie "Épargne" est dans les suggestions, réduire légèrement les autres
-     * et ajouter le montant transféré à Épargne.
-     */
-    private double reallocateToEpargneIfPresent(List<BudgetSuggestion> suggestions, double monthlyIncome, double totalBudget) {
-        BudgetSuggestion epargneSuggestion = null;
-        for (BudgetSuggestion s : suggestions) {
-            if ("Épargne".equals(s.getCategoryName())) {
-                epargneSuggestion = s;
-                break;
-            }
-        }
-        if (epargneSuggestion == null) {
-            return totalBudget;
-        }
-        
-        double transferTotal = 0.0;
-        for (BudgetSuggestion s : suggestions) {
-            if (s == epargneSuggestion) continue;
-            double amount = s.getAmount();
-            double minAllowed = getMinAmountForCategory(s.getCategoryName());
-            double maxTransfer = Math.max(0, amount - minAllowed);
-            double transfer = Math.min(amount * EPARGNE_TRANSFER_RATE, maxTransfer);
-            if (transfer > 0) {
-                transfer = Math.round(transfer * 100.0) / 100.0;
-                s.setAmount(Math.round((amount - transfer) * 100.0) / 100.0);
-                s.setPercentage(Math.round((s.getAmount() / monthlyIncome) * 10000.0) / 100.0);
-                transferTotal += transfer;
-            }
-        }
-        
-        if (transferTotal > 0) {
-            double newEpargneAmount = Math.round((epargneSuggestion.getAmount() + transferTotal) * 100.0) / 100.0;
-            epargneSuggestion.setAmount(newEpargneAmount);
-            epargneSuggestion.setPercentage(Math.round((newEpargneAmount / monthlyIncome) * 10000.0) / 100.0);
-            totalBudget = Math.round(totalBudget * 100.0) / 100.0; // total inchangé (on a déplacé)
-        }
-        return totalBudget;
-    }
-    
+
     private double getMinAmountForCategory(String categoryName) {
         CategoryConstraints c = CATEGORY_CONSTRAINTS.get(categoryName);
         return c != null ? c.min : MIN_BUDGET_AMOUNT;
