@@ -207,7 +207,7 @@ public class RecurringTransactionScheduler {
         StringBuilder desc = new StringBuilder();
         String label = expense.getDescription() != null && !expense.getDescription().isBlank()
                 ? expense.getDescription() : "Dépense";
-        desc.append("Votre dépense récurrente ").append(label).append("\"");;
+        desc.append("Votre dépense récurrente \"").append(label).append("\"");
         if (expense.getCategory() != null) {
             String catName = expense.getCategory().getName();
             String catIcon = expense.getCategory().getIcon();
@@ -231,7 +231,7 @@ public class RecurringTransactionScheduler {
         String label = income.getSource() != null && !income.getSource().isBlank()
                 ? income.getSource() : (income.getDescription() != null && !income.getDescription().isBlank()
                 ? income.getDescription() : "Revenu");
-        desc.append("Votre revenu récurrent ").append(label).append("\"");
+        desc.append("Votre revenu récurrent \"").append(label).append("\"");
         desc.append(", d'un montant de ");
         desc.append(String.format("%.2f", income.getAmount()));
         desc.append(" MAD, a été créé automatiquement.");
