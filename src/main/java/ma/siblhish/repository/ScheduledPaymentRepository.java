@@ -48,6 +48,8 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
     /**
      * Trouve les paiements récurrents qui nécessitent la création du prochain paiement.
      * Optimisé pour le scheduler de paiements récurrents.
+     * On ne traite que si la date d'échéance est déjà passée (ou aujourd'hui si payé),
+     * pour éviter de créer le prochain occurrence trop tôt si l'utilisateur a marqué payé en avance.
      */
     @Query("""
         SELECT DISTINCT sp FROM ScheduledPayment sp
@@ -56,9 +58,10 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
         WHERE sp.isRecurring = true
         AND sp.recurrenceFrequency IS NOT NULL
         AND sp.deleted = false
+        AND sp.dueDate IS NOT NULL
         AND (
-            sp.isPaid = true
-            OR (sp.dueDate IS NOT NULL AND sp.dueDate < :now)
+            (sp.isPaid = true AND sp.dueDate <= :now)
+            OR (sp.isPaid = false AND sp.dueDate < :now)
         )
     """)
     List<ScheduledPayment> findRecurringPaymentsToProcess(@Param("now") LocalDateTime now);

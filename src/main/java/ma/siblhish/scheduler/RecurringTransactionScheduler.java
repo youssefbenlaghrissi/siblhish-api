@@ -232,7 +232,7 @@ public class RecurringTransactionScheduler {
                 ? income.getSource() : (income.getDescription() != null && !income.getDescription().isBlank()
                 ? income.getDescription() : "Revenu");
         desc.append("Votre revenu récurrent \"").append(label).append("\"");
-        desc.append(", d'un montant de ");
+        desc.append(" d'un montant de ");
         desc.append(String.format("%.2f", income.getAmount()));
         desc.append(" MAD, a été créé automatiquement.");
         return desc.toString();
