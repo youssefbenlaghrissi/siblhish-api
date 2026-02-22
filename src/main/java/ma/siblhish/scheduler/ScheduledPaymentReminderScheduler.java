@@ -45,7 +45,7 @@ public class ScheduledPaymentReminderScheduler {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
 
-    @Scheduled(cron = "0 0 8 * * ?") // Tous les jours à 08:00
+    @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
     public void sendPaymentReminders() {
         sendPaymentRemindersInternal();
@@ -218,15 +218,15 @@ public class ScheduledPaymentReminderScheduler {
             desc.append("Rappel : Votre paiement planifié \"");
         }
 
-        desc.append(payment.getName()).append("\"");
+        desc.append(payment.getName());
         if (payment.getCategory() != null) {
             String catName = payment.getCategory().getName();
             String catIcon = payment.getCategory().getIcon();
-            desc.append(" catégorie : ");
+            desc.append(" catégorie ");
+            desc.append(catName).append("");
             if (catIcon != null && !catIcon.isBlank()) {
                 desc.append(catIcon).append(" ");
             }
-            desc.append(catName).append("");
         }
         desc.append(", d'un montant de ");
         desc.append(String.format("%.2f", payment.getAmount()));
