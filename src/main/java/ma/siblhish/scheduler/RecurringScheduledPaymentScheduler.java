@@ -42,7 +42,7 @@ public class RecurringScheduledPaymentScheduler {
      * Créer les prochains paiements planifiés récurrents.
      * Exécuté tous les jours à 04:00
      */
-    @Scheduled(cron = "0 30 1 * * ?")
+    @Scheduled(cron = "0 45 1 * * ?")
     @Transactional
     public void createNextRecurringPayments() {
         createNextRecurringPaymentsInternal();
@@ -188,7 +188,7 @@ public class RecurringScheduledPaymentScheduler {
      * Construit la description pour "paiement récurrent créé" (même structure que ScheduledPaymentReminderScheduler).
      */
     private String buildRecurringCreatedDescription(ScheduledPayment payment, LocalDateTime nextDueDate) {
-        StringBuilder desc = new StringBuilder("📅 ");
+        StringBuilder desc = new StringBuilder();
         desc.append("Votre paiement planifié \"").append(payment.getName()).append("\"");
         if (payment.getCategory() != null) {
             String catName = payment.getCategory().getName();

@@ -26,7 +26,7 @@ public class RecurringTransactionScheduler {
     private final IncomeRepository incomeRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 38 3 * * ?")
+    @Scheduled(cron = "0 50 3 * * ?")
     @Transactional
     public void generateRecurringTransactions() {
         generateRecurringTransactionsForDate();
@@ -204,7 +204,7 @@ public class RecurringTransactionScheduler {
      * Construit la description pour une dépense récurrente créée (même structure que ScheduledPaymentReminderScheduler).
      */
     private String buildRecurringExpenseDescription(Expense expense) {
-        StringBuilder desc = new StringBuilder("📉 ");
+        StringBuilder desc = new StringBuilder();
         String label = expense.getDescription() != null && !expense.getDescription().isBlank()
                 ? expense.getDescription() : "Dépense";
         desc.append("Votre dépense récurrente ").append(label);
@@ -227,7 +227,7 @@ public class RecurringTransactionScheduler {
      * Construit la description pour un revenu récurrent créé (même structure que ScheduledPaymentReminderScheduler).
      */
     private String buildRecurringIncomeDescription(Income income) {
-        StringBuilder desc = new StringBuilder("📈 ");
+        StringBuilder desc = new StringBuilder();
         String label = income.getSource() != null && !income.getSource().isBlank()
                 ? income.getSource() : (income.getDescription() != null && !income.getDescription().isBlank()
                 ? income.getDescription() : "Revenu");
