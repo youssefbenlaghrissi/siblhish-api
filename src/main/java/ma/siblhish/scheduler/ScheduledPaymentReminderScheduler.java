@@ -218,7 +218,7 @@ public class ScheduledPaymentReminderScheduler {
             desc.append("Rappel : Votre paiement planifié \"");
         }
 
-        desc.append(payment.getName());
+        desc.append(payment.getName()).append("\"");
         if (payment.getCategory() != null) {
             String catName = payment.getCategory().getName();
             String catIcon = payment.getCategory().getIcon();
