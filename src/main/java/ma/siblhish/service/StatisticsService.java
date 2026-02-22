@@ -185,28 +185,35 @@ public class StatisticsService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
+        // Optimisé : un budget par catégorie via (category_id, max_id) puis join sur PK
+        // Index recommandé : budgets(user_id, deleted, start_date, end_date, category_id, id)
         String sql = """
             SELECT 
                 b.category_id,
                 c.name as category_name,
                 c.icon as category_icon,
                 c.color as category_color,
-                SUM(b.amount) as budget_amount,
-                SUM(e.amount) as actual_amount
-            FROM budgets b
+                b.amount as budget_amount,
+                COALESCE(SUM(e.amount), 0) as actual_amount
+            FROM (
+                SELECT category_id, user_id, MAX(id) as max_id
+                FROM budgets
+                WHERE user_id = :userId
+                  AND deleted = false
+                  AND start_date <= :endDate
+                  AND end_date >= :startDate
+                GROUP BY category_id, user_id
+            ) pick
+            INNER JOIN budgets b ON b.category_id = pick.category_id AND b.user_id = pick.user_id AND b.id = pick.max_id
             LEFT JOIN categories c ON b.category_id = c.id
-            LEFT JOIN expenses e ON e.user_id = :userId
+            LEFT JOIN expenses e ON e.user_id = b.user_id
               AND e.deleted = false
               AND e.creation_date >= GREATEST(b.start_date::timestamp, :startDateTime)
               AND e.creation_date < LEAST(b.end_date::timestamp, :endDateTime) + INTERVAL '1 day'
               AND e.category_id = b.category_id
-            WHERE b.user_id = :userId
-              AND b.deleted = false
-              AND b.start_date <= :endDate
-              AND b.end_date >= :startDate
-            GROUP BY b.category_id, c.name, c.icon, c.color
-            HAVING SUM(b.amount) > 0
-            ORDER BY budget_amount DESC
+            WHERE b.amount > 0
+            GROUP BY b.category_id, c.name, c.icon, c.color, b.amount
+            ORDER BY b.amount DESC
         """;
 
         Query query = entityManager.createNativeQuery(sql);
