@@ -228,7 +228,7 @@ public class ScheduledPaymentReminderScheduler {
                 desc.append(catIcon).append(" ");
             }
         }
-        desc.append(", d'un montant de ");
+        desc.append("d'un montant de ");
         desc.append(String.format("%.2f", payment.getAmount()));
         desc.append(" MAD, ");
         

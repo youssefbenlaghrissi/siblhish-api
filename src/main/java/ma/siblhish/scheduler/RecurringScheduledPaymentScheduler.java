@@ -199,7 +199,7 @@ public class RecurringScheduledPaymentScheduler {
                 desc.append(" ").append(catIcon).append(" ");
             }
         }
-        desc.append(", d'un montant de ");
+        desc.append("d'un montant de ");
         desc.append(String.format("%.2f", payment.getAmount()));
         desc.append(" MAD, ");
         desc.append("a été créé automatiquement avec une date d'échéance le ");
