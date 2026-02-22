@@ -51,15 +51,14 @@ public class RecurringTransactionScheduler {
                         template.getCreationDate(),
                         targetDate.toLocalDate())) {
                     Expense created = createRecurringExpense(template, targetDate);
-                    String descBuilder = "Une dépense récurrente de " + String.format("%.2f", template.getAmount()) +
-                            " MAD a été créée automatiquement.";
-                        createRecurringTransactionNotification(
+                    String description = buildRecurringExpenseDescription(created);
+                    createRecurringTransactionNotification(
                             template.getUser().getId(),
                             "📉 Dépense récurrente créée",
-                                descBuilder,
-                            created.getCategory() != null ? created.getCategory().getName() : "Dépense",
+                            description,
+                            null,
                             "EXPENSE"
-                        );
+                    );
                         expensesGenerated++;
                     }
             } catch (Exception e) {
@@ -83,16 +82,13 @@ public class RecurringTransactionScheduler {
                         targetDate.toLocalDate())) {
 
                         Income created = createRecurringIncome(template, targetDate);
-                        // Créer une notification pour l'utilisateur
-                        StringBuilder descBuilder = new StringBuilder("Un revenu récurrent de ");
-                        descBuilder.append(String.format("%.2f", created.getAmount()));
-                        descBuilder.append(" MAD a été créé automatiquement.");
+                        String description = buildRecurringIncomeDescription(created);
                         createRecurringTransactionNotification(
                                 created.getUser().getId(),
-                            "📈 Revenu récurrent créé",
-                            descBuilder.toString(),
-                                created.getSource() != null ? created.getSource() : "Revenu",
-                            "INCOME"
+                                "📈 Revenu récurrent créé",
+                                description,
+                                null,
+                                "INCOME"
                         );
                         incomesGenerated++;
                     }
@@ -205,6 +201,44 @@ public class RecurringTransactionScheduler {
     }
 
     /**
+     * Construit la description pour une dépense récurrente créée (même structure que ScheduledPaymentReminderScheduler).
+     */
+    private String buildRecurringExpenseDescription(Expense expense) {
+        StringBuilder desc = new StringBuilder("📉 ");
+        String label = expense.getDescription() != null && !expense.getDescription().isBlank()
+                ? expense.getDescription() : "Dépense";
+        desc.append("Votre dépense récurrente ").append(label);
+        if (expense.getCategory() != null) {
+            String catName = expense.getCategory().getName();
+            String catIcon = expense.getCategory().getIcon();
+            desc.append(" catégorie ");
+            desc.append(catName);
+            if (catIcon != null && !catIcon.isBlank()) {
+                desc.append(" ").append(catIcon).append(" ");
+            }
+        }
+        desc.append("d'un montant de ");
+        desc.append(String.format("%.2f", expense.getAmount()));
+        desc.append(" MAD, a été créée automatiquement.");
+        return desc.toString();
+    }
+
+    /**
+     * Construit la description pour un revenu récurrent créé (même structure que ScheduledPaymentReminderScheduler).
+     */
+    private String buildRecurringIncomeDescription(Income income) {
+        StringBuilder desc = new StringBuilder("📈 ");
+        String label = income.getSource() != null && !income.getSource().isBlank()
+                ? income.getSource() : (income.getDescription() != null && !income.getDescription().isBlank()
+                ? income.getDescription() : "Revenu");
+        desc.append("Votre revenu récurrent ").append(label);
+        desc.append(", d'un montant de ");
+        desc.append(String.format("%.2f", income.getAmount()));
+        desc.append(" MAD, a été créé automatiquement.");
+        return desc.toString();
+    }
+
+    /**
      * Crée une notification pour une transaction récurrente créée automatiquement
      */
     private void createRecurringTransactionNotification(Long userId, String title, 
@@ -214,7 +248,7 @@ public class RecurringTransactionScheduler {
             notificationService.createNotification(
                 userId,
                 title,
-                description + (categoryName != null ? " (" + categoryName + ")" : ""),
+                description != null ? description : "",
                 TypeNotification.RECURRING_TRANSACTION,
                 transactionType
             );
