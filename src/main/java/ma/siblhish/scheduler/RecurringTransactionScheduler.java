@@ -54,7 +54,7 @@ public class RecurringTransactionScheduler {
                     String description = buildRecurringExpenseDescription(created);
                     createRecurringTransactionNotification(
                             template.getUser().getId(),
-                            "📉 Dépense récurrente créée",
+                            "💸 Dépense récurrente créée",
                             description,
                             null,
                             "EXPENSE"
@@ -85,7 +85,7 @@ public class RecurringTransactionScheduler {
                         String description = buildRecurringIncomeDescription(created);
                         createRecurringTransactionNotification(
                                 created.getUser().getId(),
-                                "📈 Revenu récurrent créé",
+                                "💰 Revenu récurrent créé",
                                 description,
                                 null,
                                 "INCOME"
