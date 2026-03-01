@@ -20,6 +20,25 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
      */
     @Query("SELECT b FROM Budget b WHERE b.isRecurring = true AND b.deleted = false ORDER BY b.id DESC")
     List<Budget> findByIsRecurringTrueOrderByIdDesc();
+
+    /**
+     * Trouve les budgets récurrents dont la période est exactement le mois dernier
+     * (startDate = 1er du mois, endDate = dernier jour du mois).
+     * Ainsi on ne prend pas les budgets de janvier ni ceux qui chevauchent sur plusieurs mois.
+     */
+    @Query("""
+        SELECT b FROM Budget b
+        LEFT JOIN FETCH b.category
+        LEFT JOIN FETCH b.user
+        WHERE b.startDate = :firstDayOfLastMonth
+        AND b.endDate = :lastDayOfLastMonth
+        AND b.isRecurring = true
+        AND b.deleted = false
+        """)
+    List<Budget> findRecurringBudgetsOfLastMonth(
+        @Param("firstDayOfLastMonth") LocalDate firstDayOfLastMonth,
+        @Param("lastDayOfLastMonth") LocalDate lastDayOfLastMonth
+    );
     
     /**
      * Trouve les budgets pour un utilisateur, une catégorie et une période donnée.

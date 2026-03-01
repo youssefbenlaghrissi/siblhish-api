@@ -20,12 +20,10 @@ import java.util.List;
 
 /**
  * Scheduler pour créer automatiquement les budgets récurrents chaque mois.
- * 
- * Un budget est considéré comme récurrent si :
- * - startDate = 1er jour d'un mois
- * - endDate = dernier jour du même mois
- * 
- * Exécution : Le 1er de chaque mois à 00:01:00
+ *
+ * Récupère les budgets du mois dernier ; seuls ceux avec isRecurring=true donnent lieu
+ * à la création d'un budget pour le mois en cours. Sinon on ne crée rien.
+ * Le nouveau budget est aussi isRecurring=true pour cohérence avec l’affichage front (série récurrente).
  */
 @Component
 @RequiredArgsConstructor
@@ -50,13 +48,20 @@ public class RecurringBudgetScheduler {
             LocalDate firstDayOfMonth = currentMonth.atDay(1);
             LocalDate lastDayOfMonth = currentMonth.atEndOfMonth();
 
-            List<Budget> recurringBudgets = budgetRepository.findByIsRecurringTrueOrderByIdDesc();
+            YearMonth lastMonth = currentMonth.minusMonths(1);
+            LocalDate firstDayOfLastMonth = lastMonth.atDay(1);
+            LocalDate lastDayOfLastMonth = lastMonth.atEndOfMonth();
+
+            // Budgets dont la période est exactement le mois dernier (1er → dernier jour) et récurrents
+            List<Budget> lastMonthRecurringBudgets = budgetRepository.findRecurringBudgetsOfLastMonth(
+                firstDayOfLastMonth, lastDayOfLastMonth
+            );
 
             List<Budget> budgetsToCreate = new ArrayList<>();
             List<NotificationRequest> notificationsToCreate = new ArrayList<>();
             LocalDateTime now = LocalDateTime.now();
 
-            for (Budget templateBudget : recurringBudgets) {
+            for (Budget templateBudget : lastMonthRecurringBudgets) {
                 Long userId = templateBudget.getUser().getId();
                 Category category = templateBudget.getCategory();
                 Long categoryId = category != null ? category.getId() : null;
@@ -67,7 +72,7 @@ public class RecurringBudgetScheduler {
                     continue;
                 }
 
-                // Créer un nouveau budget pour ce mois
+                // Nouveau budget pour ce mois : isRecurring=true pour cohérence front (série récurrente)
                 Budget newBudget = new Budget();
                 newBudget.setUser(templateBudget.getUser());
                 newBudget.setAmount(templateBudget.getAmount());
@@ -78,13 +83,13 @@ public class RecurringBudgetScheduler {
                 newBudget.setCreationDate(now);
 
                 budgetsToCreate.add(newBudget);
-                
+
                 notificationsToCreate.add(new NotificationRequest(
                     userId,
-                    "Budget récurrent créé",
-                    String.format("Un budget récurrent de %.2f MAD a été créé automatiquement pour le mois de %s.", 
+                    "✅ Budget récurrent créé",
+                    String.format("Un budget récurrent de %.2f MAD a été créé automatiquement pour le mois de %s.",
                         templateBudget.getAmount(), currentMonth),
-                    category.getName()
+                    category != null ? category.getName() : ""
                 ));
             }
 
