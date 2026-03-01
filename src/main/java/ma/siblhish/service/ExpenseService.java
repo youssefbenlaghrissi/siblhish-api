@@ -99,6 +99,9 @@ public class ExpenseService {
         expense.setCategory(category);
         
         Expense saved = expenseRepository.save(expense);
+        // Vérifier les budgets et envoyer des notifications si nécessaire
+        checkAndNotifyBudgetStatus(expense.getUser().getId(), category.getId(), saved.getCreationDate());
+
         return mapper.toExpenseDto(saved);
     }
 
