@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PeriodSummaryDto {
-    private String period; // Format: "2025-01-15" (jour), "2025-01" (mois), "2025" (année)
+    private String period; // Format: "YYYY-MM-DD" (un point par jour du mois)
     private Double totalIncome;
     private Double totalExpenses;
     private Double balance;

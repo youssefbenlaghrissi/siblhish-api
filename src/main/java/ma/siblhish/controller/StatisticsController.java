@@ -22,12 +22,12 @@ public class StatisticsController {
     private final StatisticsService statisticsService;
 
     /**
-     * Endpoint unifié pour récupérer TOUTES les statistiques en une seule requête
-     * Optimise les performances en réduisant les appels API de 6 à 1
+     * Statistiques pour la vue mensuelle (1er au dernier jour du mois).
+     *
      * @param userId ID de l'utilisateur
-     * @param startDate Date de début (format: YYYY-MM-DD)
-     * @param endDate Date de fin (format: YYYY-MM-DD)
-     * @return DTO unifié contenant toutes les statistiques (monthlySummary, categoryExpenses, budgetStatistics)
+     * @param startDate 1er du mois (YYYY-MM-DD)
+     * @param endDate Dernier jour du mois (YYYY-MM-DD)
+     * @return monthlySummary (par jour), categoryExpenses, budgetStatistics
      */
     @GetMapping("/all-statistics/{userId}")
     public ResponseEntity<ApiResponse<StatisticsDto>> getAllStatistics(

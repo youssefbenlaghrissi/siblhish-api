@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,40 +84,17 @@ public class StatisticsService {
     }
 
     /**
-     * Obtenir les revenus et dépenses par période
-     * La granularité est déterminée automatiquement selon la plage de dates :
-     * - daily (1 jour) : agrégation par jour
-     * - weekly (7 jours) : agrégation par jour pour voir chaque jour de la semaine
-     * - monthly (30 jours) : agrégation par jour pour voir chaque jour du mois
-     * - 3months (90 jours) : agrégation par mois pour voir chaque mois (3 points)
-     * - 6months (180 jours) : agrégation par mois pour voir chaque mois
+     * Revenus et dépenses par jour sur la période (vue mensuelle : un point par jour du mois).
+     *
      * @param userId ID de l'utilisateur
-     * @param startDate Date de début
-     * @param endDate Date de fin
+     * @param startDate Date de début (ex. 1er du mois)
+     * @param endDate Date de fin (ex. dernier jour du mois)
      */
     public List<PeriodSummaryDto> getPeriodSummary(Long userId, LocalDate startDate, LocalDate endDate) {
-        // Convertir LocalDate en LocalDateTime pour utiliser les index sur creation_date
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Déterminer la granularité selon la plage de dates
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
-        String periodFormat;
-
-        if (daysBetween <= 1) {
-            // daily : 1 jour → agrégation par jour (même si c'est 1 seul jour)
-            periodFormat = "TO_CHAR(creation_date, 'YYYY-MM-DD')";
-        } else if (daysBetween <= 31) {
-            // weekly (7 jours) ou monthly (30 jours) → agrégation par jour
-            // Pour voir chaque jour de la semaine/mois
-            periodFormat = "TO_CHAR(creation_date, 'YYYY-MM-DD')";
-        } else {
-            // 3months (~90 jours) ou 6months (~180 jours) ou plus → agrégation par mois
-            // Pour voir chaque mois (3 points pour 3 mois, 6 points pour 6 mois)
-            periodFormat = "TO_CHAR(creation_date, 'YYYY-MM')";
-        }
-
-        StringBuilder sqlBuilder = new StringBuilder("""
+        String sql = """
             SELECT 
                 period,
                 SUM(total_income) as total_income,
@@ -126,9 +102,7 @@ public class StatisticsService {
                 SUM(total_income) - SUM(total_expenses) as balance
             FROM (
                 SELECT 
-            """);
-        sqlBuilder.append(periodFormat).append(" as period, ");
-        sqlBuilder.append("""
+                    TO_CHAR(creation_date, 'YYYY-MM-DD') as period,
                     amount as total_income,
                     0 as total_expenses
                 FROM incomes
@@ -138,9 +112,7 @@ public class StatisticsService {
                     AND creation_date <= :endDateTime
                 UNION ALL
                 SELECT 
-            """);
-        sqlBuilder.append(periodFormat).append(" as period, ");
-        sqlBuilder.append("""
+                    TO_CHAR(creation_date, 'YYYY-MM-DD') as period,
                     0 as total_income,
                     amount as total_expenses
                 FROM expenses
@@ -151,8 +123,7 @@ public class StatisticsService {
             ) combined
             GROUP BY period
             ORDER BY period
-        """);
-        String sql = sqlBuilder.toString();
+            """;
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter("userId", userId);
