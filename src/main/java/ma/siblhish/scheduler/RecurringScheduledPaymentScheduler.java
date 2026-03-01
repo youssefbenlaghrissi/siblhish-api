@@ -74,7 +74,19 @@ public class RecurringScheduledPaymentScheduler {
                         logger.debug("⏭️  Paiement récurrent {} a atteint sa date limite", payment.getId());
                         continue;
                     }
-                    
+
+                    // Vérifier qu'un paiement similaire (même user, nom, montant, méthode, date d'échéance, catégorie) n'existe pas déjà
+                    Long categoryId = payment.getCategory() != null ? payment.getCategory().getId() : null;
+                    if (scheduledPaymentRepository.existsSimilarPayment(
+                            payment.getUser().getId(),
+                            payment.getName(),
+                            payment.getAmount(),
+                            payment.getPaymentMethod(),
+                            nextDueDate,
+                            categoryId)) {
+                        logger.debug("⏭️  Paiement similaire déjà présent en BDD pour {} - échéance {}", payment.getName(), nextDueDate.toLocalDate());
+                        continue;
+                    }
 
                     // Créer le prochain paiement
                     ScheduledPayment nextPayment = createNextPayment(payment, nextDueDate);

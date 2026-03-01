@@ -50,6 +50,12 @@ public class RecurringTransactionScheduler {
                         template.getRecurrenceDayOfYear(),
                         template.getCreationDate(),
                         targetDate.toLocalDate())) {
+                    Long categoryId = template.getCategory() != null ? template.getCategory().getId() : null;
+                    if (expenseRepository.existsSimilarRecurringExpense(
+                            template.getUser().getId(), categoryId, template.getAmount(), targetDate.toLocalDate())) {
+                        log.debug("⏭️ Dépense récurrente similaire déjà en BDD pour user {} - {}", template.getUser().getId(), targetDate.toLocalDate());
+                        continue;
+                    }
                     Expense created = createRecurringExpense(template, targetDate);
                     String description = buildRecurringExpenseDescription(created);
                     createRecurringTransactionNotification(
@@ -80,8 +86,12 @@ public class RecurringTransactionScheduler {
                         template.getRecurrenceDayOfYear(),
                         template.getCreationDate(),
                         targetDate.toLocalDate())) {
-
-                        Income created = createRecurringIncome(template, targetDate);
+                    if (incomeRepository.existsSimilarRecurringIncome(
+                            template.getUser().getId(), template.getAmount(), targetDate.toLocalDate())) {
+                        log.debug("⏭️ Revenu récurrent similaire déjà en BDD pour user {} - {}", template.getUser().getId(), targetDate.toLocalDate());
+                        continue;
+                    }
+                    Income created = createRecurringIncome(template, targetDate);
                         String description = buildRecurringIncomeDescription(created);
                         createRecurringTransactionNotification(
                                 created.getUser().getId(),

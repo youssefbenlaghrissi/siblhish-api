@@ -40,7 +40,7 @@ public class RecurringBudgetScheduler {
      * Créer les budgets récurrents pour le mois en cours.
      * Exécuté le 1er de chaque mois à 00:01:00
      */
-    @Scheduled(cron = "0 0 3 * * ?") // Le 1er de chaque mois à 00:01:00 : 0 1 0 1 * ?
+    @Scheduled(cron = "0 0 1 * * ?") // Le 1er de chaque mois à 00:01:00 : 0 1 0 1 * ?
     @Transactional
     public void createRecurringBudgetsForCurrentMonth() {
         logger.info("🔄 Démarrage de la création automatique des budgets récurrents pour le mois en cours");
@@ -59,6 +59,13 @@ public class RecurringBudgetScheduler {
             for (Budget templateBudget : recurringBudgets) {
                 Long userId = templateBudget.getUser().getId();
                 Category category = templateBudget.getCategory();
+                Long categoryId = category != null ? category.getId() : null;
+
+                if (budgetRepository.existsBudgetForUserAndCategoryAndPeriod(
+                        userId, categoryId, firstDayOfMonth, lastDayOfMonth)) {
+                    logger.debug("⏭️ Budget récurrent déjà présent en BDD pour user {} catégorie {} - {}", userId, categoryId, currentMonth);
+                    continue;
+                }
 
                 // Créer un nouveau budget pour ce mois
                 Budget newBudget = new Budget();

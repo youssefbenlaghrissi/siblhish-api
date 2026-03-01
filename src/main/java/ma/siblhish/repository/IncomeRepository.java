@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,5 +24,20 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
     
     @Query("SELECT SUM(i.amount) FROM Income i WHERE i.user.id = :userId AND i.deleted = false")
     Double getTotalIncomeByUserId(@Param("userId") Long userId);
+
+    /**
+     * Vérifie si un revenu similaire existe déjà pour la date (éviter doublons batch récurrent).
+     */
+    @Query("""
+        SELECT COUNT(i) > 0 FROM Income i
+        WHERE i.user.id = :userId
+        AND i.amount = :amount
+        AND FUNCTION('DATE', i.creationDate) = :creationDate
+        AND i.deleted = false
+        """)
+    boolean existsSimilarRecurringIncome(
+            @Param("userId") Long userId,
+            @Param("amount") Double amount,
+            @Param("creationDate") LocalDate creationDate);
 }
 

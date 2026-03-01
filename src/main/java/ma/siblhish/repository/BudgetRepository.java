@@ -34,6 +34,23 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     );
 
     /**
+     * Vérifie si un budget existe déjà pour cet utilisateur, catégorie et période (éviter doublons batch récurrent).
+     */
+    @Query("""
+        SELECT COUNT(b) > 0 FROM Budget b
+        WHERE b.user.id = :userId
+        AND b.startDate = :startDate
+        AND b.endDate = :endDate
+        AND b.deleted = false
+        AND (:categoryId IS NULL AND b.category IS NULL OR b.category.id = :categoryId)
+        """)
+    boolean existsBudgetForUserAndCategoryAndPeriod(
+            @Param("userId") Long userId,
+            @Param("categoryId") Long categoryId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+    /**
      * Trouve les budgets existants pour plusieurs utilisateurs et catégories en une seule requête.
      * Optimisé pour le batch processing dans RecurringBudgetScheduler.
      * 

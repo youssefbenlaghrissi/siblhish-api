@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,6 +42,23 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             @Param("categoryId") Long categoryId);
+
+    /**
+     * Vérifie si une dépense similaire existe déjà pour la date (éviter doublons batch récurrent).
+     */
+    @Query("""
+        SELECT COUNT(e) > 0 FROM Expense e
+        WHERE e.user.id = :userId
+        AND e.amount = :amount
+        AND FUNCTION('DATE', e.creationDate) = :creationDate
+        AND e.deleted = false
+        AND (:categoryId IS NULL AND e.category IS NULL OR e.category.id = :categoryId)
+        """)
+    boolean existsSimilarRecurringExpense(
+            @Param("userId") Long userId,
+            @Param("categoryId") Long categoryId,
+            @Param("amount") Double amount,
+            @Param("creationDate") LocalDate creationDate);
 
 }
 
