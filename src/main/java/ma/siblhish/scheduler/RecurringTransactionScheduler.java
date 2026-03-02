@@ -127,6 +127,10 @@ public class RecurringTransactionScheduler {
         if (endDate != null && today.isAfter(endDate.toLocalDate())) {
             return false;
         }
+        // Ne pas générer avant la date de début (date de création du template)
+        if (dateCreation != null && today.isBefore(dateCreation.toLocalDate())) {
+            return false;
+        }
         
         if (frequency == null) {
             return false;
@@ -134,7 +138,7 @@ public class RecurringTransactionScheduler {
         
         switch (frequency) {
             case DAILY:
-                // Quotidien : générer chaque jour
+                // Quotidien : générer chaque jour à partir de la date de création
                 return true;
                 
             case WEEKLY:
