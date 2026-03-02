@@ -36,10 +36,6 @@ public class FavoriteController {
     public ResponseEntity<ApiResponse<List<FavoriteDto>>> addFavorites(
             @PathVariable Long userId,
             @RequestBody List<FavoriteDto> favorites) {
-        if (favorites == null || favorites.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("La liste des favoris ne peut pas être vide"));
-        }
         List<FavoriteDto> added = favoriteService.addFavorites(userId, favorites);
         return ResponseEntity.ok(ApiResponse.success(added));
     }
@@ -52,10 +48,6 @@ public class FavoriteController {
     public ResponseEntity<ApiResponse<Void>> deleteFavorites(
             @PathVariable Long userId,
             @RequestBody List<FavoriteDto> favorites) {
-        if (favorites == null || favorites.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("La liste des favoris à supprimer ne peut pas être vide"));
-        }
         favoriteService.deleteFavorites(userId, favorites);
         return ResponseEntity.ok(ApiResponse.success(null));
     }

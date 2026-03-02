@@ -45,7 +45,7 @@ public class FavoriteService {
     @Transactional
     public List<FavoriteDto> addFavorites(Long userId, List<FavoriteDto> favoritesToAdd) {
         if (favoritesToAdd == null || favoritesToAdd.isEmpty()) {
-            return List.of();
+            throw new IllegalArgumentException("La liste des favoris ne peut pas être vide");
         }
 
         User user = userRepository.findById(userId)
@@ -123,7 +123,7 @@ public class FavoriteService {
     @Transactional
     public void deleteFavorites(Long userId, List<FavoriteDto> favoritesToDelete) {
         if (favoritesToDelete == null || favoritesToDelete.isEmpty()) {
-            return;
+            throw new IllegalArgumentException("La liste des favoris à supprimer ne peut pas être vide");
         }
 
         // Pas besoin de vérifier l'utilisateur : si l'ID n'existe pas, la requête retournera simplement une liste vide
