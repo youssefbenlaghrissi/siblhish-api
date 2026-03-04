@@ -109,7 +109,7 @@ public class ScheduledPaymentReminderScheduler {
                     }
                     
                     // Vérifier si une notification a déjà été envoyée récemment (dans les 24h) pour éviter les doublons
-                    if (shouldSendNotification && !hasRecentNotification(payment.getId(), payment.getUser().getId(), reminderType)) {
+                    if (shouldSendNotification && !hasRecentNotification(payment, payment.getUser().getId(), reminderType, daysUntilDue)) {
                         sendReminderNotification(payment, reminderType, daysUntilDue);
                         notificationsSent++;
                     }
@@ -129,22 +129,31 @@ public class ScheduledPaymentReminderScheduler {
     }
     
     /**
-     * Vérifie si une notification a déjà été envoyée récemment pour ce paiement
-     * Évite les doublons en vérifiant les notifications des dernières 24h
-     * OPTIMISÉ : Utilise COUNT() directement en SQL au lieu de charger toutes les notifications
+     * Vérifie si une notification a déjà été envoyée récemment pour ce paiement.
+     *
+     * On considère comme doublon une notification :
+     * - du même utilisateur
+     * - du même type fonctionnel (PAYMENT_OVERDUE, PAYMENT_DUE_TODAY, PAYMENT_REMINDER)
+     * - avec exactement la même description
+     * - créée dans les dernières 24h.
+     *
+     * Cela évite d'envoyer plusieurs fois d'affilée la même notif si le batch
+     * est relancé manuellement dans la même journée.
      */
-    private boolean hasRecentNotification(Long paymentId, Long userId, String reminderType) {
+    private boolean hasRecentNotification(ScheduledPayment payment,
+                                          Long userId,
+                                          String reminderType,
+                                          long daysUntilDue) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-        
-        // OPTIMISATION : Requête COUNT() au lieu de findAll()
-        // Déterminer le type de notification selon le contexte
+
         TypeNotification notificationType = determineNotificationType(reminderType);
-        
+        String description = buildReminderDescription(payment, daysUntilDue);
+
         return notificationRepository.hasRecentNotificationForPayment(
                 userId,
                 notificationType,
                 yesterday,
-                String.valueOf(paymentId)
+                description
         );
     }
     

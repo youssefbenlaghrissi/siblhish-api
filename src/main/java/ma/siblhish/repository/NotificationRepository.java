@@ -26,7 +26,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     void markAllAsReadByUserId(@Param("userId") Long userId);
     
     /**
-     * Vérifie si une notification récente existe pour un paiement planifié.
+     * Vérifie si une notification récente existe pour un paiement planifié,
+     * en se basant sur le même texte de description (pour éviter de renvoyer
+     * deux fois exactement la même notif dans les 24h).
+     *
      * Optimisé : utilise COUNT() au lieu de charger toutes les notifications.
      */
     @Query("""
@@ -34,12 +37,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         WHERE n.user.id = :userId
         AND n.type = :type
         AND n.creationDate > :since
-        AND n.description LIKE CONCAT('%ID: ', :paymentIdStr, '%')
+        AND n.description = :description
     """)
     boolean hasRecentNotificationForPayment(
             @Param("userId") Long userId,
             @Param("type") TypeNotification type,
             @Param("since") java.time.LocalDateTime since,
-            @Param("paymentIdStr") String paymentIdStr);
+            @Param("description") String description);
 }
 
