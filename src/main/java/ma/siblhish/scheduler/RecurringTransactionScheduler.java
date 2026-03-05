@@ -26,7 +26,7 @@ public class RecurringTransactionScheduler {
     private final IncomeRepository incomeRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 55 02 * * ?")
+    @Scheduled(cron = "0 10 03 * * ?")
     @Transactional
     public void generateRecurringTransactions() {
         generateRecurringTransactionsForDate();
