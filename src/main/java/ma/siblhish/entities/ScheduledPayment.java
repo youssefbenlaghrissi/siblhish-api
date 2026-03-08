@@ -82,5 +82,13 @@ public class ScheduledPayment extends AbstractEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    /**
+     * ID du paiement planifié "parent" dont ce paiement est la prochaine occurrence récurrente.
+     * Null pour les paiements créés manuellement par l'utilisateur (templates).
+     * Permet d'éviter les doublons par série récurrente (un paiement par template et par date).
+     */
+    @Column(name = "parent_scheduled_payment_id")
+    private Long parentScheduledPaymentId;
 }
 

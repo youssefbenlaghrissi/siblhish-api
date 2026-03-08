@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -89,6 +90,20 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
             @Param("paymentMethod") ma.siblhish.enums.PaymentMethod paymentMethod,
             @Param("dueDate") LocalDateTime dueDate,
             @Param("categoryId") Long categoryId);
+
+    /**
+     * Vérifie si une occurrence a déjà été créée pour ce template (parent) à cette date d'échéance.
+     * Utilisé par le batch récurrent pour éviter les doublons par série (un paiement par template et par date).
+     */
+    @Query("""
+        SELECT COUNT(sp) > 0 FROM ScheduledPayment sp
+        WHERE sp.parentScheduledPaymentId = :parentId
+        AND FUNCTION('DATE', sp.dueDate) = :dueDate
+        AND sp.deleted = false
+    """)
+    boolean existsByParentScheduledPaymentIdAndDueDate(
+            @Param("parentId") Long parentId,
+            @Param("dueDate") LocalDate dueDate);
 
 }
 
