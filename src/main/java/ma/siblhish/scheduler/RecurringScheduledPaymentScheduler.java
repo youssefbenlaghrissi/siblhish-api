@@ -42,7 +42,7 @@ public class RecurringScheduledPaymentScheduler {
      * Créer les prochains paiements planifiés récurrents.
      * Exécuté tous les jours à 04:00
      */
-    @Scheduled(cron = "0 0 1 * * ?")
+    @Scheduled(cron = "0 20 1 * * ?")
     @Transactional
     public void createNextRecurringPayments() {
         createNextRecurringPaymentsInternal();
