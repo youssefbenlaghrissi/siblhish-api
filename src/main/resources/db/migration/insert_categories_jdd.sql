@@ -1,0 +1,63 @@
+-- Script d'insertion des catégories (JDD)
+-- Table: categories (id, creation_date, deleted, name, icon, color)
+-- À exécuter manuellement ou via un script (hors Flyway si pas versionné)
+
+INSERT INTO categories (id, creation_date, deleted, name, icon, color) VALUES
+    (1, '2026-02-12 17:41:51.72746', false, 'Alimentation', '🍔', '#FF6B6B'),
+    (2, '2026-02-12 17:41:51.72746', false, 'Restaurant', '🍽️', '#E74C3C'),
+    (3, '2026-02-12 17:41:51.72746', false, 'Café', '☕', '#8B4513'),
+    (4, '2026-02-12 17:41:51.72746', false, 'Transport', '🚌', '#4ECDC4'),
+    (5, '2026-02-12 17:41:51.72746', false, 'Carburant', '⛽', '#FF8C00'),
+    (6, '2026-02-12 17:41:51.72746', false, 'Parking', '🅿️', '#607D8B'),
+    (7, '2026-02-12 17:41:51.72746', false, 'Vignette', '🏷️', '#9E9E9E'),
+    (8, '2026-02-12 17:41:51.72746', false, 'Assurance voiture', '🚘', '#42A5F5'),
+    (9, '2026-02-12 17:41:51.72746', false, 'Entretien voiture', '🔧', '#78909C'),
+    (10, '2026-02-12 17:41:51.72746', false, 'Contrôle technique', '🔍', '#455A64'),
+    (11, '2026-02-12 17:41:51.72746', false, 'Péage', '🛣️', '#8D6E63'),
+    (12, '2026-02-12 17:41:51.72746', false, 'Lavage voiture', '🧽', '#26C6DA'),
+    (13, '2026-02-12 17:41:51.72746', false, 'Loyer', '🏠', '#98D8C8'),
+    (14, '2026-02-12 17:41:51.72746', false, 'Électricité', '💡', '#FFD700'),
+    (15, '2026-02-12 17:41:51.72746', false, 'Eau', '💧', '#00BFFF'),
+    (16, '2026-02-12 17:41:51.72746', false, 'Internet', '🌐', '#9C27B0'),
+    (17, '2026-02-12 17:41:51.72746', false, 'Santé', '🏥', '#96CEB4'),
+    (18, '2026-02-12 17:41:51.72746', false, 'Médical', '💊', '#F7DC6F'),
+    (19, '2026-02-12 17:41:51.72746', false, 'Salle de sport', '🏋️', '#00C853'),
+    (20, '2026-02-12 17:41:51.72746', false, 'Sport', '⚽', '#2ECC71'),
+    (21, '2026-02-12 17:41:51.72746', false, 'Crédit', '🏦', '#1E88E5'),
+    (22, '2026-02-12 17:41:51.72746', false, 'Assurance', '🛡️', '#5C6BC0'),
+    (23, '2026-02-12 17:41:51.72746', false, 'Impôts', '📋', '#795548'),
+    (24, '2026-02-12 17:41:51.72746', false, 'Épargne', '💰', '#4CAF50'),
+    (25, '2026-02-12 17:41:51.72746', false, 'Loisirs', '🎬', '#45B7D1'),
+    (26, '2026-02-12 17:41:51.72746', false, 'Voyage', '✈️', '#BB8FCE'),
+    (27, '2026-02-12 17:41:51.72746', false, 'Sorties', '🎉', '#E91E63'),
+    (28, '2026-02-12 17:41:51.72746', false, 'Streaming', '📺', '#673AB7'),
+    (29, '2026-02-12 17:41:51.72746', false, 'Shopping', '🛍️', '#FFB347'),
+    (30, '2026-02-12 17:41:51.72746', false, 'Vêtements', '👕', '#FF69B4'),
+    (31, '2026-02-12 17:41:51.72746', false, 'Électronique', '📱', '#00ACC1'),
+    (32, '2026-02-12 17:41:51.72746', false, 'Éducation', '📚', '#DDA0DD'),
+    (33, '2026-02-12 17:41:51.72746', false, 'Enfants', '👶', '#FFAB91'),
+    (34, '2026-02-12 17:41:51.72746', false, 'Cadeaux', '🎁', '#E91E63'),
+    (35, '2026-02-12 17:41:51.72746', false, 'Abonnements', '📱', '#3498DB'),
+    (36, '2026-02-12 17:41:51.72746', false, 'Téléphone', '📞', '#009688'),
+    (37, '2026-02-12 17:41:51.72746', false, 'Factures', '📄', '#87CEEB'),
+    (38, '2026-02-12 17:41:51.72746', false, 'Animaux', '🐾', '#8D6E63'),
+    (39, '2026-02-12 17:41:51.72746', false, 'Beauté', '💄', '#F48FB1'),
+    (40, '2026-02-12 17:41:51.72746', false, 'Autres', '📦', '#95A5A6'),
+    (41, '2026-02-19 01:55:53.633209', false, 'Pharmacie', '💊', '#26A69A'),
+    (42, '2026-02-19 01:55:53.633209', false, 'Cinéma', '🎬', '#7E57C2'),
+    (43, '2026-02-19 01:55:53.633209', false, 'Livres', '📚', '#AB47BC'),
+    (44, '2026-02-19 01:55:58.478239', false, 'Voiture', '🚗', '#37474F'),
+    (45, '2026-02-19 02:02:50.562846', false, 'Pour madame', '👩', '#E91E63'),
+    (46, '2026-02-19 02:02:50.562846', false, 'Pour ma mère', '👩', '#E91E63'),
+    (47, '2026-02-19 02:02:50.562846', false, 'Pour mon père', '👨', '#2196F3'),
+    (48, '2026-02-19 02:02:50.562846', false, 'Netflix', '📺', '#E50914'),
+    (49, '2026-02-19 02:02:50.562846', false, 'Charité', '🤝', '#4CAF50')
+ON CONFLICT (id) DO UPDATE SET
+    creation_date = EXCLUDED.creation_date,
+    deleted = EXCLUDED.deleted,
+    name = EXCLUDED.name,
+    icon = EXCLUDED.icon,
+    color = EXCLUDED.color;
+
+-- Réinitialiser la séquence si besoin (PostgreSQL)
+SELECT setval(pg_get_serial_sequence('categories', 'id'), (SELECT COALESCE(MAX(id), 1) FROM categories));
