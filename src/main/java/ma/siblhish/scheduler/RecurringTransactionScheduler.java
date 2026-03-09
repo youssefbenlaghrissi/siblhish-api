@@ -222,13 +222,16 @@ public class RecurringTransactionScheduler {
     }
 
     /**
-     * Crée une nouvelle dépense basée sur le template récurrent
+     * Crée une nouvelle dépense basée sur le template récurrent.
+     * Date de création = jour du batch + heure du template (ex. 09/03 09:00) pour l'affichage front.
      */
     private Expense createRecurringExpense(Expense template, LocalDateTime date) {
+        LocalDateTime creationDate = date.toLocalDate().atTime(
+                template.getCreationDate() != null ? template.getCreationDate().toLocalTime() : date.toLocalTime());
         Expense newExpense = new Expense();
         newExpense.setAmount(template.getAmount());
         newExpense.setMethod(template.getMethod());
-        newExpense.setCreationDate(date);
+        newExpense.setCreationDate(creationDate);
         newExpense.setDescription(template.getDescription());
         newExpense.setLocation(template.getLocation());
         newExpense.setIsRecurring(false);
@@ -240,13 +243,16 @@ public class RecurringTransactionScheduler {
     }
 
     /**
-     * Crée un nouveau revenu basé sur le template récurrent
+     * Crée un nouveau revenu basé sur le template récurrent.
+     * Date de création = jour du batch + heure du template (ex. 09/03 09:00) pour l'affichage front.
      */
     private Income createRecurringIncome(Income template, LocalDateTime date) {
+        LocalDateTime creationDate = date.toLocalDate().atTime(
+                template.getCreationDate() != null ? template.getCreationDate().toLocalTime() : date.toLocalTime());
         Income newIncome = new Income();
         newIncome.setAmount(template.getAmount());
         newIncome.setMethod(template.getMethod());
-        newIncome.setCreationDate(date);
+        newIncome.setCreationDate(creationDate);
         newIncome.setDescription(template.getDescription());
         newIncome.setSource(template.getSource());
         newIncome.setIsRecurring(false); // La transaction générée n'est pas récurrente
