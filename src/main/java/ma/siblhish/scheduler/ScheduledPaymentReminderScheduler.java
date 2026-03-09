@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Scheduler pour envoyer des notifications de rappel pour les paiements planifiés.
@@ -65,7 +67,30 @@ public class ScheduledPaymentReminderScheduler {
             
             // OPTIMISATION : Requête spécifique au lieu de findAll()
             List<ScheduledPayment> paymentsToNotify = scheduledPaymentRepository.findPaymentsToNotify(now);
-            
+            if (paymentsToNotify.isEmpty()) {
+                logger.info("ℹ️ Aucun paiement à notifier aujourd'hui");
+                return;
+            }
+
+            // Optimisation des doublons : charger en une fois les notifications récentes (24h) pour les users concernés
+            List<Long> userIds = paymentsToNotify.stream()
+                    .map(p -> p.getUser().getId())
+                    .distinct()
+                    .toList();
+            List<TypeNotification> types = List.of(
+                    TypeNotification.PAYMENT_OVERDUE,
+                    TypeNotification.PAYMENT_DUE_TODAY,
+                    TypeNotification.PAYMENT_REMINDER
+            );
+            LocalDateTime since = now.minusDays(1);
+            Set<String> recentNotificationKeys = new HashSet<>();
+            for (Object[] row : notificationRepository.findRecentNotificationKeys(userIds, types, since)) {
+                Long userId = (Long) row[0];
+                TypeNotification type = (TypeNotification) row[1];
+                String description = (String) row[2];
+                recentNotificationKeys.add(notificationKey(userId, type, description));
+            }
+
             int notificationsSent = 0;
             
             for (ScheduledPayment payment : paymentsToNotify) {
@@ -109,8 +134,19 @@ public class ScheduledPaymentReminderScheduler {
                     }
                     
                     // Vérifier si une notification a déjà été envoyée récemment (dans les 24h) pour éviter les doublons
-                    if (shouldSendNotification && !hasRecentNotification(payment, payment.getUser().getId(), reminderType, daysUntilDue)) {
+                    if (shouldSendNotification) {
+                        TypeNotification notificationType = determineNotificationType(reminderType);
+                        String description = buildReminderDescription(payment, daysUntilDue);
+                        String key = notificationKey(payment.getUser().getId(), notificationType, description);
+
+                        if (recentNotificationKeys.contains(key)) {
+                            logger.debug("⏭️ Notification déjà envoyée pour l'utilisateur {} - type {} - même description",
+                                    payment.getUser().getId(), notificationType);
+                            continue;
+                        }
+
                         sendReminderNotification(payment, reminderType, daysUntilDue);
+                        recentNotificationKeys.add(key);
                         notificationsSent++;
                     }
                     
@@ -140,21 +176,8 @@ public class ScheduledPaymentReminderScheduler {
      * Cela évite d'envoyer plusieurs fois d'affilée la même notif si le batch
      * est relancé manuellement dans la même journée.
      */
-    private boolean hasRecentNotification(ScheduledPayment payment,
-                                          Long userId,
-                                          String reminderType,
-                                          long daysUntilDue) {
-        LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-
-        TypeNotification notificationType = determineNotificationType(reminderType);
-        String description = buildReminderDescription(payment, daysUntilDue);
-
-        return notificationRepository.hasRecentNotificationForPayment(
-                userId,
-                notificationType,
-                yesterday,
-                description
-        );
+    private String notificationKey(Long userId, TypeNotification type, String description) {
+        return userId + "|" + type.name() + "|" + description;
     }
     
     /**

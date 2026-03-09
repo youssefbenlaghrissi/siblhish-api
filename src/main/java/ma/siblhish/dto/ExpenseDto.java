@@ -27,5 +27,6 @@ public class ExpenseDto {
     private Integer recurrenceDayOfYear;
     private Long userId;
     private CategoryDto category;
+    private Long parentTransactionId;
 }
 

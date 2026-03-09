@@ -32,5 +32,6 @@ public class ScheduledPaymentDto {
     private Long userId;
     private Long categoryId;
     private CategoryDto category;
+    private Long parentScheduledPaymentId;
 }
 

@@ -44,5 +44,24 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("type") TypeNotification type,
             @Param("since") java.time.LocalDateTime since,
             @Param("description") String description);
+
+    /**
+     * Optimisation batch : récupère en une seule requête toutes les combinaisons
+     * (userId, type, description) pour les notifications récentes (24h) des utilisateurs
+     * et types donnés.
+     * Résultat: [userId, type, description]
+     */
+    @Query("""
+        SELECT n.user.id, n.type, n.description
+        FROM Notification n
+        WHERE n.deleted = false
+        AND n.creationDate > :since
+        AND n.user.id IN :userIds
+        AND n.type IN :types
+    """)
+    List<Object[]> findRecentNotificationKeys(
+            @Param("userIds") List<Long> userIds,
+            @Param("types") List<TypeNotification> types,
+            @Param("since") java.time.LocalDateTime since);
 }
 

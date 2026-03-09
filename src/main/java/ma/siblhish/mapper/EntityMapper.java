@@ -48,6 +48,7 @@ public class EntityMapper {
         dto.setRecurrenceDayOfYear(expense.getRecurrenceDayOfYear());
         dto.setUserId(expense.getUser().getId());
         dto.setCategory(toCategoryDto(expense.getCategory()));
+        dto.setParentTransactionId(expense.getParentTransactionId());
         return dto;
     }
 
@@ -74,6 +75,7 @@ public class EntityMapper {
         dto.setRecurrenceDayOfMonth(income.getRecurrenceDayOfMonth());
         dto.setRecurrenceDayOfYear(income.getRecurrenceDayOfYear());
         dto.setUserId(income.getUser().getId());
+        dto.setParentTransactionId(income.getParentTransactionId());
         return dto;
     }
 
@@ -174,6 +176,7 @@ public class EntityMapper {
         dto.setUserId(payment.getUser().getId());
         dto.setCategoryId(payment.getCategory().getId());
         dto.setCategory(toCategoryDto(payment.getCategory()));
+        dto.setParentScheduledPaymentId(payment.getParentScheduledPaymentId());
         return dto;
     }
 

@@ -233,6 +233,7 @@ public class RecurringTransactionScheduler {
         newExpense.setLocation(template.getLocation());
         newExpense.setIsRecurring(false);
         newExpense.setRecurrenceFrequency(null);
+        newExpense.setParentTransactionId(template.getId());
         newExpense.setUser(template.getUser());
         newExpense.setCategory(template.getCategory());
         return newExpense;
@@ -250,6 +251,7 @@ public class RecurringTransactionScheduler {
         newIncome.setSource(template.getSource());
         newIncome.setIsRecurring(false); // La transaction générée n'est pas récurrente
         newIncome.setRecurrenceFrequency(null);
+        newIncome.setParentTransactionId(template.getId());
         newIncome.setUser(template.getUser());
         return newIncome;
     }

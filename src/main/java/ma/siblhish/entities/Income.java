@@ -68,6 +68,9 @@ public class Income extends AbstractEntity {
     @Column(name = "recurrence_day_of_year")
     private Integer recurrenceDayOfYear; // 1-365
 
+    @Column(name = "parent_transaction_id")
+    private Long parentTransactionId;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

@@ -26,5 +26,6 @@ public class IncomeDto {
     private Integer recurrenceDayOfMonth;
     private Integer recurrenceDayOfYear;
     private Long userId;
+    private Long parentTransactionId;
 }
 
