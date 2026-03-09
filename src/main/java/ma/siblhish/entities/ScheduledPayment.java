@@ -75,6 +75,10 @@ public class ScheduledPayment extends AbstractEntity {
     @Column(name = "paid_date")
     private LocalDateTime paidDate;
 
+    /** ID du paiement planifié parent (template) dont ce paiement est une occurrence. Null pour les modèles créés par l'utilisateur. */
+    @Column(name = "parent_scheduled_payment_id")
+    private Long parentScheduledPaymentId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

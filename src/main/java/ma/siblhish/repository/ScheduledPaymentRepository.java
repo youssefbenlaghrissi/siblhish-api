@@ -47,49 +47,66 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
     List<ScheduledPayment> findPaymentsToNotify(@Param("today") LocalDateTime today);
 
     /**
-     * Trouve les paiements récurrents qui nécessitent la création du prochain paiement.
-     * Optimisé pour le scheduler de paiements récurrents.
-     * On ne traite que si la date d'échéance est déjà passée (ou aujourd'hui si payé),
-     * pour éviter de créer le prochain occurrence trop tôt si l'utilisateur a marqué payé en avance.
+     * Trouve uniquement les templates récurrents (parent_scheduled_payment_id IS NULL).
+     * Les occurrences créées par le batch ont parent_scheduled_payment_id renseigné donc ne sont pas retournées.
      */
     @Query("""
         SELECT DISTINCT sp FROM ScheduledPayment sp
         LEFT JOIN FETCH sp.category
         LEFT JOIN FETCH sp.user
+        LEFT JOIN FETCH sp.recurrenceDaysOfWeek
         WHERE sp.isRecurring = true
         AND sp.recurrenceFrequency IS NOT NULL
+        AND sp.parentScheduledPaymentId IS NULL
         AND sp.deleted = false
         AND sp.dueDate IS NOT NULL
-        AND (
-            (sp.isPaid = true AND sp.dueDate <= :now)
-            OR (sp.isPaid = false AND sp.dueDate < :now)
-        )
     """)
-    List<ScheduledPayment> findRecurringPaymentsToProcess(@Param("now") LocalDateTime now);
+    List<ScheduledPayment> findRecurringTemplates();
 
     /**
-     * Vérifie si un paiement similaire existe déjà pour éviter les doublons.
-     * Optimisé : utilise COUNT() au lieu de charger tous les paiements.
+     * Max(due_date) par parent_scheduled_payment_id (une requête pour éviter N+1).
+     * Résultat : [parentScheduledPaymentId, maxDueDate]
      */
     @Query("""
-        SELECT COUNT(sp) > 0 FROM ScheduledPayment sp
-        WHERE sp.user.id = :userId
-        AND sp.name = :name
-        AND sp.amount = :amount
-        AND sp.paymentMethod = :paymentMethod
-        AND FUNCTION('DATE', sp.dueDate) = FUNCTION('DATE', :dueDate)
-        AND sp.isPaid = false
-        AND sp.isRecurring = true
+        SELECT sp.parentScheduledPaymentId, MAX(sp.dueDate)
+        FROM ScheduledPayment sp
+        WHERE sp.parentScheduledPaymentId IS NOT NULL
         AND sp.deleted = false
-        AND (:categoryId IS NULL AND sp.category IS NULL OR sp.category.id = :categoryId)
+        GROUP BY sp.parentScheduledPaymentId
     """)
-    boolean existsSimilarPayment(
-            @Param("userId") Long userId,
-            @Param("name") String name,
-            @Param("amount") Double amount,
-            @Param("paymentMethod") ma.siblhish.enums.PaymentMethod paymentMethod,
-            @Param("dueDate") LocalDateTime dueDate,
-            @Param("categoryId") Long categoryId);
+    List<Object[]> findMaxDueDateByParentId();
+
+    /**
+     * Vérifie si un paiement existe déjà pour ce template à cette date (template lui-même ou occurrence).
+     * @deprecated Préférer {@link #findTemplateIdsWithPaymentOnDate(LocalDate)} pour éviter N requêtes dans le batch.
+     */
+    @Deprecated
+    @Query("""
+        SELECT COUNT(sp) > 0 FROM ScheduledPayment sp
+        WHERE (sp.id = :templateId OR sp.parentScheduledPaymentId = :templateId)
+        AND FUNCTION('DATE', sp.dueDate) = FUNCTION('DATE', :dueDate)
+        AND sp.deleted = false
+    """)
+    boolean existsByParentAndDueDate(
+            @Param("templateId") Long templateId,
+            @Param("dueDate") LocalDateTime dueDate);
+
+    /**
+     * Une seule requête : tous les template IDs qui ont déjà un paiement (template ou occurrence) à la date donnée.
+     * Évite N appels à existsByParentAndDueDate dans le batch.
+     */
+    @Query("""
+        SELECT sp.id FROM ScheduledPayment sp
+        WHERE sp.parentScheduledPaymentId IS NULL
+        AND FUNCTION('DATE', sp.dueDate) = :date
+        AND sp.deleted = false
+        UNION
+        SELECT sp.parentScheduledPaymentId FROM ScheduledPayment sp
+        WHERE sp.parentScheduledPaymentId IS NOT NULL
+        AND FUNCTION('DATE', sp.dueDate) = :date
+        AND sp.deleted = false
+    """)
+    List<Long> findTemplateIdsWithPaymentOnDate(@Param("date") LocalDate date);
 
 }
 

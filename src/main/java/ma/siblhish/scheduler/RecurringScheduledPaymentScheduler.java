@@ -16,18 +16,19 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Scheduler pour créer automatiquement les prochains paiements planifiés récurrents.
- * 
- * Logique :
- * - Récupère tous les paiements planifiés récurrents qui sont payés
- * - Pour chaque paiement payé, crée le prochain paiement selon la fréquence
- * - Vérifie la date limite (recurrenceEndDate)
- * - Vérifie si le prochain paiement existe déjà pour éviter les doublons
- * 
- * Exécution : Tous les jours à 04:00
+ *
+ * Approche template_id (parent_scheduled_payment_id) :
+ * - On ne traite que les modèles (parent_scheduled_payment_id IS NULL).
+ * - Les occurrences créées ont parent_scheduled_payment_id = id du template et isRecurring = false.
+ * - Prochaine date = calculateNextDueDate(template, lastDue) avec lastDue = max(due_date) de la série.
  */
 @Component
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class RecurringScheduledPaymentScheduler {
      * Créer les prochains paiements planifiés récurrents.
      * Exécuté tous les jours à 04:00
      */
-    @Scheduled(cron = "0 20 1 * * ?")
+    @Scheduled(cron = "0 18 2 * * ?")
     @Transactional
     public void createNextRecurringPayments() {
         createNextRecurringPaymentsInternal();
@@ -57,142 +58,156 @@ public class RecurringScheduledPaymentScheduler {
         logger.info("🔄 Démarrage de la création automatique des prochains paiements planifiés récurrents");
         
         try {
-            LocalDateTime now = LocalDateTime.now();
+            LocalDate today = LocalDate.now();
+            List<ScheduledPayment> templates = scheduledPaymentRepository.findRecurringTemplates();
+            Map<Long, LocalDateTime> maxDueByParentId = buildMaxDueByParentIdMap();
+            Set<Long> templateIdsWithPaymentToday = new HashSet<>(
+                    scheduledPaymentRepository.findTemplateIdsWithPaymentOnDate(today));
+            List<ScheduledPayment> toCreate = new ArrayList<>();
 
-            List<ScheduledPayment> recurringPayments = scheduledPaymentRepository.findRecurringPaymentsToProcess(now);
-            
-            int paymentsCreated = 0;
-            
-            for (ScheduledPayment payment : recurringPayments) {
+            for (ScheduledPayment template : templates) {
                 try {
-                    // Calculer la date du prochain paiement (fréquence + dayOfMonth, dayOfYear, daysOfWeek)
-                    LocalDateTime nextDueDate = calculateNextDueDate(payment);
-                    
-                    // Vérifier la date limite
-                    if (payment.getRecurrenceEndDate() != null 
-                            && nextDueDate.isAfter(payment.getRecurrenceEndDate())) {
-                        logger.debug("⏭️  Paiement récurrent {} a atteint sa date limite", payment.getId());
+                    LocalDateTime lastDue = template.getDueDate();
+                    LocalDateTime maxFromOccurrences = maxDueByParentId.get(template.getId());
+                    if (maxFromOccurrences != null && (lastDue == null || maxFromOccurrences.isAfter(lastDue))) {
+                        lastDue = maxFromOccurrences;
+                    }
+                    if (lastDue == null) {
                         continue;
                     }
 
-                    // Vérifier qu'un paiement similaire (même user, nom, montant, méthode, date d'échéance, catégorie) n'existe pas déjà
-                    Long categoryId = payment.getCategory() != null ? payment.getCategory().getId() : null;
-                    if (scheduledPaymentRepository.existsSimilarPayment(
-                            payment.getUser().getId(),
-                            payment.getName(),
-                            payment.getAmount(),
-                            payment.getPaymentMethod(),
-                            nextDueDate,
-                            categoryId)) {
-                        logger.debug("⏭️  Paiement similaire déjà présent en BDD pour {} - échéance {}", payment.getName(), nextDueDate.toLocalDate());
+                    LocalDateTime nextDueDate = calculateNextDueDate(template, lastDue);
+
+                    if (template.getRecurrenceEndDate() != null
+                            && nextDueDate.toLocalDate().isAfter(template.getRecurrenceEndDate().toLocalDate())) {
+                        logger.debug("⏭️ Paiement récurrent {} a atteint sa date limite", template.getId());
                         continue;
                     }
 
-                    // Créer le prochain paiement
-                    ScheduledPayment nextPayment = createNextPayment(payment, nextDueDate);
-                    scheduledPaymentRepository.save(nextPayment);
-                    paymentsCreated++;
-                    
-                    // Créer une notification pour l'utilisateur (même format de description que ScheduledPaymentReminderScheduler)
-                    String description = buildRecurringCreatedDescription(payment, nextDueDate);
-                    createRecurringScheduledPaymentNotification(
-                        payment.getUser().getId(),
-                        "📅 Paiement planifié récurrent créé",
-                        description,
-                        null
-                    );
-                    
-                    logger.debug("✅ Prochain paiement créé : {} - Due: {} (Paiement précédent: {} - Payé: {})", 
-                            nextPayment.getName(), nextDueDate, 
-                            payment.getDueDate(), Boolean.TRUE.equals(payment.getIsPaid()));
-                    
+                    if (!today.equals(nextDueDate.toLocalDate())) {
+                        continue;
+                    }
+
+                    if (templateIdsWithPaymentToday.contains(template.getId())) {
+                        logger.debug("⏭️ Paiement déjà présent pour template {} - échéance {}", template.getId(), nextDueDate.toLocalDate());
+                        continue;
+                    }
+
+                    ScheduledPayment nextPayment = createOccurrenceFromTemplate(template, nextDueDate);
+                    toCreate.add(nextPayment);
+                    templateIdsWithPaymentToday.add(template.getId());
                 } catch (Exception e) {
-                    logger.error("❌ Erreur lors de la création du prochain paiement pour le paiement ID: {}", 
-                            payment.getId(), e);
+                    logger.error("❌ Erreur lors de la création pour le template ID: {}", template.getId(), e);
                 }
             }
-            
-            logger.info("✅ Création automatique terminée: {} prochains paiements créés", paymentsCreated);
-            
+
+            if (!toCreate.isEmpty()) {
+                scheduledPaymentRepository.saveAll(toCreate);
+                for (ScheduledPayment payment : toCreate) {
+                    String description = buildRecurringCreatedDescription(payment, payment.getDueDate());
+                    createRecurringScheduledPaymentNotification(
+                            payment.getUser().getId(),
+                            "📅 Paiement planifié récurrent créé",
+                            description,
+                            null
+                    );
+                    logger.debug("✅ Occurrence créée : {} - Due: {} (parent: {})", payment.getName(), payment.getDueDate(), payment.getParentScheduledPaymentId());
+                }
+            }
+
+            logger.info("✅ Création automatique terminée: {} prochains paiements créés", toCreate.size());
+
         } catch (Exception e) {
-            logger.error("❌ Erreur lors de la création automatique des paiements planifiés récurrents: {}", 
+            logger.error("❌ Erreur lors de la création automatique des paiements planifiés récurrents: {}",
                     e.getMessage(), e);
         }
     }
-    
-    /**
-     * Calcule la date d'échéance du prochain paiement en tenant compte de la fréquence,
-     * recurrenceDayOfMonth, recurrenceDayOfYear et recurrenceDaysOfWeek (comme dépense/revenu).
-     */
-    private LocalDateTime calculateNextDueDate(ScheduledPayment payment) {
-        LocalDateTime dueDate = payment.getDueDate();
-        RecurrenceFrequency frequency = payment.getRecurrenceFrequency();
 
+    private Map<Long, LocalDateTime> buildMaxDueByParentIdMap() {
+        List<Object[]> rows = scheduledPaymentRepository.findMaxDueDateByParentId();
+        Map<Long, LocalDateTime> map = new HashMap<>(rows.size());
+        for (Object[] row : rows) {
+            Long parentId = (Long) row[0];
+            LocalDateTime maxDue = (LocalDateTime) row[1];
+            if (parentId != null && maxDue != null) {
+                map.merge(parentId, maxDue, (a, b) -> a.isAfter(b) ? a : b);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Calcule la prochaine date d'échéance à partir de la date de référence (dernière dans la série).
+     */
+    private LocalDateTime calculateNextDueDate(ScheduledPayment template, LocalDateTime fromDate) {
+        RecurrenceFrequency frequency = template.getRecurrenceFrequency();
+        if (frequency == null) {
+            return fromDate.plusDays(1);
+        }
         return switch (frequency) {
-            case DAILY -> dueDate.plusDays(1);
+            case DAILY -> fromDate.plusDays(1);
 
             case WEEKLY -> {
-                List<Integer> daysOfWeek = payment.getRecurrenceDaysOfWeek();
-                int currentDayOfWeek = dueDate.getDayOfWeek().getValue();
+                List<Integer> daysOfWeek = template.getRecurrenceDaysOfWeek();
+                if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+                    yield fromDate.plusDays(7);
+                }
+                int currentDayOfWeek = fromDate.getDayOfWeek().getValue();
                 List<Integer> sorted = new ArrayList<>(daysOfWeek);
                 Collections.sort(sorted);
                 Integer nextDay = sorted.stream().filter(d -> d > currentDayOfWeek).findFirst().orElse(null);
                 int daysToAdd = nextDay != null
                         ? nextDay - currentDayOfWeek
                         : (7 - currentDayOfWeek) + sorted.getFirst();
-                yield dueDate.plusDays(daysToAdd);
+                yield fromDate.plusDays(daysToAdd);
             }
 
             case MONTHLY -> {
-                Integer dayOfMonth = payment.getRecurrenceDayOfMonth();
-                LocalDate nextMonth = dueDate.toLocalDate().plusMonths(1);
+                Integer dayOfMonth = template.getRecurrenceDayOfMonth();
+                LocalDate nextMonth = fromDate.toLocalDate().plusMonths(1);
                 if (dayOfMonth != null) {
                     int day = Math.min(dayOfMonth, nextMonth.lengthOfMonth());
-                    yield nextMonth.withDayOfMonth(day).atTime(dueDate.toLocalTime());
+                    yield nextMonth.withDayOfMonth(day).atTime(fromDate.toLocalTime());
                 }
-                yield dueDate.plusMonths(1);
+                yield fromDate.plusMonths(1);
             }
 
             case YEARLY -> {
-                Integer dayOfYear = payment.getRecurrenceDayOfYear();
-                int nextYear = dueDate.getYear() + 1;
+                Integer dayOfYear = template.getRecurrenceDayOfYear();
+                int nextYear = fromDate.getYear() + 1;
                 if (dayOfYear != null) {
                     int yearLength = LocalDate.of(nextYear, 12, 31).lengthOfYear();
                     int d = Math.min(dayOfYear, yearLength);
                     LocalDate target = LocalDate.of(nextYear, 1, 1).plusDays(d - 1);
-                    yield target.atTime(dueDate.toLocalTime());
+                    yield target.atTime(fromDate.toLocalTime());
                 }
-                yield dueDate.plusYears(1);
+                yield fromDate.plusYears(1);
             }
         };
     }
 
     /**
-     * Crée le prochain paiement planifié basé sur le paiement payé
+     * Crée une occurrence avec parent_scheduled_payment_id = template.getId() et isRecurring = false.
      */
-    private ScheduledPayment createNextPayment(ScheduledPayment template, LocalDateTime nextDueDate) {
+    private ScheduledPayment createOccurrenceFromTemplate(ScheduledPayment template, LocalDateTime nextDueDate) {
         ScheduledPayment nextPayment = new ScheduledPayment();
         nextPayment.setName(template.getName());
         nextPayment.setAmount(template.getAmount());
         nextPayment.setPaymentMethod(template.getPaymentMethod());
         nextPayment.setBeneficiary(template.getBeneficiary());
-        nextPayment.setIsRecurring(true);
-        nextPayment.setRecurrenceFrequency(template.getRecurrenceFrequency());
-        nextPayment.setRecurrenceEndDate(template.getRecurrenceEndDate());
-        
-        // Créer une nouvelle liste pour éviter le partage de référence (erreur Hibernate)
-        if (template.getRecurrenceDaysOfWeek() != null) {
-            nextPayment.setRecurrenceDaysOfWeek(new ArrayList<>(template.getRecurrenceDaysOfWeek()));
-        }
-        nextPayment.setRecurrenceDayOfMonth(template.getRecurrenceDayOfMonth());
-        nextPayment.setRecurrenceDayOfYear(template.getRecurrenceDayOfYear());
+        nextPayment.setIsRecurring(false);
+        nextPayment.setRecurrenceFrequency(null);
+        nextPayment.setRecurrenceEndDate(null);
+        nextPayment.setRecurrenceDaysOfWeek(null);
+        nextPayment.setRecurrenceDayOfMonth(null);
+        nextPayment.setRecurrenceDayOfYear(null);
+        nextPayment.setParentScheduledPaymentId(template.getId());
         nextPayment.setNotificationOption(template.getNotificationOption());
         nextPayment.setIsPaid(false);
         nextPayment.setUser(template.getUser());
         nextPayment.setCategory(template.getCategory());
         nextPayment.setDueDate(nextDueDate);
         nextPayment.setCreationDate(LocalDateTime.now());
-        
         return nextPayment;
     }
 
