@@ -45,6 +45,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     /**
      * Vérifie si une dépense similaire existe déjà pour la date (éviter doublons batch récurrent).
+     * Utilisée pour des vérifications ponctuelles. Pour le batch, préférer une requête agrégée.
      */
     @Query("""
         SELECT COUNT(e) > 0 FROM Expense e
@@ -59,6 +60,19 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("categoryId") Long categoryId,
             @Param("amount") Double amount,
             @Param("creationDate") LocalDate creationDate);
+
+    /**
+     * Une seule requête pour récupérer les combinaisons (user, category, amount) qui ont déjà
+     * une dépense à la date donnée. Optimisée pour le batch récurrent.
+     * Résultat: [userId, categoryId, amount]
+     */
+    @Query("""
+        SELECT e.user.id, e.category.id, e.amount
+        FROM Expense e
+        WHERE e.deleted = false
+        AND FUNCTION('DATE', e.creationDate) = :creationDate
+    """)
+    List<Object[]> findRecurringExpenseKeysForDate(@Param("creationDate") LocalDate creationDate);
 
 }
 

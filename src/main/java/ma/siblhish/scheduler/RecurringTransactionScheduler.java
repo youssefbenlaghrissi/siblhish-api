@@ -15,7 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -37,9 +40,20 @@ public class RecurringTransactionScheduler {
         LocalDateTime targetDate = LocalDateTime.now();
         log.info("🔄 Début du traitement par lot pour les transactions récurrentes - Date: {}", targetDate);
 
+        LocalDate today = targetDate.toLocalDate();
+
         // Traiter les dépenses récurrentes
         List<Expense> recurringExpenses = expenseRepository.findByIsRecurringTrueOrderByIdDesc();
-        int expensesGenerated = 0;
+        List<Expense> expensesToCreate = new ArrayList<>();
+        Set<String> existingExpenseKeys = new HashSet<>();
+
+        // Charger en une fois les clés déjà présentes pour aujourd'hui (user, category, amount)
+        for (Object[] row : expenseRepository.findRecurringExpenseKeysForDate(today)) {
+            Long userId = (Long) row[0];
+            Long categoryId = row[1] != null ? (Long) row[1] : null;
+            Double amount = (Double) row[2];
+            existingExpenseKeys.add(expenseKey(userId, categoryId, amount));
+        }
         
         for (Expense template : recurringExpenses) {
             try {
@@ -49,33 +63,50 @@ public class RecurringTransactionScheduler {
                         template.getRecurrenceDayOfMonth(),
                         template.getRecurrenceDayOfYear(),
                         template.getCreationDate(),
-                        targetDate.toLocalDate())) {
+                        today)) {
                     Long categoryId = template.getCategory() != null ? template.getCategory().getId() : null;
-                    if (expenseRepository.existsSimilarRecurringExpense(
-                            template.getUser().getId(), categoryId, template.getAmount(), targetDate.toLocalDate())) {
-                        log.debug("⏭️ Dépense récurrente similaire déjà en BDD pour user {} - {}", template.getUser().getId(), targetDate.toLocalDate());
+                    String key = expenseKey(template.getUser().getId(), categoryId, template.getAmount());
+                    if (existingExpenseKeys.contains(key)) {
+                        log.debug("⏭️ Dépense récurrente similaire déjà en BDD pour user {} - {}", template.getUser().getId(), today);
                         continue;
                     }
-                    Expense created = createRecurringExpense(template, targetDate);
-                    String description = buildRecurringExpenseDescription(created);
-                    createRecurringTransactionNotification(
-                            template.getUser().getId(),
-                            "💸 Dépense récurrente créée",
-                            description,
-                            null,
-                            "EXPENSE"
-                    );
-                        expensesGenerated++;
-                    }
+                    Expense newExpense = createRecurringExpense(template, targetDate);
+                    expensesToCreate.add(newExpense);
+                    existingExpenseKeys.add(key);
+                }
             } catch (Exception e) {
                 log.error("❌ Erreur lors de la génération de la dépense récurrente ID: {}", 
                         template.getId(), e);
             }
         }
+
+        int expensesGenerated = 0;
+        if (!expensesToCreate.isEmpty()) {
+            List<Expense> savedExpenses = expenseRepository.saveAll(expensesToCreate);
+            for (Expense created : savedExpenses) {
+                String description = buildRecurringExpenseDescription(created);
+                createRecurringTransactionNotification(
+                        created.getUser().getId(),
+                        "💸 Dépense récurrente créée",
+                        description,
+                        null,
+                        "EXPENSE"
+                );
+            }
+            expensesGenerated = savedExpenses.size();
+        }
         
         // Traiter les revenus récurrents
         List<Income> recurringIncomes = incomeRepository.findByIsRecurringTrueOrderByIdDesc();
-        int incomesGenerated = 0;
+        List<Income> incomesToCreate = new ArrayList<>();
+        Set<String> existingIncomeKeys = new HashSet<>();
+
+        // Charger en une fois les clés déjà présentes pour aujourd'hui (user, amount)
+        for (Object[] row : incomeRepository.findRecurringIncomeKeysForDate(today)) {
+            Long userId = (Long) row[0];
+            Double amount = (Double) row[1];
+            existingIncomeKeys.add(incomeKey(userId, amount));
+        }
         
         for (Income template : recurringIncomes) {
             try {
@@ -85,31 +116,48 @@ public class RecurringTransactionScheduler {
                         template.getRecurrenceDayOfMonth(),
                         template.getRecurrenceDayOfYear(),
                         template.getCreationDate(),
-                        targetDate.toLocalDate())) {
-                    if (incomeRepository.existsSimilarRecurringIncome(
-                            template.getUser().getId(), template.getAmount(), targetDate.toLocalDate())) {
-                        log.debug("⏭️ Revenu récurrent similaire déjà en BDD pour user {} - {}", template.getUser().getId(), targetDate.toLocalDate());
+                        today)) {
+                    String key = incomeKey(template.getUser().getId(), template.getAmount());
+                    if (existingIncomeKeys.contains(key)) {
+                        log.debug("⏭️ Revenu récurrent similaire déjà en BDD pour user {} - {}", template.getUser().getId(), today);
                         continue;
                     }
-                    Income created = createRecurringIncome(template, targetDate);
-                        String description = buildRecurringIncomeDescription(created);
-                        createRecurringTransactionNotification(
-                                created.getUser().getId(),
-                                "💰 Revenu récurrent créé",
-                                description,
-                                null,
-                                "INCOME"
-                        );
-                        incomesGenerated++;
-                    }
+                    Income newIncome = createRecurringIncome(template, targetDate);
+                    incomesToCreate.add(newIncome);
+                    existingIncomeKeys.add(key);
+                }
             } catch (Exception e) {
                 log.error("❌ Erreur lors de la génération du revenu récurrent ID: {}", 
                         template.getId(), e);
             }
         }
+
+        int incomesGenerated = 0;
+        if (!incomesToCreate.isEmpty()) {
+            List<Income> savedIncomes = incomeRepository.saveAll(incomesToCreate);
+            for (Income created : savedIncomes) {
+                String description = buildRecurringIncomeDescription(created);
+                createRecurringTransactionNotification(
+                        created.getUser().getId(),
+                        "💰 Revenu récurrent créé",
+                        description,
+                        null,
+                        "INCOME"
+                );
+            }
+            incomesGenerated = savedIncomes.size();
+        }
         
         log.info("✅ Traitement terminé: {} dépenses et {} revenus générés", 
                 expensesGenerated, incomesGenerated);
+    }
+
+    private String expenseKey(Long userId, Long categoryId, Double amount) {
+        return userId + "|" + (categoryId != null ? categoryId : "null") + "|" + amount;
+    }
+
+    private String incomeKey(Long userId, Double amount) {
+        return userId + "|" + amount;
     }
 
     /**
@@ -187,11 +235,7 @@ public class RecurringTransactionScheduler {
         newExpense.setRecurrenceFrequency(null);
         newExpense.setUser(template.getUser());
         newExpense.setCategory(template.getCategory());
-        
-        Expense saved = expenseRepository.save(newExpense);
-        log.debug("✅ Dépense récurrente créée: {} MAD pour l'utilisateur {}", 
-                template.getAmount(), template.getUser().getId());
-        return saved;
+        return newExpense;
     }
 
     /**
@@ -207,11 +251,7 @@ public class RecurringTransactionScheduler {
         newIncome.setIsRecurring(false); // La transaction générée n'est pas récurrente
         newIncome.setRecurrenceFrequency(null);
         newIncome.setUser(template.getUser());
-        
-        Income saved = incomeRepository.save(newIncome);
-        log.debug("✅ Revenu récurrent créé: {} MAD pour l'utilisateur {}", 
-                template.getAmount(), template.getUser().getId());
-        return saved;
+        return newIncome;
     }
 
     /**

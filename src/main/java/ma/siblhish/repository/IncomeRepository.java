@@ -27,6 +27,7 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
 
     /**
      * Vérifie si un revenu similaire existe déjà pour la date (éviter doublons batch récurrent).
+     * Utilisée pour des vérifications ponctuelles. Pour le batch, préférer une requête agrégée.
      */
     @Query("""
         SELECT COUNT(i) > 0 FROM Income i
@@ -39,5 +40,18 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
             @Param("userId") Long userId,
             @Param("amount") Double amount,
             @Param("creationDate") LocalDate creationDate);
+
+    /**
+     * Une seule requête pour récupérer les combinaisons (user, amount) qui ont déjà
+     * un revenu à la date donnée. Optimisée pour le batch récurrent.
+     * Résultat: [userId, amount]
+     */
+    @Query("""
+        SELECT i.user.id, i.amount
+        FROM Income i
+        WHERE i.deleted = false
+        AND FUNCTION('DATE', i.creationDate) = :creationDate
+    """)
+    List<Object[]> findRecurringIncomeKeysForDate(@Param("creationDate") LocalDate creationDate);
 }
 
