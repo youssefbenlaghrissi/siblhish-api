@@ -47,7 +47,7 @@ public class ScheduledPaymentReminderScheduler {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
 
-    @Scheduled(cron = "0 0 1 * * ?")
+    @Scheduled(cron = "0 0 6 * * ?")
     @Transactional
     public void sendPaymentReminders() {
         sendPaymentRemindersInternal();

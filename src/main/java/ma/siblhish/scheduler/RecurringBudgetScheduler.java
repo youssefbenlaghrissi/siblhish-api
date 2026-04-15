@@ -38,7 +38,7 @@ public class RecurringBudgetScheduler {
      * Créer les budgets récurrents pour le mois en cours.
      * Exécuté le 1er de chaque mois à 00:01:00
      */
-    @Scheduled(cron = "0 25 3 * * ?") // Le 1er de chaque mois à 00:01:00 : 0 1 0 1 * ?
+    @Scheduled(cron = "0 1 0 1 * ?") // Le 1er de chaque mois à 00:01:00 : 0 1 0 1 * ?
     @Transactional
     public void createRecurringBudgetsForCurrentMonth() {
         logger.info("🔄 Démarrage de la création automatique des budgets récurrents pour le mois en cours");
