@@ -75,11 +75,16 @@ public class UserService {
         }
         
         // Nouvel utilisateur : créer avec notificationsEnabled envoyé
-        String[] names = displayName != null ? displayName.split(" ", 2) : new String[]{"User"};
+        // IMPORTANT: l'entité User a des contraintes @NotBlank sur firstName/lastName,
+        // donc on garantit toujours des valeurs non vides même si displayName est incomplet.
+        String safeDisplayName = displayName != null ? displayName.trim() : "";
+        String[] names = !safeDisplayName.isEmpty() ? safeDisplayName.split("\\s+", 2) : new String[]{"User"};
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setFirstName(names.length > 0 ? names[0] : "User");
-        newUser.setLastName(names.length > 1 ? names[1] : "");
+        String firstName = (names.length > 0 && names[0] != null && !names[0].trim().isEmpty()) ? names[0].trim() : "User";
+        String lastName = (names.length > 1 && names[1] != null && !names[1].trim().isEmpty()) ? names[1].trim() : firstName;
+        newUser.setFirstName(firstName);
+        newUser.setLastName(lastName);
         newUser.setPassword("oauth_" + provider);
         newUser.setLanguage("fr");
         // Utiliser notificationsEnabled envoyé, ou true par défaut si null
